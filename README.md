@@ -1,105 +1,88 @@
-# TypeScript LLM Agent Context Network Template
-This project is a specialized template for building intelligent TypeScript agents using the Mastra framework with OpenRouter as the model provider (more info at https://jwynia.github.io/context-networks/). It provides a structured approach to managing the complex web of decisions, designs, and domain knowledge that underlies LLM agent development.
+# CorticAI
 
-Unlike generic context networks, this template is tailored to address the unique knowledge management challenges of LLM agent development: model selection strategies, agent architecture patterns, tool integration complexities, workflow orchestration decisions, and the gap between "how we designed the agent" and "what we built" creates dangerous knowledge silos in the rapidly evolving AI agent ecosystem.
+**Living memory for intelligent development**
 
-## Project Structure
+CorticAI will be a context engine that gives your projects persistent, intelligent memory. Like a digital cortex, it will maintain context across sessions, prevent knowledge loss, and enable AI agents and developers to understand code and documents from multiple perspectives. Built with TypeScript and the Mastra.ai framework, CorticAI will transform isolated files into a living knowledge graph that learns and evolves with your project.
 
-This template uses a clear separation between planning and implementation:
+## The Problem
 
-```
-project-root/
-├── .context-network.md          # Discovery file
-├── README.md                    # This file
-├── .gitignore                   # Root-level git ignores
-├── .devcontainer/               # Development container config
-├── context-network/             # All planning & architecture docs
-└── app/                         # Your TypeScript LLM agent project goes here
-```
+Every project suffers from context fragmentation:
+- AI agents recreate the same files repeatedly, having no memory of previous work
+- Deleted branches take valuable learning with them  
+- Knowledge exists in silos across code, docs, issues, and human memory
+- File systems force single-hierarchy organization when you need multiple views
+- Context degrades over time as documentation goes stale and patterns are forgotten
 
-The `app/` directory is where your actual TypeScript LLM agent project will live - everything that would normally be in a Mastra agent project root. This keeps the context network and development tooling separate from your agent implementation code.
+## The Solution
 
-## Getting Started
+CorticAI will act as a persistent cortex layer for your projects, providing:
 
-To use this TypeScript LLM Agent context network template:
+**Intelligent Memory** - Will maintain context across all sessions, preventing amnesia loops where agents recreate existing work
 
-1. **Clone this template** for your new TypeScript LLM agent project
-2. **Connect with an LLM agent** that has file access to all files in the project folder (via IDE coding tools like Cursor or VSCode with Cline)
-3. **Set up the prompts** (see below) to ensure the agent understands context networks
-4. **Initialize your agent project** in the `app/` directory using Mastra:
-   - `cd app && npm init` for a basic TypeScript project
-   - `cd app && npm install @mastra/core @mastra/cli` for Mastra framework
-   - `cd app && npx @mastra/cli init` to initialize Mastra project structure
-   - Set up OpenRouter API key: `export OPENROUTER_API_KEY=your_key_here`
-5. **Start a planning conversation** describing your LLM agent goals, capabilities, and constraints
-6. **Let the agent enhance the context network** with your project-specific agent information
-7. **Begin development tasks** with clear separation between planning (context network) and implementation (app/)
+**Multi-Perspective Access** - Will enable viewing the same code through different lenses (debugging, architecture, performance) with relevant context emphasized
 
-This template maintains a clear boundary between knowledge artifacts (context network) and implementation artifacts (app/), allowing your team to document "why" and "how" separately from the TypeScript agent code that represents "what is."
+**Organic Evolution** - Will learn patterns from usage, consolidate knowledge during quiet periods, and grow more intelligent over time
 
-## Cost
-Because context networks are a relatively cutting-edge approach to collaboration with LLM AI agents, these tools do cost money and some of the best of them can cost more money than you may be expecting. The costs on such things are dropping and much of what we're doing with context networks is figuring out the ways to work that will be more widespread next year and beyond, when these costs drop. If these tools are too expensive for your budget, that probably means you need to wait a bit.
+**Universal Connections** - Will create rich relationships between all project elements, from code functions to design decisions to issue discussions
 
-## Tools
-Cursor (https://www.cursor.com/) is an all-in-one that comes with LLM chat and an agent that can act on the files.
+**Historical Preservation** - Will maintain a complete episodic archive, including deleted branches and failed experiments, so learning is never lost
 
-Cursor is built on VSCode (https://code.visualstudio.com/), which is a more generic code/text editor that can have plugins added. One we use a lot with context networks is Cline (https://cline.bot/). Cline's agent can be pointed at a wide range of LLM APIs that you use your own keys/billing for or their own management of that. For LLM agent development, we recommend using OpenRouter (https://openrouter.ai/) which provides access to multiple LLM providers through a unified API, perfect for building agents that need access to different models for different tasks.
+**Intelligent Deduplication** - Will actively prevent duplicate file creation and maintain information freshness through automatic consolidation
 
-## Patterns
-### Prompts
-For whatever agent you use, you need to include instructions in the system prompt or custom instructions that tell it about context networks and how to navigate them. The prompt in /inbox/custom-instructions-prompt.md is the one a lot of people are using for Cline with Claude Sonnet as the model.
+## How It Will Work
 
-Add it in either your agent's configuration screen or via its file-based prompt management system.
+CorticAI will implement a dual-layer architecture inspired by human memory:
 
-### TypeScript LLM Agent Specific Documentation Patterns
-This template includes specialized patterns for LLM agent documentation:
+1. **Working Memory** - Captures immediate changes and active patterns
+2. **Semantic Memory** - Stores consolidated, long-term knowledge  
+3. **Episodic Archive** - Preserves complete history for conflict resolution
 
-1. **Agent Architecture Decision Records** - Document agent design patterns and model selection choices
-2. **Tool Integration Strategies** - Document tool composition, external API integrations, and capability decisions
-3. **Workflow Orchestration Patterns** - Document step-based execution, branching logic, and parallel processing
-4. **Model Selection Guidelines** - Document OpenRouter model choices, cost optimization, and performance tuning
-5. **Memory Management Strategy** - Document conversation persistence, context handling, and semantic search
-6. **Security and Safety Patterns** - Document prompt injection protection, input sanitization, and API security
-7. **Agent Performance Registry** - Track model performance, cost optimization, and capability improvements
+During active development, CorticAI will observe and index all changes. During quiet periods, it will consolidate knowledge, detect patterns, and update its understanding - similar to how human memory consolidates during sleep.
 
-### Plan/Act and Specific Scope
-Cline and many other agents have multiple modes, usually offering one that lets you have a conversation with it separate from it taking action on files. In Cline, that's "Plan". In that mode, it won't make any changes to your files.
+## Planned Features
 
-Use that mode aggressively to get to a specific plan for what will happen when you toggle to act. That plan should have a clear definition of what "done" will look like, should be as close to a single action as possible.
+- **Domain Agnostic** - Will work equally well with code, documentation, contracts, creative writing, or any text-based content
+- **Progressive Context Loading** - Will load information at the appropriate level of detail (signature → structure → semantic → detailed → historical)
+- **Lens System** - Task-specific views that will emphasize relevant information and hide distractions
+- **External Integration** - Will connect with GitHub Issues, Jira, and other tools to augment context
+- **Decision Governance** - Optional integration with decision approval systems to prevent unilateral architectural choices
+- **Pattern Learning** - Will discover patterns across domains and projects, building reusable knowledge
 
-That often means that the action is to detail out a list of tasks that you'll actually have the agent do separately, one at a time. The "do one thing" can mean break the existing scope down another level to get to a more detailed plan. 
+## Technology Stack
 
-Basically, the more specific the action that Act mode or its equivalent is given, the better job it will do at managing token budget, at not volunteering to do a bunch of extra things,  and the more likely it does something you've already had a chance to approve.
+- **TypeScript** - Full type safety and modern JavaScript features
+- **Mastra.ai** - Powerful AI agent framework for intelligent operations
+- **Kuzu** - Embedded graph database for relationship management
+- **DuckDB** - High-performance analytics for materialized views and search
 
-### Monitor and Interrupt
-The more you actually read and monitor what your agent is doing for anything that you disagree with or sounds incorrect and step in to interrupt, the better your context network will mature. Like hiring a new assistant, where for the first few weeks, you have to tell them your preferences and ways you want things done, it pays off over the long haul.
+## Use Cases
 
-Interrupt, flip to Plan mode, and ask things like:
+- **AI-Assisted Development** - Give AI agents memory across sessions
+- **Large Codebases** - Navigate complex projects through conceptual relationships
+- **Team Knowledge Management** - Preserve institutional knowledge as team members change
+- **Multi-Domain Projects** - Connect code, documentation, contracts, and communications
+- **Learning & Analysis** - Discover patterns and insights across project history
 
-* How can we document into the context network a way of working so we don't repeat (the problem/misunderstanding above)?
-* I'd really prefer we always write out a plan with tasks before doing things ad hoc. How can we clarify what's in the context network to make that our process going forward?
+## Philosophy
 
+CorticAI is built on the principle that **context is not metadata - it's memory**. Just as the human cortex maintains rich, interconnected memories that inform understanding, CorticAI will create a living knowledge graph that makes your project's implicit knowledge explicit and accessible.
 
-### Retrospective
-At the end of tasks and periodically AS a new task, ask how things could be improved. For task end, "What from this conversation and task should be documented in the context network?" For periodic retrospectives, "What have we learned in this project that could be used to improve the context network for our efforts going forward?"
+## Status
 
-## TypeScript LLM Agent Project Success Metrics
+CorticAI is in the design phase. Development will begin with the core storage and indexing engine, followed by the intelligence layer and external integrations. We welcome feedback on the architecture and approach as we build toward an initial release.
 
-This context network template helps measure success through:
+## Documentation
 
-- **Time to first functional agent** for new LLM agent developers
-- **Agent architecture decision speed** and confidence
-- **Model selection consistency** and cost optimization across team members
-- **Frequency of "archaeology" requests** (digging for lost agent design knowledge)
-- **Documentation coverage** of agents, tools, workflows, and integrations
-- **Decision traceability** for model choices and agent architecture decisions
-- **Documentation update frequency** relative to agent code and capability changes
-- **Developer confidence** in building and modifying intelligent agents
-- **Stakeholder understanding** of agent capabilities, limitations, and costs
-- **Reduction in repeated LLM integration and agent architecture mistakes**
-- **Tool integration management** clarity and reliability
-- **Agent deployment and monitoring** understanding and effectiveness
-- **Cost optimization** through intelligent model selection and usage patterns
-- **Agent response quality** and consistency improvements over time
+The complete design documentation is available in the `/docs` directory, including:
+- Problem Analysis & Requirements
+- System Architecture & Design  
+- Implementation Guide
+- API Specifications
 
-By maintaining a well-structured context network alongside your TypeScript LLM agent codebase, your team builds a shared brain that enables faster agent development, better architectural decisions, and more confident evolution of intelligent agent systems in the rapidly advancing AI ecosystem.
+## License
+
+MIT
+
+---
+
+*Named after the cortex - the part of the brain responsible for memory, awareness, and thought - CorticAI brings these same capabilities to your development workflow.*
