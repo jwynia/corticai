@@ -13,6 +13,8 @@ This document defines the implementation phases for CorticAI, structured by depe
 
 The implementation follows a dependency-driven sequence where each phase enables the next. The system is designed for incremental development with value delivery at each phase.
 
+**IMPORTANT**: Each phase includes integrated research tasks that validate approaches before full implementation. These research tasks are first-class work items, not separate activities.
+
 ## Phase Dependencies
 
 ```mermaid
