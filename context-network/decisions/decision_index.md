@@ -45,7 +45,10 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - *None yet*
 
 #### Accepted
-- *None yet*
+- [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md) - Defines how data flows between workflow steps
+- [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md) - Use Kuzu embedded graph database for relationship storage
+- [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md) - Use DuckDB for analytics and materialized views
+- [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md) - Implement working/semantic/episodic memory tiers
 
 #### Deprecated
 - *None yet*
@@ -56,13 +59,15 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 ### ADRs by Domain
 
 #### Foundation
-- *None yet*
+- [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
 
 #### Architecture
-- *None yet*
+- [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
+- [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
 
 #### Technology
-- *None yet*
+- [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
+- [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md)
 
 #### Process
 - *None yet*
@@ -71,20 +76,26 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - *None yet*
 
 #### Performance
-- *None yet*
+- [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md) - Analytics performance optimization
+- [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md) - Memory management and performance
 
 ### ADRs by Chronology
 
 #### 2025
-- *None yet*
+- June: [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
+- August 28: [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
+- August 28: [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md)
+- August 28: [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
 
 ### ADRs by Component
 
-#### Component 1
-- *None yet*
+#### Storage Layer
+- [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
+- [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md)
+- [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
 
-#### Component 2
-- *None yet*
+#### Workflow Engine
+- [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
 
 ### Creating New ADRs
 
