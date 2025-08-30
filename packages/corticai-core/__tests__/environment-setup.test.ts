@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { existsSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
@@ -15,6 +15,25 @@ function parseJsonFile(filePath: string, fileName: string): any {
 describe('Environment Setup', () => {
   const projectRoot = join(__dirname, '..');
   
+  // Cache frequently accessed files to reduce I/O
+  let packageJson: any;
+  let tsconfig: any;
+  let eslintConfig: any;
+  let prettierConfig: any;
+  
+  // Load files once before all tests
+  beforeAll(() => {
+    const packageJsonPath = join(projectRoot, 'package.json');
+    const tsconfigPath = join(projectRoot, 'tsconfig.json');
+    const eslintConfigPath = join(projectRoot, '.eslintrc.json');
+    const prettierConfigPath = join(projectRoot, '.prettierrc');
+    
+    packageJson = parseJsonFile(packageJsonPath, 'package.json');
+    tsconfig = parseJsonFile(tsconfigPath, 'tsconfig.json');
+    eslintConfig = parseJsonFile(eslintConfigPath, '.eslintrc.json');
+    prettierConfig = parseJsonFile(prettierConfigPath, '.prettierrc');
+  });
+  
   describe('Project Structure', () => {
     it('should have a package.json file', () => {
       const packageJsonPath = join(projectRoot, 'package.json');
@@ -22,8 +41,6 @@ describe('Environment Setup', () => {
     });
 
     it('should have correct package.json configuration', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.name).toBe('@corticai/core');
       expect(packageJson.version).toBeDefined();
@@ -35,8 +52,6 @@ describe('Environment Setup', () => {
     it('should have TypeScript configuration', () => {
       const tsconfigPath = join(projectRoot, 'tsconfig.json');
       expect(existsSync(tsconfigPath)).toBe(true);
-      
-      const tsconfig = parseJsonFile(tsconfigPath, 'tsconfig.json');
       expect(tsconfig.compilerOptions).toBeDefined();
       expect(tsconfig.compilerOptions.target).toMatch(/ES2022|ESNext/);
       expect(tsconfig.compilerOptions.module).toMatch(/ESNext|NodeNext/);
@@ -55,8 +70,6 @@ describe('Environment Setup', () => {
 
   describe('Build Configuration', () => {
     it('should have build scripts configured', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.scripts).toBeDefined();
       expect(packageJson.scripts.build).toBeDefined();
@@ -65,16 +78,12 @@ describe('Environment Setup', () => {
     });
 
     it('should have tsx configured for development', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.tsx).toBeDefined();
       expect(packageJson.scripts.dev).toContain('tsx');
     });
 
     it('should have esbuild configured for production builds', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.esbuild).toBeDefined();
     });
@@ -92,8 +101,6 @@ describe('Environment Setup', () => {
 
   describe('Testing Framework', () => {
     it('should have vitest configured', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.vitest).toBeDefined();
       expect(packageJson.scripts.test).toBeDefined();
@@ -106,8 +113,6 @@ describe('Environment Setup', () => {
     });
 
     it('should have test coverage script', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.scripts['test:coverage']).toBeDefined();
       expect(packageJson.scripts['test:coverage']).toContain('--coverage');
@@ -116,8 +121,6 @@ describe('Environment Setup', () => {
 
   describe('Linting and Formatting', () => {
     it('should have ESLint configured', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.eslint).toBeDefined();
       expect(packageJson.devDependencies?.['@typescript-eslint/parser']).toBeDefined();
@@ -128,15 +131,11 @@ describe('Environment Setup', () => {
     it('should have ESLint configuration file', () => {
       const eslintConfigPath = join(projectRoot, '.eslintrc.json');
       expect(existsSync(eslintConfigPath)).toBe(true);
-      
-      const eslintConfig = parseJsonFile(eslintConfigPath, '.eslintrc.json');
       expect(eslintConfig.parser).toBe('@typescript-eslint/parser');
       expect(eslintConfig.plugins).toContain('@typescript-eslint');
     });
 
     it('should have Prettier configured', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.prettier).toBeDefined();
       expect(packageJson.scripts.format).toBeDefined();
@@ -145,16 +144,12 @@ describe('Environment Setup', () => {
     it('should have Prettier configuration file', () => {
       const prettierConfigPath = join(projectRoot, '.prettierrc');
       expect(existsSync(prettierConfigPath)).toBe(true);
-      
-      const prettierConfig = parseJsonFile(prettierConfigPath, '.prettierrc');
       expect(prettierConfig.semi).toBeDefined();
       expect(prettierConfig.singleQuote).toBeDefined();
       expect(prettierConfig.tabWidth).toBe(2);
     });
 
     it('should have git hooks configured', () => {
-      const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.husky).toBeDefined();
       expect(packageJson.devDependencies?.['lint-staged']).toBeDefined();
@@ -163,8 +158,6 @@ describe('Environment Setup', () => {
 
   describe('Path Aliases', () => {
     it('should have path aliases configured in tsconfig', () => {
-      const tsconfigPath = join(projectRoot, 'tsconfig.json');
-      const tsconfig = parseJsonFile(tsconfigPath, 'tsconfig.json');
       
       expect(tsconfig.compilerOptions.paths).toBeDefined();
       expect(tsconfig.compilerOptions.paths['@/*']).toBeDefined();
