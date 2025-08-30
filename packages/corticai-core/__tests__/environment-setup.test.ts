@@ -1,7 +1,16 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+
+// Helper function for safe JSON parsing
+function parseJsonFile(filePath: string, fileName: string): any {
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf-8'));
+  } catch (error) {
+    throw new Error(`Failed to parse ${fileName}: ${error}`);
+  }
+}
 
 describe('Environment Setup', () => {
   const projectRoot = join(__dirname, '..');
@@ -14,7 +23,7 @@ describe('Environment Setup', () => {
 
     it('should have correct package.json configuration', () => {
       const packageJsonPath = join(projectRoot, 'package.json');
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.name).toBe('@corticai/core');
       expect(packageJson.version).toBeDefined();
@@ -27,7 +36,7 @@ describe('Environment Setup', () => {
       const tsconfigPath = join(projectRoot, 'tsconfig.json');
       expect(existsSync(tsconfigPath)).toBe(true);
       
-      const tsconfig = JSON.parse(readFileSync(tsconfigPath, 'utf-8'));
+      const tsconfig = parseJsonFile(tsconfigPath, 'tsconfig.json');
       expect(tsconfig.compilerOptions).toBeDefined();
       expect(tsconfig.compilerOptions.target).toMatch(/ES2022|ESNext/);
       expect(tsconfig.compilerOptions.module).toMatch(/ESNext|NodeNext/);
@@ -46,9 +55,8 @@ describe('Environment Setup', () => {
 
   describe('Build Configuration', () => {
     it('should have build scripts configured', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.scripts).toBeDefined();
       expect(packageJson.scripts.build).toBeDefined();
@@ -57,18 +65,16 @@ describe('Environment Setup', () => {
     });
 
     it('should have tsx configured for development', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.tsx).toBeDefined();
       expect(packageJson.scripts.dev).toContain('tsx');
     });
 
     it('should have esbuild configured for production builds', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.esbuild).toBeDefined();
     });
@@ -86,9 +92,8 @@ describe('Environment Setup', () => {
 
   describe('Testing Framework', () => {
     it('should have vitest configured', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.vitest).toBeDefined();
       expect(packageJson.scripts.test).toBeDefined();
@@ -101,9 +106,8 @@ describe('Environment Setup', () => {
     });
 
     it('should have test coverage script', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.scripts['test:coverage']).toBeDefined();
       expect(packageJson.scripts['test:coverage']).toContain('--coverage');
@@ -112,9 +116,8 @@ describe('Environment Setup', () => {
 
   describe('Linting and Formatting', () => {
     it('should have ESLint configured', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.eslint).toBeDefined();
       expect(packageJson.devDependencies?.['@typescript-eslint/parser']).toBeDefined();
@@ -126,15 +129,14 @@ describe('Environment Setup', () => {
       const eslintConfigPath = join(projectRoot, '.eslintrc.json');
       expect(existsSync(eslintConfigPath)).toBe(true);
       
-      const eslintConfig = JSON.parse(readFileSync(eslintConfigPath, 'utf-8'));
+      const eslintConfig = parseJsonFile(eslintConfigPath, '.eslintrc.json');
       expect(eslintConfig.parser).toBe('@typescript-eslint/parser');
       expect(eslintConfig.plugins).toContain('@typescript-eslint');
     });
 
     it('should have Prettier configured', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.prettier).toBeDefined();
       expect(packageJson.scripts.format).toBeDefined();
@@ -144,16 +146,15 @@ describe('Environment Setup', () => {
       const prettierConfigPath = join(projectRoot, '.prettierrc');
       expect(existsSync(prettierConfigPath)).toBe(true);
       
-      const prettierConfig = JSON.parse(readFileSync(prettierConfigPath, 'utf-8'));
+      const prettierConfig = parseJsonFile(prettierConfigPath, '.prettierrc');
       expect(prettierConfig.semi).toBeDefined();
       expect(prettierConfig.singleQuote).toBeDefined();
       expect(prettierConfig.tabWidth).toBe(2);
     });
 
     it('should have git hooks configured', () => {
-      const packageJson = JSON.parse(
-        readFileSync(join(projectRoot, 'package.json'), 'utf-8')
-      );
+      const packageJsonPath = join(projectRoot, 'package.json');
+      const packageJson = parseJsonFile(packageJsonPath, 'package.json');
       
       expect(packageJson.devDependencies?.husky).toBeDefined();
       expect(packageJson.devDependencies?.['lint-staged']).toBeDefined();
@@ -162,9 +163,8 @@ describe('Environment Setup', () => {
 
   describe('Path Aliases', () => {
     it('should have path aliases configured in tsconfig', () => {
-      const tsconfig = JSON.parse(
-        readFileSync(join(projectRoot, 'tsconfig.json'), 'utf-8')
-      );
+      const tsconfigPath = join(projectRoot, 'tsconfig.json');
+      const tsconfig = parseJsonFile(tsconfigPath, 'tsconfig.json');
       
       expect(tsconfig.compilerOptions.paths).toBeDefined();
       expect(tsconfig.compilerOptions.paths['@/*']).toBeDefined();
