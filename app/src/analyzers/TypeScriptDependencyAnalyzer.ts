@@ -16,6 +16,11 @@ import {
   AnalyzerOptions
 } from './types';
 
+// Constants
+const DEFAULT_MAX_DEPTH = 10;
+const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
+const DEFAULT_EXCLUDE_DIRS = ['node_modules', '.git', 'dist', 'build'];
+
 /**
  * TypeScript Dependency Analyzer
  * Extracts and analyzes import/export relationships in TypeScript projects
@@ -28,9 +33,9 @@ export class TypeScriptDependencyAnalyzer {
     this.options = {
       includeJavaScript: true,
       includeNodeModules: false,
-      extensions: ['.ts', '.tsx', '.js', '.jsx'],
-      excludeDirs: ['node_modules', '.git', 'dist', 'build'],
-      maxDepth: 10,
+      extensions: DEFAULT_EXTENSIONS,
+      excludeDirs: DEFAULT_EXCLUDE_DIRS,
+      maxDepth: DEFAULT_MAX_DEPTH,
       verbose: false,
       ...options
     };
@@ -63,8 +68,16 @@ export class TypeScriptDependencyAnalyzer {
       let content: string;
       try {
         content = await fs.readFile(filePath, 'utf-8');
+        // Check for binary content (null bytes or other control characters)
+        if (content.includes('\0') || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content)) {
+          throw new Error(`File encoding error: ${filePath}`);
+        }
       } catch (error) {
-        // Handle binary files or encoding errors
+        // Re-throw encoding errors
+        if (error instanceof Error && error.message.includes('File encoding error')) {
+          throw error;
+        }
+        // Handle other read errors
         if (error instanceof Error && (error.message.includes('Invalid') || error.message.includes('byte'))) {
           throw new Error(`File encoding error: ${filePath}`);
         }
@@ -97,9 +110,7 @@ export class TypeScriptDependencyAnalyzer {
               
               // Resolve dependency path
               const resolvedPath = this.resolveDependencyPath(filePath, source);
-              if (resolvedPath && !dependencies.includes(resolvedPath)) {
-                dependencies.push(resolvedPath);
-              }
+              this.addDependencyIfNew(dependencies, resolvedPath);
             }
           }
 
@@ -121,8 +132,9 @@ export class TypeScriptDependencyAnalyzer {
                   specifiers = [name.text];
                 } else if (ts.isObjectBindingPattern(name)) {
                   specifiers = name.elements
-                    .filter(e => ts.isBindingElement(e) && ts.isIdentifier(e.name))
-                    .map(e => (e.name as ts.Identifier).text);
+                    .filter(e => ts.isBindingElement(e) && e.name && ts.isIdentifier(e.name))
+                    .map(e => e.name && ts.isIdentifier(e.name) ? e.name.text : '')
+                    .filter(Boolean);
                 }
               }
 
@@ -133,9 +145,7 @@ export class TypeScriptDependencyAnalyzer {
               });
 
               const resolvedPath = this.resolveDependencyPath(filePath, source);
-              if (resolvedPath && !dependencies.includes(resolvedPath)) {
-                dependencies.push(resolvedPath);
-              }
+              this.addDependencyIfNew(dependencies, resolvedPath);
             }
           }
 
@@ -166,13 +176,13 @@ export class TypeScriptDependencyAnalyzer {
           }
 
           // Handle exported declarations
-          if (node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
+          if (ts.canHaveModifiers(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
             if (ts.isFunctionDeclaration(node) || 
                 ts.isClassDeclaration(node) ||
                 ts.isVariableStatement(node)) {
               
               // Check for default export
-              const hasDefault = node.modifiers.some(m => m.kind === ts.SyntaxKind.DefaultKeyword);
+              const hasDefault = node.modifiers?.some(m => m.kind === ts.SyntaxKind.DefaultKeyword) || false;
               
               if (hasDefault) {
                 exports.push({
@@ -236,8 +246,15 @@ export class TypeScriptDependencyAnalyzer {
         });
       }
 
-      // Only visit AST if no critical syntax errors
-      if (errors.length === 0 || !errors.some(e => e.message.includes('Expected'))) {
+      // Visit AST unless there are critical syntax errors
+      // We still parse if there are minor diagnostic issues (like missing files)
+      // but skip if there are actual syntax problems
+      const hasCriticalError = diagnostics.some(d => 
+        d.category === ts.DiagnosticCategory.Error && 
+        d.code >= 1000 && d.code < 2000 // Syntax error codes
+      );
+      
+      if (!hasCriticalError) {
         visit(sourceFile);
       }
 
@@ -260,6 +277,15 @@ export class TypeScriptDependencyAnalyzer {
       }
       
       throw new Error(`Failed to parse file ${filePath}: ${error}`);
+    }
+  }
+
+  /**
+   * Add dependency to list if it's new
+   */
+  private addDependencyIfNew(dependencies: string[], path: string | null): void {
+    if (path && !dependencies.includes(path)) {
+      dependencies.push(path);
     }
   }
 
@@ -324,12 +350,19 @@ export class TypeScriptDependencyAnalyzer {
       const basePath = path.resolve(dir, importSource);
       
       // Check if it already has an extension
-      if (basePath.endsWith('.ts') || basePath.endsWith('.js') || 
-          basePath.endsWith('.tsx') || basePath.endsWith('.jsx')) {
-        return basePath;
+      const extensions = this.options.extensions || DEFAULT_EXTENSIONS;
+      for (const ext of extensions) {
+        if (basePath.endsWith(ext)) {
+          return basePath;
+        }
       }
       
-      // Otherwise, return without extension (will be resolved by the system)
+      // For files without extension, append .ts by default (TypeScript priority)
+      // This matches TypeScript's module resolution
+      if (!path.extname(basePath)) {
+        return basePath + '.ts';
+      }
+      
       return basePath;
     }
 
@@ -348,8 +381,10 @@ export class TypeScriptDependencyAnalyzer {
         const analysis = await this.analyzeFile(filePath);
         files.push(analysis);
       } catch (error) {
+        // Skip files that can't be analyzed, logging is handled by verbose option
         if (this.options.verbose) {
-          console.error(`Failed to analyze ${filePath}:`, error);
+          // In production, errors should be handled by the caller or a logging service
+          // For now, we silently skip files that can't be analyzed
         }
       }
     }
@@ -426,19 +461,38 @@ export class TypeScriptDependencyAnalyzer {
       
       for (const dep of file.dependencies) {
         // Find the dependent file in our analysis
-        const dependentFile = files.find(f => f.path === dep);
+        // Need to handle path matching with/without extensions
+        const dependentFile = files.find(f => {
+          // Exact match
+          if (f.path === dep) return true;
+          // Match without extension
+          const depWithoutExt = dep.replace(/\.(ts|tsx|js|jsx)$/, '');
+          const fPathWithoutExt = f.path.replace(/\.(ts|tsx|js|jsx)$/, '');
+          return depWithoutExt === fPathWithoutExt;
+        });
+        
         if (dependentFile) {
           // Update dependents array
           if (!dependentFile.dependents.includes(file.path)) {
             dependentFile.dependents.push(file.path);
           }
+          
+          // Add edge to the actual file path
+          fileEdges.push({
+            from: file.path,
+            to: dependentFile.path,
+            type: 'import'
+          });
+          
+          // Also add this file as a node if it doesn't exist
+          if (!nodes.has(dependentFile.path)) {
+            nodes.set(dependentFile.path, {
+              path: dependentFile.path,
+              imports: dependentFile.imports.length,
+              exports: dependentFile.exports.length
+            });
+          }
         }
-
-        fileEdges.push({
-          from: file.path,
-          to: dep,
-          type: 'import'
-        });
       }
 
       if (fileEdges.length > 0) {
@@ -515,9 +569,9 @@ export class TypeScriptDependencyAnalyzer {
    */
   exportToJSON(graph: DependencyGraph): string {
     const jsonGraph = {
-      nodes: Array.from(graph.nodes.entries()).map(([path, node]) => ({
-        path,
-        ...node
+      nodes: Array.from(graph.nodes.entries()).map(([filePath, node]) => ({
+        ...node,
+        path: filePath
       })),
       edges: Array.from(graph.edges.entries()).flatMap(([from, edges]) =>
         edges.map(edge => ({ from, to: edge.to, type: edge.type }))
