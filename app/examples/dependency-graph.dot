@@ -1,0 +1,11 @@
+digraph dependencies {
+  rankdir=LR;
+  node [shape=box];
+  "/workspaces/corticai/app/src/mastra/agents/weather-agent.ts" [label="weather-agent.ts"];
+  "/workspaces/corticai/app/src/mastra/index.ts" [label="index.ts"];
+  "/workspaces/corticai/app/src/mastra/tools/weather-tool.ts" [label="weather-tool.ts"];
+  "/workspaces/corticai/app/src/mastra/workflows/weather-workflow.ts" [label="weather-workflow.ts"];
+  "/workspaces/corticai/app/src/mastra/agents/weather-agent.ts" -> "/workspaces/corticai/app/src/mastra/tools/weather-tool";
+  "/workspaces/corticai/app/src/mastra/index.ts" -> "/workspaces/corticai/app/src/mastra/workflows/weather-workflow";
+  "/workspaces/corticai/app/src/mastra/index.ts" -> "/workspaces/corticai/app/src/mastra/agents/weather-agent";
+}

@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "path": "/workspaces/corticai/app/src/mastra/agents/weather-agent.ts",
+      "imports": 5,
+      "exports": 1
+    },
+    {
+      "path": "/workspaces/corticai/app/src/mastra/index.ts",
+      "imports": 5,
+      "exports": 1
+    },
+    {
+      "path": "/workspaces/corticai/app/src/mastra/tools/weather-tool.ts",
+      "imports": 2,
+      "exports": 1
+    },
+    {
+      "path": "/workspaces/corticai/app/src/mastra/workflows/weather-workflow.ts",
+      "imports": 4,
+      "exports": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "/workspaces/corticai/app/src/mastra/agents/weather-agent.ts",
+      "to": "/workspaces/corticai/app/src/mastra/tools/weather-tool",
+      "type": "import"
+    },
+    {
+      "from": "/workspaces/corticai/app/src/mastra/index.ts",
+      "to": "/workspaces/corticai/app/src/mastra/workflows/weather-workflow",
+      "type": "import"
+    },
+    {
+      "from": "/workspaces/corticai/app/src/mastra/index.ts",
+      "to": "/workspaces/corticai/app/src/mastra/agents/weather-agent",
+      "type": "import"
+    }
+  ],
+  "cycles": []
+}
