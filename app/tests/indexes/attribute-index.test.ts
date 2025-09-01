@@ -321,12 +321,17 @@ describe('AttributeIndex', () => {
 
   describe('Performance', () => {
     it('should handle 10,000 entities efficiently', () => {
+      const TOTAL_ENTITIES = 10000;
+      const TYPE_COUNT = 10;
+      const CATEGORY_COUNT = 100;
+      const EXPECTED_ENTITIES_PER_TYPE = TOTAL_ENTITIES / TYPE_COUNT;
+      
       const startTime = Date.now();
       
-      // Add 10,000 entities with various attributes
-      for (let i = 0; i < 10000; i++) {
-        index.addAttribute(`entity${i}`, 'type', i % 10); // 10 different types
-        index.addAttribute(`entity${i}`, 'category', i % 100); // 100 categories
+      // Add entities with various attributes
+      for (let i = 0; i < TOTAL_ENTITIES; i++) {
+        index.addAttribute(`entity${i}`, 'type', i % TYPE_COUNT);
+        index.addAttribute(`entity${i}`, 'category', i % CATEGORY_COUNT);
         index.addAttribute(`entity${i}`, 'size', i);
       }
       
@@ -339,7 +344,7 @@ describe('AttributeIndex', () => {
       const queryTime = Date.now() - queryStart;
       
       expect(queryTime).toBeLessThan(10); // Query should complete in under 10ms
-      expect(results.size).toBe(1000); // Should find 1000 entities with type=5
+      expect(results.size).toBe(EXPECTED_ENTITIES_PER_TYPE);
     });
 
     it('should handle complex queries on large datasets efficiently', () => {

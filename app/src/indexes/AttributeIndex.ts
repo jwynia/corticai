@@ -168,6 +168,8 @@ export class AttributeIndex {
 
   /**
    * Find entities by a single attribute
+   * @param attribute - The attribute name to search for
+   * @param value - Optional value to match. If omitted, returns all entities with the attribute
    */
   findByAttribute(attribute: string, value?: any): Set<string> {
     const attributeMap = this.index.get(attribute);
@@ -175,6 +177,8 @@ export class AttributeIndex {
       return new Set();
     }
 
+    // Check arguments.length to differentiate between undefined passed explicitly vs omitted
+    // This allows findByAttribute('attr', undefined) to search for undefined values
     if (arguments.length === 1) {
       // Only one argument means we want ALL entities with this attribute
       const results = new Set<string>();
@@ -276,8 +280,11 @@ export class AttributeIndex {
     const dir = path.dirname(filePath);
     try {
       await mkdir(dir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist
+    } catch (error: any) {
+      // Only ignore EEXIST errors, re-throw others
+      if (error.code !== 'EEXIST') {
+        throw error;
+      }
     }
 
     // Serialize the index
