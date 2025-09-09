@@ -760,7 +760,7 @@ describe('TypeScriptDependencyAnalyzer', () => {
       const mostImported = report.mostImported.find(m => m.path.includes('format.ts'));
       expect(mostImported).toBeDefined();
       expect(mostImported!.importCount).toBe(2);
-    });
+    }, 40000);
 
     it('should detect circular dependencies in project', async () => {
       // Arrange - Create files with circular dependency
@@ -790,7 +790,7 @@ describe('TypeScriptDependencyAnalyzer', () => {
       expect(cycles[0].nodes).toHaveLength(2);
       expect(cycles[0].nodes.some(n => n.includes('moduleA.ts'))).toBe(true);
       expect(cycles[0].nodes.some(n => n.includes('moduleB.ts'))).toBe(true);
-    });
+    }, 40000);
   });
 
   describe('Performance tests', () => {
@@ -814,8 +814,8 @@ describe('TypeScriptDependencyAnalyzer', () => {
       // Assert
       expect(analysis.files).toHaveLength(fileCount);
       // TypeScript compiler is slow on first run, be more lenient
-      expect(duration).toBeLessThan(15000); // 15 seconds should be enough for 5 files
-    }, 30000); // Keep timeout at 30 seconds for safety
+      expect(duration).toBeLessThan(35000); // 35 seconds for coverage mode
+    }, 40000); // 40 seconds timeout for safety
   });
 
   describe('Error handling', () => {

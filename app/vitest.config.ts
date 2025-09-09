@@ -9,14 +9,21 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: [
+        'src/**/*.ts',
+        'src/**/*.tsx',
+      ],
       exclude: [
-        'node_modules/',
-        'tests/',
-        '*.config.ts',
-        '*.config.js',
+        'node_modules/**',
+        'tests/**',
+        '**/*.config.ts',
+        '**/*.config.js',
+        '.mastra/**',
+        'dist/**',
+        'coverage/**',
       ],
     },
-    testTimeout: 10000,
+    testTimeout: 30000,
   },
   resolve: {
     alias: {
