@@ -550,14 +550,14 @@ interface JSONStorageConfig extends StorageConfig {
 }
 
 /**
- * SQLite storage configuration
+ * DuckDB storage configuration
  */
-interface SQLiteStorageConfig extends StorageConfig {
-  type: 'sqlite'
+interface DuckDBStorageConfig extends StorageConfig {
+  type: 'duckdb'
   database: string  // File path or :memory:
   tableName?: string
-  wal?: boolean     // Write-ahead logging
-  foreign_keys?: boolean
+  parquet?: boolean // Enable Parquet support
+  threads?: number  // Worker threads for analytics
 }
 
 /**
@@ -634,7 +634,7 @@ const user = await storage.get('user:123')
 ### Query Usage
 ```typescript
 // Queryable storage
-const storage: QueryableStorage<Document> = new SQLiteStorageAdapter({
+const storage: QueryableStorage<Document> = new DuckDBStorageAdapter({
   database: './data/documents.db'
 })
 
@@ -657,7 +657,7 @@ for await (const doc of docs) {
 ### Transaction Usage
 ```typescript
 // Transactional storage
-const storage: TransactionalStorage<Account> = new SQLiteStorageAdapter({
+const storage: TransactionalStorage<Account> = new DuckDBStorageAdapter({
   database: './data/accounts.db'
 })
 

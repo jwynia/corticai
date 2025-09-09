@@ -283,10 +283,10 @@ tests/storage/
 ## Future Enhancements
 
 ### Planned Adapters
-1. **SQLiteStorageAdapter**
-   - SQL query support
-   - Transactions
-   - Indexes for performance
+1. **DuckDBStorageAdapter**
+   - Columnar analytics storage
+   - Parquet file support
+   - Fast aggregations
 
 2. **RedisStorageAdapter**
    - Distributed caching
@@ -344,7 +344,7 @@ The AttributeIndex maintains 100% backward compatibility:
 1. **Choose the Right Adapter**
    - Use MemoryStorageAdapter for tests
    - Use JSONStorageAdapter for small datasets
-   - Use future SQLite/Redis for large datasets
+   - Use future DuckDB/Redis for large datasets
 
 2. **Handle Errors Appropriately**
    - Always catch StorageError

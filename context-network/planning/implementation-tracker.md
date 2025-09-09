@@ -89,10 +89,10 @@ Helper Layer (FileIO, Validator)
 ## Next Implementation Priorities
 
 ### High Priority
-1. **SQLite Storage Adapter**
+1. **DuckDB Storage Adapter**
    - Extends BaseStorageAdapter
-   - SQL query support
-   - Transaction support
+   - Columnar storage for analytics
+   - Parquet support
 
 2. **Query Interface**
    - Pattern matching

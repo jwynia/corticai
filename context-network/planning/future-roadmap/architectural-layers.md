@@ -60,7 +60,7 @@ interface StorageLayer {
 #### Step 2: Implementation Order
 1. **In-Memory Store** - For testing and development
 2. **JSON File Store** - For persistence without dependencies
-3. **SQLite Store** - For structured queries and ACID
+3. **DuckDB Store** - For analytics and columnar storage
 4. **Graph Database** - For relationship-heavy queries
 5. **Hybrid Store** - Combine strengths of multiple stores
 

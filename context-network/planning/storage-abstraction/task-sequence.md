@@ -315,23 +315,23 @@ class CachedStorage<T> implements Storage<T> {
 
 ## Stage 4: Alternative Backends
 
-### Task 4.1: SQLite Storage Adapter
+### Task 4.1: DuckDB Storage Adapter
 **Size**: L
 **Complexity**: High
 **Dependencies**: Stage 3 complete
 
 #### Scope
-- Implement Storage interface for SQLite
-- Design key-value schema
-- Support JSON field queries
-- Add index management
+- Implement Storage interface for DuckDB
+- Design columnar schema for analytics
+- Support Parquet import/export
+- Optimize for aggregations
 
 #### Schema Design
 ```sql
 CREATE TABLE storage (
-  key TEXT PRIMARY KEY,
-  value JSON NOT NULL,
-  type TEXT,
+  key VARCHAR PRIMARY KEY,
+  value JSON,
+  type VARCHAR,
   created_at INTEGER,
   updated_at INTEGER
 );
@@ -512,7 +512,7 @@ graph TD
     T2.2 --> T3.1[Batch Optimization]
     T3.1 --> T3.2[Events System]
     T3.2 --> T3.3[Caching Layer]
-    T3.3 --> T4.1[SQLite Adapter]
+    T3.3 --> T4.1[DuckDB Adapter]
     T4.1 --> T4.2[Graph DB Prep]
     T4.2 --> T4.3[Distributed Storage]
     T4.3 --> T5.1[Migration Tool]
@@ -526,7 +526,7 @@ The critical path that determines minimum completion:
 1. Core Interface → Query Interface → Transaction Interface
 2. JSON Adapter → Refactor AttributeIndex
 3. Batch Optimization → Events System → Caching Layer
-4. SQLite Adapter → Graph DB Prep
+4. DuckDB Adapter → Graph DB Prep
 5. Migration Tool → Performance Optimization
 
 ## Parallel Work Opportunities

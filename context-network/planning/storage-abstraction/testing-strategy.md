@@ -361,7 +361,7 @@ describe('Storage Adapter Integration', () => {
   const adapters = [
     { name: 'JSON', create: () => new JSONStorageAdapter() },
     { name: 'Memory', create: () => new MemoryStorageAdapter() },
-    { name: 'SQLite', create: () => new SQLiteStorageAdapter() }
+    { name: 'DuckDB', create: () => new DuckDBStorageAdapter() }
   ]
   
   adapters.forEach(({ name, create }) => {
@@ -402,7 +402,7 @@ describe('Storage Migration', () => {
   
   beforeEach(async () => {
     oldStorage = new JSONStorageAdapter()
-    newStorage = new SQLiteStorageAdapter()
+    newStorage = new DuckDBStorageAdapter()
     migrator = new DataMigrator(oldStorage, newStorage)
     
     // Seed old storage
@@ -865,7 +865,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        adapter: [json, memory, sqlite, graph]
+        adapter: [json, memory, duckdb, graph]
     
     steps:
       - uses: actions/checkout@v2

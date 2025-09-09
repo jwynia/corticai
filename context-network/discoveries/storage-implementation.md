@@ -160,7 +160,7 @@ constructor(storage?: Storage<IndexData>) {
 
 ## Recommendations
 
-1. **Next adapter should be SQLite**: Most requested, good match for pattern
+1. **Next adapter should be DuckDB**: Analytics-optimized per ADR-003
 2. **Add performance benchmarks**: Measure adapter trade-offs
 3. **Consider caching decorator**: Add to any adapter transparently
 4. **Implement query interface**: Foundation is ready

@@ -200,7 +200,7 @@ Note: json-storage-refactor.md can be marked complete as refactoring was done to
 
 ### Future Work Ready
 With storage abstraction complete, ready for:
-1. SQLite adapter implementation
+1. DuckDB adapter implementation
 2. Redis adapter implementation  
 3. Performance benchmarking framework
 4. Query interface implementation

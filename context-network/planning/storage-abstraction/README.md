@@ -14,7 +14,7 @@ This plan details the implementation sequence for creating a robust storage abst
 
 - **Storage**: Pluggable storage backends via abstraction layer
 - **Decoupling**: Complete separation of storage from business logic
-- **Capabilities**: Support for JSON, SQLite, Graph DB, and distributed storage
+- **Capabilities**: Support for JSON, DuckDB, Graph DB, and distributed storage
 
 ## Implementation Philosophy
 

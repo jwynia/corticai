@@ -111,7 +111,7 @@ Supporting Utilities:
 With the storage abstraction complete, the project is ready for:
 
 1. **Additional Storage Adapters**:
-   - SQLite adapter
+   - DuckDB adapter (analytics-optimized)
    - Redis adapter
    - IndexedDB adapter (for browser)
 
