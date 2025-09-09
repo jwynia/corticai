@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AttributeIndex } from '../../src/indexes/AttributeIndex';
 import type { Entity } from '../../src/types/entity';
+import { MemoryStorageAdapter, JSONStorageAdapter } from '../../src/storage';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -506,6 +507,211 @@ describe('AttributeIndex', () => {
       const values = index.getValuesForAttribute('type');
       
       expect(values).toEqual(new Set(['function', 'class']));
+    });
+  });
+
+  describe('Storage Adapter Integration', () => {
+    const testDataPath = path.join(__dirname, 'test-storage-index.json');
+
+    afterEach(() => {
+      // Clean up test files
+      if (fs.existsSync(testDataPath)) {
+        fs.unlinkSync(testDataPath);
+      }
+    });
+
+    describe('Constructor with Storage Adapter', () => {
+      it('should create AttributeIndex with MemoryStorageAdapter', async () => {
+        const memoryStorage = new MemoryStorageAdapter();
+        const indexWithMemory = new AttributeIndex(memoryStorage);
+        
+        // Should work normally
+        indexWithMemory.addAttribute('entity1', 'type', 'function');
+        const results = indexWithMemory.findByAttribute('type', 'function');
+        expect(results).toEqual(new Set(['entity1']));
+      });
+
+      it('should create AttributeIndex with JSONStorageAdapter', async () => {
+        const jsonStorage = new JSONStorageAdapter({ 
+          type: 'json', 
+          filePath: testDataPath 
+        });
+        const indexWithJSON = new AttributeIndex(jsonStorage);
+        
+        // Should work normally
+        indexWithJSON.addAttribute('entity1', 'type', 'class');
+        const results = indexWithJSON.findByAttribute('type', 'class');
+        expect(results).toEqual(new Set(['entity1']));
+      });
+
+      it('should default to JSONStorageAdapter for backward compatibility', async () => {
+        // Default constructor should still work without storage adapter
+        const defaultIndex = new AttributeIndex();
+        
+        defaultIndex.addAttribute('entity1', 'type', 'default');
+        const results = defaultIndex.findByAttribute('type', 'default');
+        expect(results).toEqual(new Set(['entity1']));
+      });
+    });
+
+    describe('Save/Load with Storage Adapters', () => {
+      it('should save and load through MemoryStorageAdapter', async () => {
+        const memoryStorage = new MemoryStorageAdapter();
+        const index1 = new AttributeIndex(memoryStorage);
+        
+        // Add data
+        index1.addAttribute('entity1', 'type', 'function');
+        index1.addAttribute('entity2', 'type', 'class');
+        
+        // Save through storage adapter
+        await index1.save('test-key');
+        
+        // Create new index with same storage
+        const index2 = new AttributeIndex(memoryStorage);
+        
+        // Load through storage adapter
+        await index2.load('test-key');
+        
+        // Verify data was preserved
+        expect(index2.findByAttribute('type', 'function')).toEqual(new Set(['entity1']));
+        expect(index2.findByAttribute('type', 'class')).toEqual(new Set(['entity2']));
+      });
+
+      it('should save and load through JSONStorageAdapter', async () => {
+        const jsonStorage = new JSONStorageAdapter({ 
+          type: 'json', 
+          filePath: testDataPath 
+        });
+        const index1 = new AttributeIndex(jsonStorage);
+        
+        // Add data
+        index1.addAttribute('entity1', 'type', 'interface');
+        index1.addAttribute('entity2', 'language', 'typescript');
+        
+        // Save through storage adapter
+        await index1.save('index-data');
+        
+        // Create new index with new storage pointing to same file
+        const newJsonStorage = new JSONStorageAdapter({ 
+          type: 'json', 
+          filePath: testDataPath 
+        });
+        const index2 = new AttributeIndex(newJsonStorage);
+        
+        // Load through storage adapter
+        await index2.load('index-data');
+        
+        // Verify data was preserved
+        expect(index2.findByAttribute('type', 'interface')).toEqual(new Set(['entity1']));
+        expect(index2.findByAttribute('language', 'typescript')).toEqual(new Set(['entity2']));
+      });
+
+      it('should maintain backward compatibility with file path save/load', async () => {
+        const index1 = new AttributeIndex();
+        
+        // Add data
+        index1.addAttribute('entity1', 'type', 'legacy');
+        index1.addAttribute('entity2', 'status', 'active');
+        
+        // Save using old file path API
+        await index1.save(testDataPath);
+        
+        // Load using new index
+        const index2 = new AttributeIndex();
+        await index2.load(testDataPath);
+        
+        // Verify data was preserved
+        expect(index2.findByAttribute('type', 'legacy')).toEqual(new Set(['entity1']));
+        expect(index2.findByAttribute('status', 'active')).toEqual(new Set(['entity2']));
+      });
+    });
+
+    describe('Data Integrity with Different Storage Types', () => {
+      it('should preserve complex data types with MemoryStorageAdapter', async () => {
+        const memoryStorage = new MemoryStorageAdapter();
+        const index1 = new AttributeIndex(memoryStorage);
+        
+        // Add various data types
+        index1.addAttribute('entity1', 'string', 'value');
+        index1.addAttribute('entity2', 'number', 42);
+        index1.addAttribute('entity3', 'boolean', true);
+        index1.addAttribute('entity4', 'null', null);
+        index1.addAttribute('entity5', 'array', [1, 2, 3]);
+        index1.addAttribute('entity6', 'object', { key: 'value' });
+        
+        await index1.save('complex-data');
+        
+        const index2 = new AttributeIndex(memoryStorage);
+        await index2.load('complex-data');
+        
+        expect(index2.findByAttribute('string', 'value')).toEqual(new Set(['entity1']));
+        expect(index2.findByAttribute('number', 42)).toEqual(new Set(['entity2']));
+        expect(index2.findByAttribute('boolean', true)).toEqual(new Set(['entity3']));
+        expect(index2.findByAttribute('null', null)).toEqual(new Set(['entity4']));
+        expect(index2.findByAttribute('array', [1, 2, 3])).toEqual(new Set(['entity5']));
+        expect(index2.findByAttribute('object', { key: 'value' })).toEqual(new Set(['entity6']));
+      });
+
+      it('should preserve complex data types with JSONStorageAdapter', async () => {
+        const jsonStorage = new JSONStorageAdapter({ 
+          type: 'json', 
+          filePath: testDataPath 
+        });
+        const index1 = new AttributeIndex(jsonStorage);
+        
+        // Add various data types
+        index1.addAttribute('entity1', 'string', 'json-value');
+        index1.addAttribute('entity2', 'number', 123);
+        index1.addAttribute('entity3', 'boolean', false);
+        index1.addAttribute('entity4', 'null', null);
+        index1.addAttribute('entity5', 'array', ['a', 'b', 'c']);
+        index1.addAttribute('entity6', 'object', { nested: { key: 'value' } });
+        
+        await index1.save('json-complex-data');
+        
+        // Create new storage and index
+        const newJsonStorage = new JSONStorageAdapter({ 
+          type: 'json', 
+          filePath: testDataPath 
+        });
+        const index2 = new AttributeIndex(newJsonStorage);
+        await index2.load('json-complex-data');
+        
+        expect(index2.findByAttribute('string', 'json-value')).toEqual(new Set(['entity1']));
+        expect(index2.findByAttribute('number', 123)).toEqual(new Set(['entity2']));
+        expect(index2.findByAttribute('boolean', false)).toEqual(new Set(['entity3']));
+        expect(index2.findByAttribute('null', null)).toEqual(new Set(['entity4']));
+        expect(index2.findByAttribute('array', ['a', 'b', 'c'])).toEqual(new Set(['entity5']));
+        expect(index2.findByAttribute('object', { nested: { key: 'value' } })).toEqual(new Set(['entity6']));
+      });
+    });
+
+    describe('Performance with Storage Adapters', () => {
+      it('should perform efficiently with MemoryStorageAdapter', async () => {
+        const memoryStorage = new MemoryStorageAdapter();
+        const index = new AttributeIndex(memoryStorage);
+        
+        const ENTITY_COUNT = 1000;
+        const startTime = Date.now();
+        
+        // Add entities
+        for (let i = 0; i < ENTITY_COUNT; i++) {
+          index.addAttribute(`entity${i}`, 'type', i % 10);
+          index.addAttribute(`entity${i}`, 'category', i % 5);
+        }
+        
+        // Save and load
+        await index.save('perf-test');
+        
+        const newIndex = new AttributeIndex(memoryStorage);
+        await newIndex.load('perf-test');
+        
+        const endTime = Date.now();
+        const totalTime = endTime - startTime;
+        
+        expect(totalTime).toBeLessThan(100); // Should complete quickly with memory storage
+        expect(newIndex.findByAttribute('type', 5).size).toBe(100); // 1000/10 = 100
+      });
     });
   });
 });

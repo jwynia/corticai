@@ -10,6 +10,7 @@ import * as path from 'path';
 import { promisify } from 'util';
 import type { Entity } from '../types/entity';
 import type { AttributeQuery, BooleanOperator, IndexStatistics, SerializedIndex } from './types';
+import { Storage, JSONStorageAdapter } from '../storage';
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
@@ -24,10 +25,14 @@ export class AttributeIndex {
   
   // Reverse index: entity ID -> Set of attributes (for efficient entity removal)
   private entityAttributes: Map<string, Set<string>>;
+  
+  // Storage adapter for persistence
+  private storage?: Storage<SerializedIndex>;
 
-  constructor() {
+  constructor(storage?: Storage<SerializedIndex>) {
     this.index = new Map();
     this.entityAttributes = new Map();
+    this.storage = storage;
   }
 
   /**
@@ -273,20 +278,10 @@ export class AttributeIndex {
   }
 
   /**
-   * Save index to a JSON file
+   * Save index to storage
+   * @param keyOrPath - Storage key (when using storage adapter) or file path (for backward compatibility)
    */
-  async save(filePath: string): Promise<void> {
-    // Ensure directory exists
-    const dir = path.dirname(filePath);
-    try {
-      await mkdir(dir, { recursive: true });
-    } catch (error: any) {
-      // Only ignore EEXIST errors, re-throw others
-      if (error.code !== 'EEXIST') {
-        throw error;
-      }
-    }
-
+  async save(keyOrPath: string): Promise<void> {
     // Serialize the index
     const serialized: SerializedIndex = {
       version: '1.0.0',
@@ -313,15 +308,48 @@ export class AttributeIndex {
       serialized.entityAttributes[entityId] = Array.from(attrs) as any;
     }
 
-    await writeFile(filePath, JSON.stringify(serialized, null, 2), 'utf-8');
+    if (this.storage) {
+      // Use storage adapter
+      await this.storage.set(keyOrPath, serialized);
+    } else {
+      // Backward compatibility: treat keyOrPath as a file path
+      const filePath = keyOrPath;
+      
+      // Ensure directory exists
+      const dir = path.dirname(filePath);
+      try {
+        await mkdir(dir, { recursive: true });
+      } catch (error: any) {
+        // Only ignore EEXIST errors, re-throw others
+        if (error.code !== 'EEXIST') {
+          throw error;
+        }
+      }
+
+      await writeFile(filePath, JSON.stringify(serialized, null, 2), 'utf-8');
+    }
   }
 
   /**
-   * Load index from a JSON file
+   * Load index from storage
+   * @param keyOrPath - Storage key (when using storage adapter) or file path (for backward compatibility)
    */
-  async load(filePath: string): Promise<void> {
-    const data = await readFile(filePath, 'utf-8');
-    const serialized: SerializedIndex = JSON.parse(data);
+  async load(keyOrPath: string): Promise<void> {
+    let serialized: SerializedIndex;
+    
+    if (this.storage) {
+      // Use storage adapter
+      const data = await this.storage.get(keyOrPath);
+      if (!data) {
+        throw new Error(`No data found for key: ${keyOrPath}`);
+      }
+      serialized = data;
+    } else {
+      // Backward compatibility: treat keyOrPath as a file path
+      const filePath = keyOrPath;
+      const data = await readFile(filePath, 'utf-8');
+      serialized = JSON.parse(data);
+    }
 
     // Clear existing index
     this.index.clear();
