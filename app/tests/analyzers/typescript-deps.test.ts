@@ -850,10 +850,5 @@ describe('TypeScriptDependencyAnalyzer', () => {
         .rejects.toThrow(/encoding|Invalid|byte/i);
     });
 
-    it('should handle permission errors', async () => {
-      // This test would require special setup to create permission issues
-      // Skipping for now but documenting the expected behavior
-      expect(true).toBe(true);
-    });
   });
 });

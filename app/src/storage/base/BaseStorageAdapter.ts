@@ -361,4 +361,37 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
     const prefix = `[${adapterName}${this.config.id ? `:${this.config.id}` : ''}]`
     console.error(`${prefix} ${message}`, error)
   }
+
+  // ============================================================================
+  // QUERY INTERFACE INTEGRATION
+  // ============================================================================
+
+  /**
+   * Execute a query against the stored data
+   * This is a basic implementation that uses the QueryExecutor for in-memory processing
+   * Subclasses can override this to provide native query support (e.g., DuckDB)
+   */
+  async query(query: any): Promise<any> {
+    // Import QueryExecutor dynamically to avoid circular dependencies
+    const { QueryExecutor } = await import('../../query/QueryExecutor')
+    
+    const executor = new QueryExecutor<T>()
+    
+    if (this.config.debug) {
+      this.log(`QUERY starting execution`)
+    }
+    
+    try {
+      const result = await executor.execute(query, this)
+      
+      if (this.config.debug) {
+        this.log(`QUERY completed in ${result.metadata.executionTime}ms, ${result.data.length} results`)
+      }
+      
+      return result
+    } catch (error) {
+      this.logError('QUERY failed', error as Error)
+      throw error
+    }
+  }
 }

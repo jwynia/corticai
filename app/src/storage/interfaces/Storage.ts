@@ -193,6 +193,52 @@ export interface SaveableStorage {
 export type StorageFactory<T = any> = (config?: StorageConfig) => Promise<Storage<T>>
 
 // ============================================================================
+// QUERY INTERFACE EXTENSION
+// ============================================================================
+
+// Import query types - these will be available once the query interface is implemented
+// For now, we'll define minimal interfaces to avoid circular dependencies
+
+/**
+ * Minimal Query interface for storage integration
+ * The full Query interface is defined in ../query/types.ts
+ */
+export interface BaseQuery<T = any> {
+  conditions: any[]
+  ordering: any[]
+  pagination?: {
+    limit: number
+    offset: number
+  }
+}
+
+/**
+ * Minimal QueryResult interface for storage integration
+ */
+export interface BaseQueryResult<T = any> {
+  data: T[]
+  metadata: {
+    executionTime: number
+    fromCache: boolean
+    totalCount?: number
+  }
+  errors?: Error[]
+}
+
+/**
+ * Extended Storage interface with query capabilities
+ * Adapters can optionally implement this for native query support
+ */
+export interface QueryableStorage<T = any> extends Storage<T> {
+  /**
+   * Execute a query against the stored data
+   * @param query The query to execute
+   * @returns Promise resolving to query results
+   */
+  query?(query: BaseQuery<T>): Promise<BaseQueryResult<T>>
+}
+
+// ============================================================================
 // ERROR HANDLING
 // ============================================================================
 
