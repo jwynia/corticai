@@ -159,6 +159,24 @@ export interface JSONStorageConfig extends StorageConfig {
 }
 
 /**
+ * DuckDB storage configuration
+ */
+export interface DuckDBStorageConfig extends StorageConfig {
+  type: 'duckdb'
+  database: string        // File path or ':memory:'
+  tableName?: string      // Default: 'storage'
+  threads?: number        // Parallelism level
+  enableParquet?: boolean // Parquet support
+  poolSize?: number       // Connection pool size
+  autoCreate?: boolean    // Auto-create database
+  options?: {             // DuckDB-specific options
+    access_mode?: 'read_write' | 'read_only'
+    max_memory?: string
+    threads?: string
+  }
+}
+
+/**
  * Optional save capability for storage adapters that support manual persistence
  */
 export interface SaveableStorage {
@@ -189,6 +207,7 @@ export enum StorageErrorCode {
   // Operation errors
   KEY_NOT_FOUND = 'KEY_NOT_FOUND',
   DUPLICATE_KEY = 'DUPLICATE_KEY',
+  WRITE_FAILED = 'WRITE_FAILED',
   
   // Resource errors
   STORAGE_FULL = 'STORAGE_FULL',
@@ -197,7 +216,10 @@ export enum StorageErrorCode {
   // Validation errors
   INVALID_KEY = 'INVALID_KEY',
   INVALID_VALUE = 'INVALID_VALUE',
-  SERIALIZATION_FAILED = 'SERIALIZATION_FAILED'
+  SERIALIZATION_FAILED = 'SERIALIZATION_FAILED',
+  
+  // I/O errors
+  IO_ERROR = 'IO_ERROR'
 }
 
 /**

@@ -42,13 +42,13 @@ export class StorageValidator {
 
     // Optional: validate key is not empty
     // Uncomment if empty keys should be rejected
-    // if (key === '') {
-    //   throw new StorageError(
-    //     'Key cannot be empty string',
-    //     StorageErrorCode.INVALID_KEY,
-    //     { key }
-    //   )
-    // }
+    if (key === '') {
+      throw new StorageError(
+        'key cannot be empty string',
+        StorageErrorCode.INVALID_KEY,
+        { key }
+      )
+    }
   }
 
   /**
@@ -115,7 +115,7 @@ export class StorageValidator {
           throw new StorageError(
             `Invalid key at index ${index}: ${error.message}`,
             error.code,
-            { ...error.context, index }
+            { ...error.details, index }
           )
         }
         throw error
@@ -145,7 +145,7 @@ export class StorageValidator {
           throw new StorageError(
             `Invalid entry [${key}]: ${error.message}`,
             error.code,
-            { ...error.context, key }
+            { ...error.details, key }
           )
         }
         throw error
@@ -175,8 +175,7 @@ export class StorageValidator {
    * @returns true if key is valid, false otherwise
    */
   static isValidKey(key: any): key is string {
-    return typeof key === 'string'
-    // Add && key !== '' if empty keys should be invalid
+    return typeof key === 'string' && key !== ''
   }
 
   /**

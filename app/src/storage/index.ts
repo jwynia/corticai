@@ -23,6 +23,7 @@ export {
   // Configuration types
   StorageConfig,
   JSONStorageConfig,
+  DuckDBStorageConfig,
   StorageFactory,
   
   // Operation types for batch processing
@@ -40,6 +41,7 @@ export {
 
 export { MemoryStorageAdapter } from './adapters/MemoryStorageAdapter'
 export { JSONStorageAdapter } from './adapters/JSONStorageAdapter'
+export { DuckDBStorageAdapter } from './adapters/DuckDBStorageAdapter'
 
 // ============================================================================
 // BASE CLASSES AND HELPERS (for extending)
@@ -56,7 +58,8 @@ export type { FileIOConfig } from './helpers/FileIOHandler'
 
 import { MemoryStorageAdapter } from './adapters/MemoryStorageAdapter'
 import { JSONStorageAdapter } from './adapters/JSONStorageAdapter'
-import { StorageConfig, JSONStorageConfig, Storage, BatchStorage } from './interfaces/Storage'
+import { DuckDBStorageAdapter } from './adapters/DuckDBStorageAdapter'
+import { StorageConfig, JSONStorageConfig, DuckDBStorageConfig, Storage, BatchStorage } from './interfaces/Storage'
 
 /**
  * Create a new MemoryStorageAdapter instance
@@ -74,7 +77,8 @@ export async function createMemoryStorage<T = any>(config?: StorageConfig): Prom
  */
 export const StorageAdapters = {
   Memory: MemoryStorageAdapter,
-  JSON: JSONStorageAdapter
+  JSON: JSONStorageAdapter,
+  DuckDB: DuckDBStorageAdapter
 } as const
 
 /**
@@ -86,13 +90,13 @@ export type StorageAdapterType = keyof typeof StorageAdapters
  * Create a storage adapter by type
  * 
  * @param type The adapter type to create
- * @param config Optional configuration for the adapter
+ * @param config Configuration for the adapter
  * @returns Promise resolving to a new storage adapter instance
  */
 export async function createStorageAdapter<T = any>(
   type: StorageAdapterType, 
-  config?: StorageConfig
+  config: StorageConfig
 ): Promise<Storage<T>> {
   const AdapterClass = StorageAdapters[type]
-  return new AdapterClass<T>(config)
+  return new (AdapterClass as any)(config) as Storage<T>
 }
