@@ -1,7 +1,7 @@
 # Groomed Task Backlog
 
 ## 📊 Sync Integration Summary
-**Sync State**: ✅ Current (2025-09-09 22:30 UTC)
+**Sync State**: ✅ Current (2025-09-10)
 **Major Components Complete**: 6 (Universal Adapter, AttributeIndex, TypeScript Analyzer, Storage Abstraction, Test Infrastructure, DuckDB Adapter)
 **Test Status**: 548/550 passing (99.6%)
 **Storage Layer**: Fully operational with DuckDB analytics support
@@ -39,13 +39,12 @@ Database Layer (DuckDB - columnar analytics)
 
 ## 🚀 Ready for Implementation NOW
 
-### 1. ~~DuckDB Storage Adapter~~ ✅ COMPLETE (2025-09-09)
-**One-liner**: Add columnar analytics storage optimized for aggregations and analysis
-**Complexity**: Medium
-**Status**: IMPLEMENTED - 635 lines, 56/58 tests passing (96.5%)
-**Files created**: 
-- ✅ `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (635 lines)
-- ✅ `/app/tests/storage/duckdb.adapter.test.ts` (976 lines)
+### 1. Fix DuckDB Adapter Connection Pooling Tests
+**One-liner**: Fix 2 failing concurrency tests in DuckDB adapter to achieve 100% pass rate
+**Complexity**: Trivial
+**Files to modify**: 
+- `/app/tests/storage/duckdb.adapter.test.ts` (lines 890-903)
+- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (connection pooling logic)
 
 <details>
 <summary>Implementation Summary</summary>
@@ -78,7 +77,71 @@ Database Layer (DuckDB - columnar analytics)
 
 ---
 
-### 2. Query Interface Layer
+### 2. DuckDB Batch Operations Optimization
+**One-liner**: Replace row-by-row inserts with prepared statements or Appender API
+**Complexity**: Small
+**Files to modify**: 
+- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (persist method)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Current persist() method inserts rows one at a time, causing performance issues with large datasets.
+
+**Acceptance Criteria**:
+- [ ] Implement batch insert using prepared statements or Appender API
+- [ ] Maintain atomicity of persist operation
+- [ ] Add performance benchmarks (1K, 10K, 100K records)
+- [ ] Document performance improvements
+- [ ] Handle errors for individual rows appropriately
+
+**Implementation Guide**:
+1. Choose between prepared statements or Appender API
+2. Refactor persist() method to use batch approach
+3. Add chunking for very large datasets
+4. Create benchmark tests
+5. Measure and document performance improvements
+
+**Watch Out For**: 
+- Memory usage with very large batches
+- Transaction boundaries
+- Error handling granularity
+
+</details>
+
+---
+
+### 3. Table Name Validation for Security
+**One-liner**: Add SQL injection prevention through table name validation
+**Complexity**: Trivial  
+**Files to modify**: 
+- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (constructor)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Table names are interpolated into SQL without validation, presenting a potential security risk.
+
+**Acceptance Criteria**:
+- [ ] Add validateTableName() method
+- [ ] Only allow alphanumeric characters and underscores
+- [ ] Check against SQL reserved keywords
+- [ ] Throw clear StorageError for invalid names
+- [ ] Add tests for validation
+
+**Implementation Guide**:
+1. Add validation in constructor before any SQL operations
+2. Use regex pattern `/^[a-zA-Z_][a-zA-Z0-9_]*$/`
+3. Maintain list of reserved SQL keywords
+4. Write comprehensive tests including edge cases
+
+**First 30 Minutes**: Complete implementation with tests
+
+</details>
+
+---
+
+### 4. Query Interface Layer
 **One-liner**: Build powerful query capabilities on top of storage adapters
 **Complexity**: Medium-Large
 **Files to create**: 
@@ -117,7 +180,7 @@ Database Layer (DuckDB - columnar analytics)
 
 ---
 
-### 3. Novel Domain Adapter
+### 5. Novel Domain Adapter
 **One-liner**: Extract narrative structure and character relationships from text
 **Complexity**: Medium
 **Files to create**: 
@@ -157,13 +220,49 @@ Database Layer (DuckDB - columnar analytics)
 
 ## ⏳ Next Priority Tasks
 
-### 4. Redis Storage Adapter
+### 6. Comprehensive Negative Test Cases
+**One-liner**: Add missing error handling and edge case tests across all components
+**Complexity**: Medium
+**Priority**: High - Essential for production readiness
+**Files to modify**: 
+- `/app/tests/indexes/AttributeIndex.test.ts`
+- `/app/tests/storage/*.test.ts`
+- `/app/tests/analyzers/*.test.ts`
+
+<details>
+<summary>Areas Needing Coverage</summary>
+
+**AttributeIndex**:
+- Invalid entity IDs (null, empty, non-string)
+- Invalid attribute names
+- Circular reference handling
+- Memory limit scenarios
+- Concurrent modification handling
+
+**Storage Adapters**:
+- Disk full scenarios
+- Permission denied errors
+- Corrupted storage recovery
+- Race conditions
+
+**TypeScript Analyzer**:
+- Malformed TypeScript
+- Circular dependencies
+- Missing import files
+- Large file handling
+- Binary file rejection
+
+</details>
+
+---
+
+### 7. Redis Storage Adapter
 **One-liner**: Add distributed storage with TTL and pub/sub support
 **Complexity**: Medium
 **Blocker**: None - storage abstraction complete
 **Why Important**: Enables distributed deployments
 
-### 5. Cross-Domain Pattern Transfer Experiment
+### 8. Cross-Domain Pattern Transfer Experiment
 **One-liner**: Validate that patterns learned in one domain apply to others
 **Complexity**: Small
 **Blocker**: Need Novel Adapter complete
@@ -173,19 +272,30 @@ Database Layer (DuckDB - columnar analytics)
 
 ## 🔧 Infrastructure & Tech Debt
 
-### 6. Performance Benchmarking Suite
+### 9. Test Infrastructure Improvements
+**One-liner**: Enhance test isolation and mock file system operations
+**Complexity**: Small
+**Priority**: Medium - Prevents test flakiness
+**Issues to fix**:
+- Tests sharing global state
+- File system operations not properly mocked
+- Async test race conditions
+
+---
+
+### 10. Performance Benchmarking Suite
 **One-liner**: Compare storage adapter performance characteristics
 **Complexity**: Small
 **Priority**: Medium - Needed for adapter selection
 **Dependencies**: Multiple storage adapters implemented
 
-### 7. Caching Layer Decorator
+### 11. Caching Layer Decorator
 **One-liner**: Add LRU cache decorator for storage adapters
 **Complexity**: Small-Medium
 **Priority**: Medium - Significant performance boost
 **Location**: `/app/src/storage/decorators/`
 
-### 8. Entity ID Generation Improvement
+### 12. Entity ID Generation Improvement
 **One-liner**: Replace timestamp-based IDs with UUIDs or similar
 **Complexity**: Trivial
 **Priority**: Low - Current solution works
@@ -196,19 +306,19 @@ Database Layer (DuckDB - columnar analytics)
 
 ## 📝 Documentation Tasks
 
-### 9. API Reference Documentation
+### 13. API Reference Documentation
 **One-liner**: Generate comprehensive API docs from JSDoc comments
 **Complexity**: Trivial
 **Priority**: High - Multiple components now complete
 **Tools**: TypeDoc or similar
 
-### 10. Storage Adapter Selection Guide
+### 14. Storage Adapter Selection Guide
 **One-liner**: Help users choose the right storage adapter
 **Complexity**: Trivial
 **Priority**: Medium - Important for adoption
 **Content**: Performance characteristics, use cases, trade-offs
 
-### 11. Project Setup Guide
+### 15. Project Setup Guide
 **One-liner**: Document development environment setup
 **Complexity**: Trivial
 **Priority**: Medium - Needed for contributors
@@ -240,12 +350,13 @@ Database Layer (DuckDB - columnar analytics)
 
 ## 📊 Summary Statistics
 
-- **Total completed**: 5 major components
-- **Tests passing**: 492/492 (100%)
-- **Ready for immediate work**: 3 (DuckDB, Query Interface, Novel Adapter)
+- **Total completed**: 6 major components
+- **Tests passing**: 548/550 (99.6%)
+- **Ready for immediate work**: 5 (DuckDB fixes, Query Interface, Novel Adapter)
 - **Blocked tasks**: 1 (Cross-domain experiment)
-- **Infrastructure tasks**: 3
+- **Infrastructure tasks**: 6
 - **Documentation tasks**: 3
+- **Tech debt items**: 4
 
 ## 🏆 Achievements
 
@@ -266,20 +377,20 @@ Database Layer (DuckDB - columnar analytics)
 
 ## 🚦 Top 3 Immediate Actions
 
-### 1. **HIGH VALUE**: Implement DuckDB Storage Adapter
-   - Provides analytics-optimized storage
-   - Aligns with ADR-003 architecture decision
-   - Enables fast aggregations and analysis
+### 1. **QUICK WIN**: Fix DuckDB Test Failures (30 mins)
+   - Achieve 100% test pass rate
+   - Unblocks confidence in storage layer
+   - Simple concurrency fix
 
-### 2. **CORE FEATURE**: Build Query Interface
-   - Unlocks powerful data access patterns
-   - Works across all storage adapters
-   - Critical for user-facing features
+### 2. **SECURITY**: Add Table Name Validation (30 mins)
+   - Prevents SQL injection risks
+   - Defense in depth
+   - Quick implementation
 
-### 3. **VALIDATION**: Create Novel Domain Adapter
-   - Proves cross-domain capability
-   - Validates universal pattern theory
-   - Opens new use cases
+### 3. **PERFORMANCE**: Optimize DuckDB Batch Operations (2 hours)
+   - Significant performance boost for bulk operations
+   - Critical for production usage
+   - Well-defined solution
 
 ---
 
@@ -336,8 +447,22 @@ Database Layer (DuckDB - columnar analytics)
 
 ---
 
+## 🗑️ Deferred Tasks
+
+### JSON Storage Adapter Refactor
+**Reason**: Current implementation works adequately
+**Revisit When**: Performance becomes an issue
+**Location**: `/context-network/tasks/deferred/json-storage-refactor.md`
+
+### Logging Abstraction Layer  
+**Reason**: Not critical for current phase
+**Revisit When**: Moving to production deployment
+**Location**: `/context-network/tasks/deferred/logging-abstraction.md`
+
+---
+
 ## Metadata
-- **Last Groomed**: 2025-09-09
-- **Components Complete**: 5
-- **Confidence**: HIGH - Strong foundation established
-- **Next Review**: After 2 task completions
+- **Last Groomed**: 2025-09-10
+- **Components Complete**: 6
+- **Confidence**: HIGH - Strong foundation with identified improvements
+- **Next Review**: After 3 task completions
