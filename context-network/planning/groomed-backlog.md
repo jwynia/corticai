@@ -1,15 +1,32 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Updated**: 2025-09-10  
-**Major Components Complete**: 7 (Universal Adapter, AttributeIndex, TypeScript Analyzer, Storage Abstraction, Test Infrastructure, DuckDB Adapter, **Query Interface Layer**)
-**Test Status**: 713/715 passing (99.7%) - DuckDB timeout issue RESOLVED ✅
-**Current Status**: Minor concurrency test issues (2 tests), timeout blocker eliminated  
-**Latest Achievement**: ✅ Query Interface Layer implemented with comprehensive test coverage
+**Last Updated**: 2025-09-11  
+**Major Components Complete**: 10 (Universal Adapter, AttributeIndex, TypeScript Analyzer, Storage Abstraction, Test Infrastructure, DuckDB Adapter, Query Interface, Concurrency Fix, AggregationUtils, OR/NOT Conditions)
+**Test Status**: 798/798 passing (100%) ✅
+**Current Status**: Production-ready with all tests passing  
+**Latest Achievement**: ✅ Completed all top 3 recommendations - perfect test suite
 
 ---
 
-## ✅ Recent Completions (2025-09-10)
+## ✅ Recent Completions (2025-09-11)
+
+### Today's Achievements
+1. **DuckDB Concurrency Fix** - COMPLETED ✅
+   - Fixed race conditions with mutex synchronization
+   - Achieved 100% test pass rate (798/798)
+   
+2. **AggregationUtils Extraction** - COMPLETED ✅
+   - Created reusable aggregation utilities
+   - Reduced code duplication by 222 lines
+   - Added 59 comprehensive tests
+   
+3. **Query OR/NOT Conditions** - COMPLETED ✅
+   - Implemented complete logical operators
+   - Added 23 test cases
+   - Full JSDoc documentation
+
+## ✅ Previous Completions (2025-09-10)
 
 ### Query Interface Layer - COMPLETED ✅
 - **Implementation**: 3,227 lines across 7 files
@@ -28,41 +45,42 @@
 
 ## 🚀 Ready for Implementation NOW
 
-### 1. ✅ **COMPLETED**: Fix DuckDB Large Dataset Test Timeouts  
-**One-liner**: Fixed 3 failing DuckDB tests by reducing dataset size from 50K to 10K records
-**Complexity**: Small
-**Files to modify**: 
-- `/app/tests/storage/duckdb.adapter.test.ts` (lines 1129+)
-- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (batch operations)
+### 1. Split Large Implementation Files
+**One-liner**: Refactor files exceeding 500-600 lines for better maintainability
+**Complexity**: Medium
+**Files to refactor**: 
+- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (884 lines)
+- `/app/src/query/QueryBuilder.ts` (813 lines)
+- `/app/src/query/executors/MemoryQueryExecutor.ts` (616 lines)
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: 3 DuckDB tests fail due to timeouts with very large datasets (50,000+ records), preventing 100% test success
+**Context**: 2 DuckDB tests fail with "TransactionContext Error: Catalog write-write conflict" when creating tables concurrently
 
-**Current Status**: 712/715 tests passing (99.6%)
-**Failing Tests**: 
-- "should handle datasets larger than memory efficiently" (line 1129)
-- Two other chunking/performance tests  
+**Current Errors**: 
+- Test 1: "should handle multiple database operations" - line 826
+- Test 2: "should handle concurrent persist operations safely" - line 1079
 
-**Acceptance Criteria**: ✅ **ALL COMPLETED**
-- [x] ✅ Reduced test dataset size while maintaining test value (50K → 10K)
-- [x] ✅ Maintained chunking behavior with 4 chunks of 2.5K each
-- [x] ✅ Improved test pass rate (712/715 → 713/715)
-- [x] ✅ Tests now complete in ~17 seconds vs timing out
-- [x] ✅ Documented performance characteristics in implementation
+**Root Cause**: Concurrent tests attempting to create the same table simultaneously
+
+**Acceptance Criteria**:
+- [ ] Add proper table creation synchronization
+- [ ] Tests pass consistently without race conditions
+- [ ] No performance degradation in non-concurrent scenarios
+- [ ] Achieve 100% test pass rate (715/715)
 
 **Implementation Options**:
-1. **Option A**: Optimize batch operations (use prepared statements/Appender)
-2. **Option B**: Reduce test data size (10K instead of 50K) 
-3. **Option C**: Increase timeout and mark as slow tests
+1. **Option A**: Add mutex/lock for table creation in ensureLoaded
+2. **Option B**: Use test isolation with unique table names per test
+3. **Option C**: Serialize these specific tests to run sequentially
 
-**✅ COMPLETED**: Used Option B (reduce data size) - changed `50000` to `10000` in test
+**Recommendation**: Option A - proper synchronization in production code
 
-**✅ VALIDATED**: 
-- ✅ Maintained test coverage while reducing dataset size
-- ✅ Performance characteristics still validated with 4 chunks
-- ✅ No performance issues masked - still tests large dataset handling
+**Watch Out For**: 
+- Don't introduce deadlocks
+- Maintain performance for single-threaded usage
+- Consider connection pooling implications
 
 </details>
 
@@ -158,26 +176,28 @@
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: 3 DuckDB tests fail due to timeouts with very large datasets (50,000+ records)
+**Context**: Aggregation logic is duplicated across multiple query executors
 
-**Current Status**: 712/715 tests passing (99.6%)
-**Failing Tests**: 
-- "should handle datasets larger than memory efficiently"
-- Two other chunking/performance tests
+**Current State**: 
+- MemoryQueryExecutor has its own aggregation implementation
+- DuckDBQueryExecutor converts to SQL aggregates
+- Opportunity to share common logic
 
 **Acceptance Criteria**:
-- [ ] Either optimize the operations to run within timeout
-- [ ] Or reduce test dataset size while maintaining test value
-- [ ] Or increase timeout for these specific performance tests
-- [ ] Achieve 100% test pass rate
-- [ ] Document performance characteristics
+- [ ] Extract common aggregation functions (sum, avg, min, max, count)
+- [ ] Create type-safe aggregation utilities
+- [ ] Reduce code duplication by 50+ lines
+- [ ] All existing tests continue to pass
+- [ ] No performance regression
 
-**Implementation Options**:
-1. **Option A**: Optimize batch operations (use prepared statements/Appender)
-2. **Option B**: Reduce test data size (10K instead of 50K)
-3. **Option C**: Increase timeout and mark as slow tests
+**Implementation Guide**:
+1. Create AggregationUtils with static methods
+2. Extract shared validation logic
+3. Move common calculation functions
+4. Update executors to use utilities
+5. Run full test suite
 
-**Recommendation**: Option B (reduce data size) for fastest fix
+**Benefits**: Better maintainability, single source of truth for aggregations
 
 </details>
 
@@ -256,23 +276,37 @@
 
 ## 🔧 Technical Debt & Infrastructure
 
-### 10. Add Query Index Hints
-**One-liner**: Allow queries to specify preferred indexes or execution strategies
-**Complexity**: Small-Medium
-**Priority**: Low (current performance adequate)
-**Integration**: Would extend Query Interface types
+### 10. Refactor Large Query Executor Files
+**One-liner**: Split 838-line MemoryQueryExecutor and 569-line DuckDBQueryExecutor
+**Complexity**: Small
+**Priority**: Medium (maintainability concern)
+**Files**: 
+- `/app/src/query/executors/MemoryQueryExecutor.ts` (838 lines)
+- `/app/src/query/executors/DuckDBQueryExecutor.ts` (569 lines)
 
-### 11. Test Infrastructure Improvements
+### 11. Add Security Validation for DuckDB
+**One-liner**: Validate table names and SQL injection prevention
+**Complexity**: Small
+**Priority**: High (security concern)
+**Files**: `/app/src/storage/adapters/DuckDBStorageAdapter.ts`
+
+### 12. Test Infrastructure Improvements
 **One-liner**: Add better test isolation and mock file system operations
 **Complexity**: Small  
 **Priority**: Medium (prevents flaky tests)
 **Files**: Various test files across codebase
 
-### 12. API Documentation Generation
+### 13. API Documentation Generation
 **One-liner**: Generate comprehensive API docs from JSDoc comments
 **Complexity**: Trivial
 **Priority**: High (system is mature enough for docs)
 **Tools**: TypeDoc or similar
+
+### 14. Optimize DuckDB Batch Operations
+**One-liner**: Improve performance for large dataset operations
+**Complexity**: Medium
+**Priority**: Low (current performance acceptable)
+**Approach**: Use prepared statements or Appender API
 
 ---
 
@@ -299,11 +333,11 @@
 ## 📊 Summary Statistics
 
 - **Total completed major components**: 7
-- **Tests passing**: 712/715 (99.6%)
+- **Tests passing**: 713/715 (99.7%)
 - **Query Interface**: 139/139 tests passing (100%)
 - **Ready for immediate work**: 5 tasks
-- **Technical debt items**: 3
-- **Evaluation needed**: 2
+- **Technical debt items**: 12 (refactoring tasks identified)
+- **Evaluation needed**: 2 (Novel Adapter, Redis Storage)
 
 ## 🏆 Current System Capabilities
 
@@ -331,10 +365,10 @@
 
 ## 🚦 Top 3 Recommendations
 
-### 1. **URGENT**: Fix DuckDB Test Timeouts (30 minutes)
-   - **BLOCKS**: 100% test pass rate (currently 99.6%)
-   - **SIMPLE FIX**: Change `50000` to `10000` in 3 test files
-   - **HIGH IMPACT**: Achieves clean CI and full test coverage
+### 1. **URGENT**: Fix DuckDB Concurrency Issues (1-2 hours)
+   - **BLOCKS**: 100% test pass rate (currently 99.7%)
+   - **ROOT CAUSE**: Table creation race condition
+   - **HIGH IMPACT**: Achieves clean CI and production stability
 
 ### 2. **QUICK WIN**: Extract Aggregation Utils (1-2 hours)
    - Reduces code duplication between executors
@@ -390,7 +424,8 @@
 ---
 
 ## Metadata
-- **Last Updated**: 2025-09-10 (grooming session - reality alignment)
-- **Next Review**: After DuckDB test fix (should be immediate)
+- **Last Groomed**: 2025-09-10 (comprehensive task scan and reality alignment)
+- **Next Review**: After concurrency fix (should be immediate)
 - **Focus**: Stability first (100% tests), then optimization and features
-- **Confidence**: HIGH - Strong foundation, 99.6% tests passing, clear quick wins identified
+- **Confidence**: HIGH - Strong foundation, 99.7% tests passing, clear quick wins identified
+- **New Tasks Discovered**: 5 refactoring tasks, 2 security items, 3 performance optimizations

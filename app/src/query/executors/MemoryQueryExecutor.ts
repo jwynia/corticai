@@ -33,6 +33,7 @@ import {
   isNullCondition,
   isCompositeCondition
 } from '../types'
+import { AggregationUtils } from '../utils/AggregationUtils'
 
 /**
  * In-memory query executor
@@ -479,12 +480,7 @@ export class MemoryQueryExecutor<T> {
    * Apply aggregations to data (no grouping)
    */
   private applyAggregations(data: T[], aggregations: Aggregation<T>[]): any[] {
-    const result: any = {}
-    
-    for (const agg of aggregations) {
-      result[agg.alias] = this.calculateAggregation(data, agg)
-    }
-    
+    const result = AggregationUtils.applyAggregations(data, aggregations)
     return [result] // Return as single-item array
   }
 
@@ -497,231 +493,13 @@ export class MemoryQueryExecutor<T> {
     aggregations: Aggregation<T>[]
   ): any[] {
     // Group data by the specified fields
-    const groups = this.groupData(data, groupBy.fields)
+    const groups = AggregationUtils.groupData(data, groupBy.fields)
     
     // Apply aggregations to each group
-    const results: any[] = []
-    
-    for (const [groupKey, groupData] of groups.entries()) {
-      const result: any = {}
-      
-      // Add group key fields to result
-      const groupKeyObj = this.parseGroupKey(groupKey, groupBy.fields)
-      Object.assign(result, groupKeyObj)
-      
-      // Calculate aggregations for this group
-      for (const agg of aggregations) {
-        result[agg.alias] = this.calculateAggregation(groupData, agg)
-      }
-      
-      results.push(result)
-    }
-    
-    return results
+    return AggregationUtils.applyAggregationsToGroups(groups, groupBy.fields, aggregations)
   }
 
-  /**
-   * Group data by specified fields
-   */
-  private groupData(data: T[], fields: Array<keyof T>): Map<string, T[]> {
-    const groups = new Map<string, T[]>()
-    
-    for (const item of data) {
-      const groupKey = this.createGroupKey(item, fields)
-      
-      if (!groups.has(groupKey)) {
-        groups.set(groupKey, [])
-      }
-      
-      groups.get(groupKey)!.push(item)
-    }
-    
-    return groups
-  }
 
-  /**
-   * Create a unique key for grouping
-   */
-  private createGroupKey(item: T, fields: Array<keyof T>): string {
-    const keyParts = fields.map(field => {
-      const value = item[field]
-      if (value === null || value === undefined) {
-        return 'NULL'
-      }
-      if (typeof value === 'object') {
-        return JSON.stringify(value)
-      }
-      return String(value)
-    })
-    
-    return keyParts.join('|')
-  }
-
-  /**
-   * Parse group key back into field values
-   */
-  private parseGroupKey(groupKey: string, fields: Array<keyof T>): any {
-    const parts = groupKey.split('|')
-    const result: any = {}
-    
-    fields.forEach((field, index) => {
-      const part = parts[index]
-      if (part === 'NULL') {
-        result[field] = null
-      } else if (part.startsWith('{') || part.startsWith('[')) {
-        try {
-          result[field] = JSON.parse(part)
-        } catch {
-          result[field] = part
-        }
-      } else {
-        // Try to parse as number or boolean, otherwise keep as string
-        const num = Number(part)
-        if (!isNaN(num) && part !== '') {
-          result[field] = num
-        } else if (part === 'true') {
-          result[field] = true
-        } else if (part === 'false') {
-          result[field] = false
-        } else {
-          result[field] = part
-        }
-      }
-    })
-    
-    return result
-  }
-
-  /**
-   * Calculate a single aggregation for a dataset
-   */
-  private calculateAggregation(data: T[], aggregation: Aggregation<T>): any {
-    if (data.length === 0) {
-      switch (aggregation.type) {
-        case 'count':
-        case 'count_distinct':
-          return 0
-        case 'sum':
-          return 0
-        case 'avg':
-        case 'min':
-        case 'max':
-          return null
-        default:
-          return null
-      }
-    }
-
-    switch (aggregation.type) {
-      case 'count':
-        return data.length
-
-      case 'count_distinct':
-        if (!aggregation.field) {
-          throw new QueryError('count_distinct requires a field', QueryErrorCode.INVALID_SYNTAX)
-        }
-        const uniqueValues = new Set()
-        for (const item of data) {
-          const value = item[aggregation.field]
-          if (value !== null && value !== undefined) {
-            uniqueValues.add(value)
-          }
-        }
-        return uniqueValues.size
-
-      case 'sum':
-        if (!aggregation.field) {
-          throw new QueryError('sum requires a field', QueryErrorCode.INVALID_SYNTAX)
-        }
-        // Check if field contains any non-numeric values (excluding null/undefined)
-        const nonNullValues = data
-          .map(item => item[aggregation.field!])
-          .filter(value => value !== null && value !== undefined)
-        
-        if (nonNullValues.length > 0) {
-          const hasOnlyNonNumericValues = nonNullValues.every(value => 
-            typeof value !== 'number' || isNaN(value)
-          )
-          if (hasOnlyNonNumericValues) {
-            throw new QueryError(
-              `Cannot apply sum to non-numeric field: ${String(aggregation.field)}`,
-              QueryErrorCode.TYPE_MISMATCH
-            )
-          }
-        }
-        return data.reduce((sum, item) => {
-          const value = item[aggregation.field!] as any
-          if (typeof value === 'number' && !isNaN(value)) {
-            return sum + value
-          }
-          return sum
-        }, 0)
-
-      case 'avg':
-        if (!aggregation.field) {
-          throw new QueryError('avg requires a field', QueryErrorCode.INVALID_SYNTAX)
-        }
-        // Check if field contains any non-numeric values (excluding null/undefined)
-        const avgNonNullValues = data
-          .map(item => item[aggregation.field!])
-          .filter(value => value !== null && value !== undefined)
-        
-        if (avgNonNullValues.length > 0) {
-          const hasOnlyNonNumericValues = avgNonNullValues.every(value => 
-            typeof value !== 'number' || isNaN(value)
-          )
-          if (hasOnlyNonNumericValues) {
-            throw new QueryError(
-              `Cannot apply avg to non-numeric field: ${String(aggregation.field)}`,
-              QueryErrorCode.TYPE_MISMATCH
-            )
-          }
-        }
-        const numericValues = data
-          .map(item => item[aggregation.field!] as any)
-          .filter(value => typeof value === 'number' && !isNaN(value))
-        
-        if (numericValues.length === 0) {
-          return null
-        }
-        
-        return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length
-
-      case 'min':
-        if (!aggregation.field) {
-          throw new QueryError('min requires a field', QueryErrorCode.INVALID_SYNTAX)
-        }
-        const validMinValues = data
-          .map(item => item[aggregation.field!])
-          .filter(value => value !== null && value !== undefined)
-        
-        if (validMinValues.length === 0) {
-          return null
-        }
-        
-        return validMinValues.reduce((min, value) => value < min ? value : min)
-
-      case 'max':
-        if (!aggregation.field) {
-          throw new QueryError('max requires a field', QueryErrorCode.INVALID_SYNTAX)
-        }
-        const validMaxValues = data
-          .map(item => item[aggregation.field!])
-          .filter(value => value !== null && value !== undefined)
-        
-        if (validMaxValues.length === 0) {
-          return null
-        }
-        
-        return validMaxValues.reduce((max, value) => value > max ? value : max)
-
-      default:
-        throw new QueryError(
-          `Unknown aggregation type: ${(aggregation as any).type}`,
-          QueryErrorCode.INVALID_SYNTAX
-        )
-    }
-  }
 
   /**
    * Apply having clause to filter grouped results

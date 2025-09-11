@@ -16,6 +16,7 @@ import {
   PatternCondition,
   SetCondition,
   NullCondition,
+  CompositeCondition,
   OrderBy,
   Pagination,
   Projection,
@@ -229,6 +230,240 @@ export class QueryBuilder<T> {
    */
   whereEndsWith(field: StringKeys<T>, value: string, caseSensitive: boolean = true): QueryBuilder<T> {
     return this.wherePattern(field, 'endsWith', value, caseSensitive)
+  }
+
+  // ============================================================================
+  // COMPOSITE CONDITIONS (AND, OR, NOT)
+  // ============================================================================
+
+  /**
+   * Add an explicit AND composite condition that matches if all sub-conditions are true
+   * 
+   * @param builderFn - Function that returns an array of QueryBuilder instances representing the AND branches
+   * @returns A new QueryBuilder instance with the AND condition added
+   * 
+   * @example
+   * ```typescript
+   * const query = QueryBuilder.create<User>()
+   *   .and((q) => [
+   *     q.whereEqual('department', 'Engineering'),
+   *     q.whereGreaterThan('salary', 70000),
+   *     q.whereEqual('active', true)
+   *   ])
+   *   .build()
+   * // Matches users in Engineering AND with salary > 70000 AND active
+   * ```
+   */
+  and(builderFn: (builder: QueryBuilder<T>) => QueryBuilder<T>[]): QueryBuilder<T> {
+    const subBuilders = builderFn(QueryBuilder.create<T>())
+    
+    if (!Array.isArray(subBuilders) || subBuilders.length === 0) {
+      throw new QueryError('AND condition requires at least one sub-condition', QueryErrorCode.INVALID_VALUE)
+    }
+
+    const subConditions = subBuilders.map(builder => {
+      const subQuery = builder.build()
+      if (subQuery.conditions.length === 1) {
+        return subQuery.conditions[0]
+      } else if (subQuery.conditions.length > 1) {
+        // Multiple conditions become an implicit AND
+        return {
+          type: 'composite' as const,
+          operator: 'and' as const,
+          conditions: subQuery.conditions
+        }
+      } else {
+        throw new QueryError('Sub-condition builder must produce at least one condition', QueryErrorCode.INVALID_VALUE)
+      }
+    })
+
+    const compositeCondition: CompositeCondition<T> = {
+      type: 'composite',
+      operator: 'and',
+      conditions: subConditions
+    }
+
+    return this._addCondition(compositeCondition)
+  }
+
+  /**
+   * Add an OR composite condition that matches if any of the sub-conditions are true
+   * 
+   * @param builderFn - Function that returns an array of QueryBuilder instances representing the OR branches
+   * @returns A new QueryBuilder instance with the OR condition added
+   * 
+   * @example
+   * ```typescript
+   * const query = QueryBuilder.create<User>()
+   *   .or((q) => [
+   *     q.whereEqual('department', 'Engineering'),
+   *     q.whereGreaterThan('salary', 70000)
+   *   ])
+   *   .build()
+   * // Matches users in Engineering OR with salary > 70000
+   * ```
+   */
+  or(builderFn: (builder: QueryBuilder<T>) => QueryBuilder<T>[]): QueryBuilder<T> {
+    const subBuilders = builderFn(QueryBuilder.create<T>())
+    
+    if (!Array.isArray(subBuilders) || subBuilders.length === 0) {
+      throw new QueryError('OR condition requires at least one sub-condition', QueryErrorCode.INVALID_VALUE)
+    }
+
+    if (subBuilders.length === 1) {
+      throw new QueryError('OR condition requires at least 2 sub-conditions', QueryErrorCode.INVALID_VALUE)
+    }
+
+    const subConditions = subBuilders.map(builder => {
+      const subQuery = builder.build()
+      if (subQuery.conditions.length === 1) {
+        return subQuery.conditions[0]
+      } else if (subQuery.conditions.length > 1) {
+        // Multiple conditions become an implicit AND
+        return {
+          type: 'composite' as const,
+          operator: 'and' as const,
+          conditions: subQuery.conditions
+        }
+      } else {
+        throw new QueryError('Sub-condition builder must produce at least one condition', QueryErrorCode.INVALID_VALUE)
+      }
+    })
+
+    const compositeCondition: CompositeCondition<T> = {
+      type: 'composite',
+      operator: 'or',
+      conditions: subConditions
+    }
+
+    return this._addCondition(compositeCondition)
+  }
+
+  /**
+   * Add a NOT composite condition that negates the result of the sub-condition
+   * 
+   * @param builderFn - Function that returns a QueryBuilder instance to negate
+   * @returns A new QueryBuilder instance with the NOT condition added
+   * 
+   * @example
+   * ```typescript
+   * const query = QueryBuilder.create<User>()
+   *   .not((q) => q.whereEqual('active', false))
+   *   .build()
+   * // Matches users where active is NOT false (i.e., active users)
+   * ```
+   */
+  not(builderFn: (builder: QueryBuilder<T>) => QueryBuilder<T>): QueryBuilder<T> {
+    const subBuilder = builderFn(QueryBuilder.create<T>())
+    const subQuery = subBuilder.build()
+    
+    if (subQuery.conditions.length === 0) {
+      throw new QueryError('NOT condition requires exactly one sub-condition', QueryErrorCode.INVALID_VALUE)
+    }
+
+    let subCondition: Condition<T>
+    if (subQuery.conditions.length === 1) {
+      subCondition = subQuery.conditions[0]
+    } else {
+      // Multiple conditions become an implicit AND
+      subCondition = {
+        type: 'composite' as const,
+        operator: 'and' as const,
+        conditions: subQuery.conditions
+      }
+    }
+
+    const compositeCondition: CompositeCondition<T> = {
+      type: 'composite',
+      operator: 'not',
+      conditions: [subCondition]
+    }
+
+    return this._addCondition(compositeCondition)
+  }
+
+  /**
+   * Add an AND condition (alias for where)
+   */
+  andWhere<K extends keyof T>(
+    field: K,
+    operator: '=' | '!=',
+    value: T[K]
+  ): QueryBuilder<T> {
+    return this.where(field, operator, value)
+  }
+
+  /**
+   * Add an OR condition, combining with existing conditions
+   */
+  orWhere<K extends keyof T>(
+    field: K,
+    operator: '=' | '!=',
+    value: T[K]
+  ): QueryBuilder<T> {
+    const newCondition: EqualityCondition<T> = {
+      type: 'equality',
+      field,
+      operator,
+      value
+    }
+
+    // If we have no existing conditions, just add this one
+    if (this._conditions.length === 0) {
+      return this._addCondition(newCondition)
+    }
+
+    // Check if the last condition is already an OR composite condition
+    const lastCondition = this._conditions[this._conditions.length - 1]
+    if (lastCondition.type === 'composite' && lastCondition.operator === 'or') {
+      // Add to existing OR condition
+      const updatedConditions = [...this._conditions]
+      const lastComposite = updatedConditions[updatedConditions.length - 1] as CompositeCondition<T>
+      updatedConditions[updatedConditions.length - 1] = {
+        ...lastComposite,
+        conditions: [...lastComposite.conditions, newCondition]
+      }
+      
+      return new QueryBuilder<T>(
+        updatedConditions,
+        this._ordering,
+        this._projection,
+        this._pagination,
+        this._grouping,
+        this._aggregations,
+        this._having
+      )
+    } else {
+      // Create new OR condition combining all existing conditions with the new one
+      let existingCondition: Condition<T>
+      
+      if (this._conditions.length === 1) {
+        existingCondition = this._conditions[0]
+      } else {
+        // Multiple existing conditions become an implicit AND
+        existingCondition = {
+          type: 'composite' as const,
+          operator: 'and' as const,
+          conditions: this._conditions
+        }
+      }
+
+      const orCondition: CompositeCondition<T> = {
+        type: 'composite',
+        operator: 'or',
+        conditions: [existingCondition, newCondition]
+      }
+
+      return new QueryBuilder<T>(
+        [orCondition],
+        this._ordering,
+        this._projection,
+        this._pagination,
+        this._grouping,
+        this._aggregations,
+        this._having
+      )
+    }
   }
 
   // ============================================================================
