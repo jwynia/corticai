@@ -22,7 +22,7 @@
   // "forwardPorts": [],
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "sudo npm i -g @anthropic-ai/claude-code"
+  "postCreateCommand": "sudo npm i -g @anthropic-ai/claude-code && sudo npm i @ast-grep/cli -g"
 
   // Configure tool-specific properties.
   // "customizations": {},

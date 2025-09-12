@@ -1,11 +1,45 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Updated**: 2025-11-09 (Session 2)  
+**Last Groomed**: 2025-12-09  
 **Major Components Complete**: 13 (Universal Adapter, AttributeIndex, TypeScript Analyzer, Storage Abstraction, Test Infrastructure, DuckDB Adapter, Query Interface, Concurrency Fix, AggregationUtils, OR/NOT Conditions, Negative Test Cases, File Refactoring, Test Suite Cleanup)
-**Test Status**: 759/759 passing (100%) ✅  
-**Current Status**: Production-ready with clean test suite
-**Latest Achievement**: ✅ Comprehensive error handling + 100% clean test suite
+**Test Status**: 755/759 passing (4 failures) ⚠️  
+**Current Status**: Near production-ready, minor test fixes needed
+**Key Issue**: 4 test failures in DuckDB adapter and TypeScript analyzer
+
+---
+
+## 🔴 URGENT: Fix Test Failures
+
+### Critical - Fix 4 Failing Tests
+**One-liner**: Restore 100% test pass rate by fixing DuckDB and TypeScript analyzer failures
+**Complexity**: Trivial
+**Files to fix**: 
+- `/app/tests/storage/duckdb.adapter.test.ts` (3 failures)
+- `/app/tests/analyzers/typescript-deps.test.ts` (1 failure)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Tests were passing in previous session but now have 4 failures
+
+**Acceptance Criteria**:
+- [ ] Investigate root cause of test failures
+- [ ] Fix DuckDB adapter test issues (3 failures)
+- [ ] Fix TypeScript analyzer test issue (1 failure)
+- [ ] Verify all 759 tests pass
+- [ ] No skipped or ignored tests
+
+**Implementation Guide**:
+1. Run tests with verbose output to identify specific failures
+2. Check for environment-specific issues (file paths, permissions)
+3. Verify DuckDB connection cleanup
+4. Fix identified issues
+5. Run full test suite to confirm
+
+**Priority**: CRITICAL - Blocks all other work
+
+</details>
 
 ---
 
@@ -63,14 +97,12 @@
 
 ---
 
-## 🚀 Ready for Implementation NOW
+## 🚀 Ready for Implementation (After Test Fix)
 
-### 1. Add Query Performance Benchmarks
-**One-liner**: Create benchmarking suite to validate performance and prevent regressions
-**Complexity**: Small
-**Files to create**: 
-- `/app/benchmarks/query-performance.ts`
-- `/app/scripts/run-benchmarks.js`
+### 1. Generate API Documentation from JSDoc
+**One-liner**: Auto-generate comprehensive API documentation from existing JSDoc comments
+**Complexity**: Trivial
+**Priority**: HIGH - Low effort, high value
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -102,10 +134,10 @@
 
 ---
 
-### 2. Generate API Documentation from JSDoc
-**One-liner**: Auto-generate comprehensive API documentation from existing JSDoc comments
-**Complexity**: Trivial
-**Tools**: TypeDoc or API Extractor
+### 2. Add Query Performance Benchmarks
+**One-liner**: Create benchmarking suite to validate performance and prevent regressions
+**Complexity**: Small
+**Priority**: MEDIUM - Important for maintaining quality
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -132,10 +164,10 @@
 
 ---
 
-### 3. Optimize DuckDB Batch Operations
-**One-liner**: Use prepared statements or Appender API for bulk inserts
-**Complexity**: Medium
-**Priority**: Low (current performance acceptable)
+### 3. Improve Entity ID Generation
+**One-liner**: Replace Date.now() with crypto.randomUUID() for better uniqueness
+**Complexity**: Trivial
+**Priority**: MEDIUM - Better practice, prevents future issues
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -163,12 +195,10 @@
 
 ---
 
-### 4. Add Query Performance Benchmarks
-**One-liner**: Create benchmarking suite to validate performance and prevent regressions
+### 4. Test File System Mocking
+**One-liner**: Add proper mocking for file system operations in tests
 **Complexity**: Small
-**Files to create**: 
-- `/app/benchmarks/query-performance.ts`
-- `/app/scripts/run-benchmarks.js`
+**Priority**: MEDIUM - Improves test reliability and speed
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -196,10 +226,10 @@
 
 ---
 
-### 5. Generate API Documentation from JSDoc
-**One-liner**: Auto-generate comprehensive API documentation from existing JSDoc comments
-**Complexity**: Trivial
-**Tools**: TypeDoc or API Extractor
+### 5. Optimize DuckDB Batch Operations
+**One-liner**: Use prepared statements or Appender API for bulk inserts
+**Complexity**: Medium
+**Priority**: LOW - Current performance acceptable
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -303,8 +333,9 @@
 
 ## 📊 Summary Statistics
 
-- **Total completed major components**: 10
-- **Tests passing**: 798/798 (100%)
+- **Total completed major components**: 13
+- **Tests passing**: 755/759 (99.5%) ⚠️
+- **Critical issues**: 1 (test failures)
 - **Ready for immediate work**: 5 tasks
 - **Deferred/blocked**: 2 tasks
 - **Technical debt items**: 4 low-priority items
@@ -326,30 +357,31 @@
 - File-based persistence (JSON)
 - In-memory speed (Memory)
 
-### Development Quality ✅
-- 99.6% test pass rate
-- Clean test suite (no placeholders)
+### Development Quality ⚠️
+- 99.5% test pass rate (4 failures)
+- Clean test suite structure (no placeholders)
 - Type safety throughout
 - Comprehensive error handling
+- **ISSUE**: Test regression needs immediate attention
 
 ---
 
 ## 🚦 Top 3 Recommendations
 
-### 1. **QUICK WIN**: Add DuckDB Table Name Validation (30 min)
-   - Security enhancement
-   - Trivial implementation
-   - Prevents SQL injection through config
+### 1. **CRITICAL**: Fix 4 Failing Tests (30-60 min)
+   - Restore 100% test pass rate
+   - Unblock all other development
+   - Maintain code quality confidence
 
-### 2. **QUALITY**: Add Negative Test Cases (2-3 hours)
-   - Improves robustness
-   - Better error handling
-   - Can be done incrementally
+### 2. **QUICK WIN**: Generate API Documentation (1 hour)
+   - Leverage existing JSDoc comments
+   - Provides immediate value to users
+   - TypeDoc setup is straightforward
 
-### 3. **MAINTAINABILITY**: Split Large Files (4-6 hours)
-   - DuckDBStorageAdapter (887 lines)
-   - QueryBuilder (853 lines)
-   - Improves code organization
+### 3. **QUALITY**: Add Performance Benchmarks (4 hours)
+   - Validate performance claims
+   - Prevent future regressions
+   - Establish baseline metrics
 
 ---
 
@@ -395,8 +427,23 @@
 ---
 
 ## Metadata
-- **Last Groomed**: 2025-11-09 (full inventory and classification)
-- **Next Review**: After completing top 3 recommendations
-- **Focus**: Maintainability and robustness improvements
-- **Confidence**: EXCELLENT - 100% tests passing, system fully operational
-- **Key Finding**: System is production-ready, focus on polish and optimization
+- **Last Groomed**: 2025-12-09 (comprehensive scan and reality check)
+- **Next Review**: After fixing test failures
+- **Focus**: Test stability, then documentation and benchmarking
+- **Confidence**: HIGH - System mostly operational but test regression needs attention
+- **Key Finding**: Test failures are blocking issue, otherwise system is mature
+
+## Grooming Process Insights
+
+### Task Classification Results
+- **A: Claimed Complete**: 3 (table validation, negative tests, file refactoring) 
+- **B: Ready to Execute**: 5 (docs, benchmarks, ID generation, FS mocking, batch ops)
+- **C: Needs Grooming**: 0 (all tasks have clear criteria)
+- **D: Blocked**: 1 (all work blocked by test failures)
+- **E: Obsolete**: 2 (table validation already done, large file splitting completed)
+
+### Reality Check Findings
+- Test regression from 100% to 99.5% needs immediate attention
+- Previous completions (error handling, refactoring) are solid
+- System architecture is mature and well-organized
+- Documentation and benchmarking are logical next steps

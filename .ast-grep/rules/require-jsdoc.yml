@@ -1,0 +1,54 @@
+# Rule: Require JSDoc for public methods and exported functions
+id: require-jsdoc
+language: typescript
+severity: info
+message: Public API should have JSDoc documentation
+
+rule:
+  any:
+    # Public class methods
+    - all:
+        - pattern: |
+            public $METHOD($$$) {
+              $$$
+            }
+        - not:
+            precedes:
+              pattern: |
+                /**
+                 * $$$
+                 */
+    
+    # Exported functions
+    - all:
+        - pattern: |
+            export function $FUNC($$$) {
+              $$$
+            }
+        - not:
+            precedes:
+              pattern: |
+                /**
+                 * $$$
+                 */
+    
+    # Exported async functions
+    - all:
+        - pattern: |
+            export async function $FUNC($$$) {
+              $$$
+            }
+        - not:
+            precedes:
+              pattern: |
+                /**
+                 * $$$
+                 */
+
+note: |
+  All public APIs should be documented with JSDoc comments including:
+  - Brief description of the function/method
+  - @param tags for parameters
+  - @returns tag for return value
+  - @throws tag if exceptions are thrown
+  - @example tag for usage examples (recommended)

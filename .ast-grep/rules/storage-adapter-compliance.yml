@@ -1,0 +1,68 @@
+# Rule: Ensure all storage adapters implement required methods
+id: storage-adapter-compliance
+language: typescript
+severity: error
+message: Storage adapter must implement all required BaseStorageAdapter methods
+
+rule:
+  all:
+    - pattern: |
+        class $NAME extends BaseStorageAdapter {
+          $$$
+        }
+    - has:
+        kind: method_definition
+        all:
+          - has:
+              field: name
+              regex: "^set$"
+          - has:
+              field: name
+              regex: "^get$"
+          - has:
+              field: name
+              regex: "^delete$"
+          - has:
+              field: name
+              regex: "^query$"
+          - has:
+              field: name
+              regex: "^clear$"
+
+fix: |
+  class $NAME extends BaseStorageAdapter {
+    async set(key: string, value: any): Promise<void> {
+      // TODO: Implement set method
+      throw new Error('Method not implemented');
+    }
+    
+    async get(key: string): Promise<any> {
+      // TODO: Implement get method
+      throw new Error('Method not implemented');
+    }
+    
+    async delete(key: string): Promise<void> {
+      // TODO: Implement delete method
+      throw new Error('Method not implemented');
+    }
+    
+    async query(options: QueryOptions): Promise<any[]> {
+      // TODO: Implement query method
+      throw new Error('Method not implemented');
+    }
+    
+    async clear(): Promise<void> {
+      // TODO: Implement clear method
+      throw new Error('Method not implemented');
+    }
+    
+    $$$
+  }
+
+note: |
+  All storage adapters extending BaseStorageAdapter must implement:
+  - set(key: string, value: any): Promise<void>
+  - get(key: string): Promise<any>
+  - delete(key: string): Promise<void>
+  - query(options: QueryOptions): Promise<any[]>
+  - clear(): Promise<void>

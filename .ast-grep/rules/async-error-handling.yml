@@ -1,0 +1,35 @@
+# Rule: Ensure async functions have proper error handling
+id: async-error-handling
+language: typescript
+severity: warning
+message: Async function should have error handling
+
+rule:
+  pattern: |
+    async $FUNC($$$) {
+      $$$BODY
+    }
+  not:
+    has:
+      pattern: |
+        try {
+          $$$
+        } catch ($$$) {
+          $$$
+        }
+      inside:
+        kind: statement_block
+        field: body
+
+# Exceptions for specific patterns
+constraints:
+  FUNC:
+    not:
+      regex: "^test|spec|describe|it|beforeEach|afterEach|beforeAll|afterAll$"
+
+note: |
+  Async functions should handle errors appropriately.
+  Consider wrapping async operations in try-catch blocks or
+  ensuring errors are properly propagated to callers.
+  
+  Exception: Test functions don't require explicit error handling.

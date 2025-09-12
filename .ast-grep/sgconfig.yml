@@ -1,0 +1,113 @@
+# ast-grep configuration for CorticAI project
+# Documentation: https://ast-grep.github.io/guide/project/project-config.html
+
+# Define the language for the project
+language: typescript
+
+# Project root directory (relative to this config file)
+project_root: ../
+
+# Rule directories
+rule_dirs:
+  - rules
+
+# Language-specific configurations
+typescript:
+  # File extensions to process
+  file_extensions:
+    - ts
+    - tsx
+  
+  # Exclude patterns
+  exclude:
+    - node_modules/**
+    - dist/**
+    - build/**
+    - coverage/**
+    - "*.d.ts"
+    - "*.config.ts"
+
+# Global rule configuration
+rule_config:
+  # Severity levels for rules
+  severity:
+    error: 2
+    warning: 1
+    info: 0
+  
+  # Enable auto-fix for applicable rules
+  fix: true
+
+# Custom utility patterns that can be reused across rules
+utils:
+  # Pattern for async functions
+  async_function: |
+    async $FUNC($$$) {
+      $$$
+    }
+  
+  # Pattern for test suites
+  test_suite: |
+    describe($NAME, () => {
+      $$$
+    })
+  
+  # Pattern for storage adapters
+  storage_adapter: |
+    class $NAME extends BaseStorageAdapter {
+      $$$
+    }
+  
+  # Pattern for error handling
+  try_catch: |
+    try {
+      $$$
+    } catch ($ERR) {
+      $$$
+    }
+
+# Project-specific transformations
+transforms:
+  # Transform Date.now() to crypto.randomUUID()
+  modernize_id_generation:
+    pattern: Date.now()
+    fix: crypto.randomUUID()
+    message: "Use crypto.randomUUID() instead of Date.now() for ID generation"
+  
+  # Remove console.log statements
+  remove_console_log:
+    pattern: console.log($$$)
+    fix: ""
+    message: "Remove console.log statements from production code"
+
+# Test configuration
+test:
+  # Test file patterns
+  test_files:
+    - "tests/**/*.test.ts"
+    - "src/**/*.spec.ts"
+  
+  # Snapshot directory
+  snapshot_dir: __snapshots__
+
+# Output configuration
+output:
+  # Format for output (json, yaml, or human-readable)
+  format: human
+  
+  # Include context lines
+  context: 3
+  
+  # Color output
+  color: true
+
+# Performance optimizations
+performance:
+  # Maximum number of parallel workers
+  max_workers: 8
+  
+  # Cache AST parsing results
+  cache: true
+  
+  # Cache directory
+  cache_dir: .ast-grep-cache
