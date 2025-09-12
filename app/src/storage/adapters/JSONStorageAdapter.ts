@@ -43,6 +43,18 @@ export class JSONStorageAdapter<T = any> extends BaseStorageAdapter<T> implement
       )
     }
 
+    // Validate encoding if provided
+    if (config.encoding) {
+      const validEncodings = ['utf8', 'utf-8', 'ascii', 'latin1', 'binary', 'hex', 'base64', 'ucs2', 'ucs-2', 'utf16le', 'utf-16le']
+      if (!validEncodings.includes(config.encoding)) {
+        throw new StorageError(
+          `Invalid encoding: ${config.encoding}`,
+          StorageErrorCode.INVALID_VALUE,
+          { encoding: config.encoding, validEncodings }
+        )
+      }
+    }
+
     super(config)
     
     this.jsonConfig = {
@@ -65,6 +77,58 @@ export class JSONStorageAdapter<T = any> extends BaseStorageAdapter<T> implement
     
     if (this.jsonConfig.debug) {
       this.log(`Initialized with file: ${this.jsonConfig.filePath}`)
+    }
+  }
+
+  // ============================================================================
+  // OVERRIDE BASE METHODS FOR JSON-SPECIFIC HANDLING
+  // ============================================================================
+
+  /**
+   * Override set method to handle JSON-specific value preprocessing
+   */
+  async set(key: string, value: T): Promise<void> {
+    // Import here to use the existing validation
+    const { StorageValidator } = await import('../helpers/StorageValidator')
+    StorageValidator.validateKey(key)
+    
+    // Custom JSON-friendly value validation and conversion
+    const processedValue = this.preprocessValue(value)
+    
+    await this.ensureLoaded()
+    
+    this.data.set(key, processedValue)
+    await this.persist()
+    
+    if (this.config.debug) {
+      this.log(`SET ${key}`)
+    }
+  }
+
+  /**
+   * Override setMany method to handle JSON-specific value preprocessing
+   */
+  async setMany(entries: Map<string, T>): Promise<void> {
+    const { StorageValidator } = await import('../helpers/StorageValidator')
+    
+    // Validate keys and preprocess values
+    const processedEntries = new Map<string, T>()
+    for (const [key, value] of entries) {
+      StorageValidator.validateKey(key)
+      processedEntries.set(key, this.preprocessValue(value))
+    }
+    
+    await this.ensureLoaded()
+    
+    // Apply all changes
+    for (const [key, value] of processedEntries) {
+      this.data.set(key, value)
+    }
+    
+    await this.persist()
+    
+    if (this.config.debug) {
+      this.log(`SET_MANY ${entries.size} entries`)
     }
   }
 
@@ -187,5 +251,51 @@ export class JSONStorageAdapter<T = any> extends BaseStorageAdapter<T> implement
     if (this.config.debug) {
       this.log(`Auto-save ${enabled ? 'enabled' : 'disabled'}`)
     }
+  }
+
+  // ============================================================================
+  // PRIVATE HELPER METHODS
+  // ============================================================================
+
+  /**
+   * Preprocess values to handle JSON serialization issues
+   * Converts non-serializable values to serializable forms
+   */
+  private preprocessValue(value: any, seen = new WeakSet()): any {
+    if (value === null || value === undefined) {
+      return value
+    }
+    
+    if (typeof value === 'function') {
+      return { __type: 'function', __value: value.toString() }
+    }
+    
+    if (typeof value === 'symbol') {
+      return { __type: 'symbol', __value: value.toString() }
+    }
+    
+    if (typeof value === 'bigint') {
+      return { __type: 'bigint', __value: value.toString() }
+    }
+    
+    if (typeof value === 'object' && value !== null) {
+      // Handle circular references
+      if (seen.has(value)) {
+        return { __type: 'circular', __value: '[Circular Reference]' }
+      }
+      seen.add(value)
+      
+      if (Array.isArray(value)) {
+        return value.map(item => this.preprocessValue(item, seen))
+      } else {
+        const result: any = {}
+        for (const [key, val] of Object.entries(value)) {
+          result[key] = this.preprocessValue(val, seen)
+        }
+        return result
+      }
+    }
+    
+    return value
   }
 }

@@ -16,37 +16,11 @@ export class StorageValidator {
    * @throws StorageError if key is invalid
    */
   static validateKey(key: any): asserts key is string {
-    if (key === null) {
+    if (key === null || key === undefined || typeof key !== 'string' || key === '') {
       throw new StorageError(
-        'Key cannot be null',
-        StorageErrorCode.INVALID_KEY,
-        { key }
-      )
-    }
-    
-    if (key === undefined) {
-      throw new StorageError(
-        'Key cannot be undefined',
-        StorageErrorCode.INVALID_KEY,
-        { key }
-      )
-    }
-    
-    if (typeof key !== 'string') {
-      throw new StorageError(
-        `Key must be a string, got ${typeof key}`,
+        'Key must be a non-empty string',
         StorageErrorCode.INVALID_KEY,
         { key, type: typeof key }
-      )
-    }
-
-    // Optional: validate key is not empty
-    // Uncomment if empty keys should be rejected
-    if (key === '') {
-      throw new StorageError(
-        'key cannot be empty string',
-        StorageErrorCode.INVALID_KEY,
-        { key }
       )
     }
   }

@@ -30,6 +30,9 @@ import {
   NumericKeys,
   OperatorsForType
 } from './types'
+import { QueryConditionBuilder } from './QueryConditionBuilder'
+import { QueryValidators } from './QueryValidators'
+import { QueryHelpers } from './QueryHelpers'
 
 /**
  * Fluent QueryBuilder class for type-safe query construction
@@ -84,12 +87,7 @@ export class QueryBuilder<T> {
     operator: '=' | '!=',
     value: T[K]
   ): QueryBuilder<T> {
-    const condition: EqualityCondition<T> = {
-      type: 'equality',
-      field,
-      operator,
-      value
-    }
+    const condition = QueryConditionBuilder.createEqualityCondition(field, operator, value)
     return this._addCondition(condition)
   }
 
@@ -101,12 +99,7 @@ export class QueryBuilder<T> {
     operator: '>' | '>=' | '<' | '<=',
     value: T[K]
   ): QueryBuilder<T> {
-    const condition: ComparisonCondition<T> = {
-      type: 'comparison',
-      field,
-      operator,
-      value
-    }
+    const condition = QueryConditionBuilder.createComparisonCondition(field, operator, value)
     return this._addCondition(condition)
   }
 
@@ -119,13 +112,7 @@ export class QueryBuilder<T> {
     value: string,
     caseSensitive: boolean = true
   ): QueryBuilder<T> {
-    const condition: PatternCondition<T> = {
-      type: 'pattern',
-      field,
-      operator,
-      value,
-      caseSensitive
-    }
+    const condition = QueryConditionBuilder.createPatternCondition(field, operator, value, caseSensitive)
     return this._addCondition(condition)
   }
 
@@ -277,11 +264,7 @@ export class QueryBuilder<T> {
       }
     })
 
-    const compositeCondition: CompositeCondition<T> = {
-      type: 'composite',
-      operator: 'and',
-      conditions: subConditions
-    }
+    const compositeCondition = QueryConditionBuilder.createAndCondition(subConditions)
 
     return this._addCondition(compositeCondition)
   }
@@ -330,11 +313,7 @@ export class QueryBuilder<T> {
       }
     })
 
-    const compositeCondition: CompositeCondition<T> = {
-      type: 'composite',
-      operator: 'or',
-      conditions: subConditions
-    }
+    const compositeCondition = QueryConditionBuilder.createOrCondition(subConditions)
 
     return this._addCondition(compositeCondition)
   }
@@ -373,11 +352,7 @@ export class QueryBuilder<T> {
       }
     }
 
-    const compositeCondition: CompositeCondition<T> = {
-      type: 'composite',
-      operator: 'not',
-      conditions: [subCondition]
-    }
+    const compositeCondition = QueryConditionBuilder.createNotCondition(subCondition)
 
     return this._addCondition(compositeCondition)
   }
@@ -748,16 +723,12 @@ export class QueryBuilder<T> {
     }
 
     // Validate the built query
-    try {
-      validateQuery(query)
-    } catch (error) {
-      if (error instanceof QueryError) {
-        throw error
-      }
+    const validation = QueryValidators.validateQuery(query)
+    if (!validation.valid) {
       throw new QueryError(
-        'Query validation failed',
+        `Query validation failed: ${validation.errors.join(', ')}`,
         QueryErrorCode.INVALID_SYNTAX,
-        { originalError: error }
+        { validationErrors: validation.errors }
       )
     }
 
@@ -849,6 +820,6 @@ export class QueryBuilder<T> {
     const queryA = a.build()
     const queryB = b.build()
     
-    return JSON.stringify(queryA) === JSON.stringify(queryB)
+    return QueryHelpers.areQueriesEqual(queryA, queryB)
   }
 }

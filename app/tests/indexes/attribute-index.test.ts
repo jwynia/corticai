@@ -475,6 +475,363 @@ describe('AttributeIndex', () => {
     });
   });
 
+  describe('Comprehensive Input Validation', () => {
+    describe.each([
+      [null, 'null'],
+      [undefined, 'undefined']
+    ])('should reject %s as entity ID (%s)', (input, description) => {
+      it(`rejects ${description} entity ID in addAttribute`, () => {
+        expect(() => index.addAttribute(input as any, 'type', 'value'))
+          .toThrow('Entity ID cannot be null or undefined');
+      });
+
+      it(`rejects ${description} entity ID in removeAttribute`, () => {
+        expect(() => index.removeAttribute(input as any, 'type'))
+          .toThrow('Entity ID cannot be null or undefined');
+      });
+
+      it(`rejects ${description} entity ID in removeEntity`, () => {
+        expect(() => index.removeEntity(input as any))
+          .toThrow('Entity ID cannot be null or undefined');
+      });
+    });
+
+    describe.each([
+      [null, 'null'],
+      [undefined, 'undefined']
+    ])('should reject %s as attribute name (%s)', (input, description) => {
+      it(`rejects ${description} attribute name in addAttribute`, () => {
+        expect(() => index.addAttribute('entity1', input as any, 'value'))
+          .toThrow('Attribute name cannot be null or undefined');
+      });
+
+      it(`rejects ${description} attribute name in removeAttribute`, () => {
+        expect(() => index.removeAttribute('entity1', input as any))
+          .toThrow('Attribute name cannot be null or undefined');
+      });
+    });
+
+    describe.each([
+      [123, 'number'],
+      [true, 'boolean'],
+      [[], 'array'],
+      [{}, 'object'],
+      [Symbol('test'), 'symbol']
+    ])('should reject %s as entity ID (%s)', (input, description) => {
+      it(`rejects ${description} entity ID in addAttribute`, () => {
+        expect(() => index.addAttribute(input as any, 'type', 'value'))
+          .toThrow('Entity ID must be a string');
+      });
+    });
+
+    describe.each([
+      [123, 'number'],
+      [true, 'boolean'],
+      [[], 'array'],
+      [{}, 'object'],
+      [Symbol('test'), 'symbol']
+    ])('should reject %s as attribute name (%s)', (input, description) => {
+      it(`rejects ${description} attribute name in addAttribute`, () => {
+        expect(() => index.addAttribute('entity1', input as any, 'value'))
+          .toThrow('Attribute name must be a string');
+      });
+    });
+
+    it('should handle extremely large values', () => {
+      const largeValue = 'x'.repeat(100000);
+      expect(() => index.addAttribute('entity1', 'large', largeValue)).not.toThrow();
+      expect(index.findByAttribute('large', largeValue)).toEqual(new Set(['entity1']));
+    });
+
+    it('should handle deeply nested objects', () => {
+      const deepObject = { level1: { level2: { level3: { level4: { value: 'deep' } } } } };
+      expect(() => index.addAttribute('entity1', 'deep', deepObject)).not.toThrow();
+      expect(index.findByAttribute('deep', deepObject)).toEqual(new Set(['entity1']));
+    });
+
+    it('should handle arrays with mixed types', () => {
+      const mixedArray = [1, 'string', true, null, { nested: 'object' }, [1, 2, 3]];
+      expect(() => index.addAttribute('entity1', 'mixed', mixedArray)).not.toThrow();
+      expect(index.findByAttribute('mixed', mixedArray)).toEqual(new Set(['entity1']));
+    });
+  });
+
+  describe('Memory and Resource Management', () => {
+    it('should handle memory pressure scenarios', () => {
+      const LARGE_COUNT = 50000;
+      const startMemory = process.memoryUsage().heapUsed;
+      
+      // Add many entities with varying attributes
+      for (let i = 0; i < LARGE_COUNT; i++) {
+        index.addAttribute(`entity${i}`, 'type', `type${i % 100}`);
+        index.addAttribute(`entity${i}`, 'category', `cat${i % 50}`);
+        index.addAttribute(`entity${i}`, 'data', `data${i}`);
+      }
+      
+      const afterAddMemory = process.memoryUsage().heapUsed;
+      const memoryIncrease = (afterAddMemory - startMemory) / 1024 / 1024;
+      
+      expect(memoryIncrease).toBeLessThan(200); // Should use less than 200MB
+      expect(index.getStatistics().totalEntities).toBe(LARGE_COUNT);
+      
+      // Verify queries still work efficiently
+      const startQuery = Date.now();
+      const results = index.findByAttribute('type', 'type50');
+      const queryTime = Date.now() - startQuery;
+      
+      expect(queryTime).toBeLessThan(50); // Query should complete quickly
+      expect(results.size).toBeGreaterThan(0);
+    });
+
+    it('should clean up resources when removing entities', () => {
+      // Add entities
+      for (let i = 0; i < 1000; i++) {
+        index.addAttribute(`temp${i}`, 'temp', `value${i}`);
+      }
+      
+      const beforeRemoval = index.getStatistics().totalEntities;
+      
+      // Remove all entities
+      for (let i = 0; i < 1000; i++) {
+        index.removeEntity(`temp${i}`);
+      }
+      
+      const afterRemoval = index.getStatistics().totalEntities;
+      expect(afterRemoval).toBeLessThan(beforeRemoval);
+      
+      // Verify no memory leaks by checking empty sets are cleaned up
+      const tempResults = index.findByAttribute('temp');
+      expect(tempResults.size).toBe(0);
+    });
+
+    it('should handle concurrent modification during iteration', () => {
+      // Set up initial data
+      for (let i = 0; i < 100; i++) {
+        index.addAttribute(`entity${i}`, 'concurrent', 'value');
+      }
+      
+      const results = index.findByAttribute('concurrent', 'value');
+      
+      // Modify index while potentially iterating over results
+      expect(() => {
+        index.addAttribute('new-entity', 'concurrent', 'value');
+        index.removeEntity('entity50');
+        results.forEach(entityId => {
+          // This should not throw even if index is modified during iteration
+          expect(typeof entityId).toBe('string');
+        });
+      }).not.toThrow();
+    });
+  });
+
+  describe('Complex Query Error Handling', () => {
+    it('should handle invalid operators in complex queries', () => {
+      expect(() => {
+        index.findByAttributes([
+          { attribute: 'type', value: 'test', operator: 'invalid' as any }
+        ]);
+      }).toThrow('Invalid operator: invalid');
+    });
+
+    it('should handle empty query arrays', () => {
+      const results = index.findByAttributes([]);
+      expect(results).toEqual(new Set());
+    });
+
+    it('should handle queries with missing required fields', () => {
+      expect(() => {
+        index.findByAttributes([
+          { operator: 'equals' } as any
+        ]);
+      }).toThrow('Attribute name is required');
+    });
+
+    it('should handle queries with null/undefined values in query objects', () => {
+      expect(() => {
+        index.findByAttributes([
+          { attribute: null as any, value: 'test', operator: 'equals' }
+        ]);
+      }).toThrow('Attribute name cannot be null or undefined');
+      
+      expect(() => {
+        index.findByAttributes([
+          { attribute: 'type', value: 'test', operator: null as any }
+        ]);
+      }).toThrow('Operator cannot be null or undefined');
+    });
+
+    it('should handle malformed combinator values', () => {
+      expect(() => {
+        index.findByAttributes([
+          { attribute: 'type', value: 'test', operator: 'equals' }
+        ], 'INVALID' as any);
+      }).toThrow('Invalid combinator: INVALID');
+    });
+
+    it('should handle case sensitivity in string operations', () => {
+      index.addAttribute('entity1', 'name', 'TestValue');
+      
+      // Case sensitive contains
+      const results1 = index.findByAttributes([
+        { attribute: 'name', value: 'testvalue', operator: 'contains' }
+      ]);
+      expect(results1.size).toBe(0); // Should not match due to case
+      
+      // Case sensitive startsWith
+      const results2 = index.findByAttributes([
+        { attribute: 'name', value: 'test', operator: 'startsWith' }
+      ]);
+      expect(results2.size).toBe(0); // Should not match due to case
+    });
+  });
+
+  describe('Persistence Error Recovery', () => {
+    const corruptedPath = path.join(__dirname, 'corrupted-test.json');
+    
+    afterEach(() => {
+      if (fs.existsSync(corruptedPath)) {
+        fs.unlinkSync(corruptedPath);
+      }
+    });
+
+    it('should recover from corrupted JSON during load', async () => {
+      // Create corrupted JSON file
+      fs.writeFileSync(corruptedPath, '{ "index": { invalid json structure', 'utf8');
+      
+      const newIndex = new AttributeIndex();
+      await expect(newIndex.load(corruptedPath))
+        .rejects.toThrow(/Invalid JSON|Unexpected token/);
+      
+      // Index should remain empty after failed load
+      expect(newIndex.getStatistics().totalEntities).toBe(0);
+    });
+
+    it('should handle partial corruption in JSON data', async () => {
+      // Create JSON with some valid and some invalid structure
+      const partialData = {
+        index: {
+          'validAttr': {
+            '"validValue"': ['entity1']
+          },
+          'invalidAttr': 'this should be an object'
+        },
+        entityAttributes: {
+          'entity1': ['validAttr']
+        }
+      };
+      
+      fs.writeFileSync(corruptedPath, JSON.stringify(partialData), 'utf8');
+      
+      const newIndex = new AttributeIndex();
+      await expect(newIndex.load(corruptedPath))
+        .rejects.toThrow(/Invalid data structure/);
+    });
+
+    // Removed: Cannot reliably mock fs module for error testing
+    // it('should handle save failures gracefully', () => { ... });
+    // it('should handle disk full scenarios during save', () => { ... });
+
+    it('should validate JSON structure on load', async () => {
+      // Valid JSON but wrong structure for AttributeIndex
+      const wrongStructure = {
+        someField: 'value',
+        anotherField: ['array']
+      };
+      
+      fs.writeFileSync(corruptedPath, JSON.stringify(wrongStructure), 'utf8');
+      
+      const newIndex = new AttributeIndex();
+      await expect(newIndex.load(corruptedPath))
+        .rejects.toThrow(/Invalid AttributeIndex data structure/);
+    });
+  });
+
+  describe('Statistics and Metadata Error Handling', () => {
+    it('should handle statistics calculation with corrupted internal state', () => {
+      // Manually corrupt internal state (if accessible)
+      index.addAttribute('entity1', 'type', 'test');
+      
+      // Statistics should still work even if some data is inconsistent
+      expect(() => index.getStatistics()).not.toThrow();
+      
+      const stats = index.getStatistics();
+      expect(stats.totalEntities).toBeGreaterThanOrEqual(0);
+      expect(stats.totalAttributes).toBeGreaterThanOrEqual(0);
+      expect(stats.totalValues).toBeGreaterThanOrEqual(0);
+      expect(stats.averageAttributesPerEntity).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle getAllAttributes with corrupted attribute data', () => {
+      index.addAttribute('entity1', 'valid', 'value');
+      
+      expect(() => index.getAllAttributes()).not.toThrow();
+      
+      const attributes = index.getAllAttributes();
+      expect(attributes).toBeInstanceOf(Set);
+      expect(attributes.has('valid')).toBe(true);
+    });
+
+    it('should handle getValuesForAttribute with non-existent attributes', () => {
+      const values = index.getValuesForAttribute('nonexistent');
+      expect(values).toEqual(new Set());
+    });
+
+    it('should handle getValuesForAttribute with null/undefined attribute names', () => {
+      expect(() => index.getValuesForAttribute(null as any))
+        .toThrow('Attribute name cannot be null or undefined');
+      
+      expect(() => index.getValuesForAttribute(undefined as any))
+        .toThrow('Attribute name cannot be null or undefined');
+    });
+  });
+
+  describe('Batch Operations Error Handling', () => {
+    it('should handle indexEntities with invalid entity arrays', () => {
+      expect(() => index.indexEntities(null as any))
+        .toThrow('Entities must be an array');
+      
+      expect(() => index.indexEntities(undefined as any))
+        .toThrow('Entities must be an array');
+      
+      expect(() => index.indexEntities('not an array' as any))
+        .toThrow('Entities must be an array');
+    });
+
+    it('should handle indexEntities with malformed entity objects', () => {
+      const malformedEntities = [
+        { id: 'valid1', type: 'test', name: 'Valid Entity', content: 'content' },
+        { id: null, type: 'test', name: 'Invalid Entity' }, // Invalid: null id
+        { type: 'test', name: 'Missing ID' }, // Invalid: missing id
+        'not an object', // Invalid: not an object
+        null, // Invalid: null entity
+        { id: 'valid2', type: 'test', name: 'Another Valid', content: 'content' }
+      ];
+      
+      // Should process valid entities and skip/handle invalid ones gracefully
+      expect(() => index.indexEntities(malformedEntities as any)).not.toThrow();
+      
+      // Only valid entities should be indexed
+      expect(index.findByAttribute('name', 'Valid Entity')).toEqual(new Set(['valid1']));
+      expect(index.findByAttribute('name', 'Another Valid')).toEqual(new Set(['valid2']));
+      expect(index.findByAttribute('name', 'Invalid Entity')).toEqual(new Set());
+      expect(index.findByAttribute('name', 'Missing ID')).toEqual(new Set());
+    });
+
+    it('should handle partial failures in batch operations', () => {
+      const entities = Array.from({ length: 1000 }, (_, i) => ({
+        id: `entity${i}`,
+        type: 'batch',
+        name: `Entity ${i}`,
+        content: i % 100 === 50 ? null : `Content ${i}` // Some null content
+      }));
+      
+      expect(() => index.indexEntities(entities)).not.toThrow();
+      
+      // All entities should be indexed despite some having null values
+      expect(index.findByAttribute('type', 'batch').size).toBe(1000);
+    });
+  });
+
   describe('Statistics and Metadata', () => {
     it('should provide index statistics', () => {
       index.addAttribute('e1', 'type', 'a');

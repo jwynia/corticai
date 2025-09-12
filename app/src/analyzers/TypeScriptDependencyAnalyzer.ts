@@ -56,6 +56,17 @@ export class TypeScriptDependencyAnalyzer {
    * Analyze a single TypeScript file
    */
   async analyzeFile(filePath: string): Promise<FileAnalysis> {
+    // Validate input
+    if (filePath === null || filePath === undefined) {
+      throw new Error('Invalid file path: must be a string');
+    }
+    if (typeof filePath !== 'string') {
+      throw new Error('Invalid file path: must be a string');
+    }
+    if (filePath === '') {
+      throw new Error('Invalid file path: must be a string');
+    }
+    
     try {
       // Check if file exists
       try {
@@ -373,6 +384,17 @@ export class TypeScriptDependencyAnalyzer {
    * Analyze all TypeScript files in a directory
    */
   async analyzeDirectory(dirPath: string): Promise<ProjectAnalysis> {
+    // Validate input
+    if (dirPath === null || dirPath === undefined) {
+      throw new Error('Invalid directory path: must be a string');
+    }
+    if (typeof dirPath !== 'string') {
+      throw new Error('Invalid directory path: must be a string');
+    }
+    if (dirPath === '') {
+      throw new Error('Invalid directory path: must be a string');
+    }
+    
     const files: FileAnalysis[] = [];
     const allFiles = await this.findTypeScriptFiles(dirPath);
     
@@ -443,11 +465,29 @@ export class TypeScriptDependencyAnalyzer {
    * Build dependency graph from file analyses
    */
   buildDependencyGraph(files: FileAnalysis[]): DependencyGraph {
+    // Validate input
+    if (!Array.isArray(files)) {
+      throw new Error('Files must be an array');
+    }
+    
     const nodes = new Map<string, Node>();
     const edges = new Map<string, Edge[]>();
 
     // Create nodes
     for (const file of files) {
+      // Validate file object structure
+      if (!file || typeof file !== 'object') {
+        continue; // Skip invalid files
+      }
+      if (!file.path || typeof file.path !== 'string') {
+        continue; // Skip files without valid paths
+      }
+      if (!Array.isArray(file.imports)) {
+        continue; // Skip files with invalid imports
+      }
+      if (!Array.isArray(file.exports)) {
+        continue; // Skip files with invalid exports
+      }
       nodes.set(file.path, {
         path: file.path,
         imports: file.imports.length,
@@ -568,6 +608,14 @@ export class TypeScriptDependencyAnalyzer {
    * Export graph as JSON
    */
   exportToJSON(graph: DependencyGraph): string {
+    // Validate input
+    if (!graph || typeof graph !== 'object') {
+      throw new Error('Graph must be a valid object');
+    }
+    if (!(graph.nodes instanceof Map) || !(graph.edges instanceof Map)) {
+      throw new Error('Graph must contain valid nodes and edges Maps');
+    }
+    
     const jsonGraph = {
       nodes: Array.from(graph.nodes.entries()).map(([filePath, node]) => ({
         ...node,
@@ -579,22 +627,41 @@ export class TypeScriptDependencyAnalyzer {
       cycles: graph.cycles
     };
 
-    return JSON.stringify(jsonGraph, null, 2);
+    try {
+      return JSON.stringify(jsonGraph, null, 2);
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('circular')) {
+        throw new Error('Cannot export graph with circular references');
+      }
+      throw error;
+    }
   }
 
   /**
    * Export graph in DOT format for Graphviz
    */
   exportToDOT(graph: DependencyGraph): string {
+    // Validate input
+    if (!graph || typeof graph !== 'object') {
+      throw new Error('Graph must be a valid object');
+    }
+    if (!(graph.nodes instanceof Map) || !(graph.edges instanceof Map)) {
+      throw new Error('Graph must contain valid nodes and edges Maps');
+    }
+    
     const lines: string[] = ['digraph dependencies {'];
     lines.push('  rankdir=LR;');
     lines.push('  node [shape=box];');
     
     // Create a set of nodes involved in cycles
     const cycleNodes = new Set<string>();
-    graph.cycles.forEach(cycle => {
-      cycle.nodes.forEach(node => cycleNodes.add(node));
-    });
+    if (graph.cycles && Array.isArray(graph.cycles)) {
+      graph.cycles.forEach(cycle => {
+        if (cycle && Array.isArray(cycle.nodes)) {
+          cycle.nodes.forEach(node => cycleNodes.add(node));
+        }
+      });
+    }
 
     // Add nodes
     for (const [path, node] of graph.nodes) {

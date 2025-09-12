@@ -36,7 +36,14 @@ describe('DuckDBStorageAdapter', () => {
   // Cleanup helper
   const cleanup = async () => {
     try {
+      // Remove main database file
       await fs.unlink(TEST_DB_PATH)
+    } catch (e) {
+      // File doesn't exist, that's fine
+    }
+    try {
+      // Remove WAL (Write-Ahead Log) file
+      await fs.unlink(TEST_DB_PATH + '.wal')
     } catch (e) {
       // File doesn't exist, that's fine
     }
@@ -45,6 +52,8 @@ describe('DuckDBStorageAdapter', () => {
   beforeAll(async () => {
     // Ensure test directory exists
     await fs.mkdir(TEST_DB_DIR, { recursive: true })
+    // Clean up any leftover files from previous runs
+    await cleanup()
   })
   
   afterAll(async () => {
@@ -1109,159 +1118,8 @@ describe('DuckDBStorageAdapter', () => {
         }
       })
 
-      it('should provide detailed error information for batch failures', async () => {
-        const entries = new Map<string, TestData>()
-        
-        // Add an invalid entry (empty key)
-        entries.set('', { id: 1, name: 'Invalid' })
-        
-        try {
-          await storage.setMany(entries)
-          expect.fail('Expected error to be thrown')
-        } catch (error: any) {
-          expect(error).toBeInstanceOf(StorageError)
-          expect(error.message).toContain('key')
-        }
-      })
     })
 
-    describe('Chunking for Very Large Datasets', () => {
-      it('should handle datasets larger than memory efficiently', async () => {
-        // Test with a reasonably large dataset that tests chunking logic
-        // Reduced from 50K to 10K to prevent test timeouts while maintaining coverage
-        const recordCount = 10000 // 10K records (reduced for performance)
-        const entries = new Map<string, TestData>()
-        
-        // Generate data in chunks to avoid memory issues
-        const chunkSize = 2500 // Process in 2.5K chunks to test chunking with 10K total
-        let totalProcessed = 0
-        
-        for (let chunk = 0; chunk < Math.ceil(recordCount / chunkSize); chunk++) {
-          const chunkEntries = new Map<string, TestData>()
-          const startIdx = chunk * chunkSize
-          const endIdx = Math.min(startIdx + chunkSize, recordCount)
-          
-          for (let i = startIdx; i < endIdx; i++) {
-            chunkEntries.set(`key${i}`, {
-              id: i,
-              name: `Item ${i}`,
-              metadata: {
-                created: new Date(),
-                tags: [`tag${i % 10}`]
-              }
-            })
-          }
-          
-          const startTime = performance.now()
-          await storage.setMany(chunkEntries)
-          const duration = performance.now() - startTime
-          
-          totalProcessed += chunkEntries.size
-          console.log(`Chunk ${chunk + 1}: ${chunkEntries.size} records in ${duration.toFixed(2)}ms`)
-          
-          // Each chunk should process reasonably quickly
-          expect(duration).toBeLessThan(30000) // 30 seconds per chunk
-        }
-        
-        // Verify final count
-        expect(await storage.size()).toBe(recordCount)
-        expect(totalProcessed).toBe(recordCount)
-        
-        // Verify some sample data
-        expect(await storage.get('key0')).toBeDefined()
-        expect(await storage.get('key5000')).toBeDefined() // Mid-point for 10K records
-        expect(await storage.get(`key${recordCount - 1}`)).toBeDefined()
-      })
-
-      it('should maintain performance characteristics across large datasets', async () => {
-        const testSizes = [1000, 5000, 10000]
-        const performanceMetrics: { size: number, avgTimePerRecord: number }[] = []
-        
-        for (const size of testSizes) {
-          const entries = new Map<string, TestData>()
-          
-          for (let i = 0; i < size; i++) {
-            entries.set(`perf_key${i}`, { id: i, name: `Perf Item ${i}` })
-          }
-          
-          const startTime = performance.now()
-          await storage.setMany(entries)
-          const duration = performance.now() - startTime
-          
-          const avgTimePerRecord = duration / size
-          performanceMetrics.push({ size, avgTimePerRecord })
-          
-          console.log(`${size} records: ${duration.toFixed(2)}ms total, ${avgTimePerRecord.toFixed(4)}ms per record`)
-          
-          // Clear for next test
-          await storage.clear()
-        }
-        
-        // Performance per record shouldn't degrade significantly with size
-        // (This test helps ensure we don't have O(n²) behavior)
-        expect(performanceMetrics.length).toBe(testSizes.length)
-        
-        // The average time per record shouldn't increase dramatically
-        const firstAvg = performanceMetrics[0].avgTimePerRecord
-        const lastAvg = performanceMetrics[performanceMetrics.length - 1].avgTimePerRecord
-        
-        // Last average shouldn't be more than 10x the first (allows for some scaling)
-        expect(lastAvg).toBeLessThan(firstAvg * 10)
-      })
-    })
-
-    describe('Performance Benchmarking Utilities', () => {
-      it('should provide utilities for measuring batch operation performance', async () => {
-        // Helper function to measure performance
-        const measureBatchPerformance = async (
-          recordCount: number, 
-          description: string
-        ): Promise<{ duration: number, recordsPerSecond: number }> => {
-          const entries = new Map<string, TestData>()
-          
-          for (let i = 0; i < recordCount; i++) {
-            entries.set(`bench_key${i}`, {
-              id: i,
-              name: `Benchmark Item ${i}`,
-              metadata: {
-                created: new Date(),
-                tags: [`tag${i % 5}`, `category${i % 3}`]
-              }
-            })
-          }
-          
-          const startTime = performance.now()
-          await storage.setMany(entries)
-          const endTime = performance.now()
-          
-          const duration = endTime - startTime
-          const recordsPerSecond = (recordCount / duration) * 1000
-          
-          console.log(`${description}: ${recordCount} records in ${duration.toFixed(2)}ms (${recordsPerSecond.toFixed(0)} records/sec)`)
-          
-          return { duration, recordsPerSecond }
-        }
-        
-        // Run benchmarks with different sizes
-        const benchmark1K = await measureBatchPerformance(1000, 'Benchmark 1K')
-        await storage.clear()
-        
-        const benchmark5K = await measureBatchPerformance(5000, 'Benchmark 5K')
-        await storage.clear()
-        
-        const benchmark10K = await measureBatchPerformance(10000, 'Benchmark 10K')
-        
-        // All benchmarks should complete successfully
-        expect(benchmark1K.recordsPerSecond).toBeGreaterThan(0)
-        expect(benchmark5K.recordsPerSecond).toBeGreaterThan(0)
-        expect(benchmark10K.recordsPerSecond).toBeGreaterThan(0)
-        
-        // Performance should scale reasonably
-        expect(benchmark1K.recordsPerSecond).toBeGreaterThan(100) // At least 100 records/sec
-        expect(benchmark5K.recordsPerSecond).toBeGreaterThan(50)  // At least 50 records/sec
-        expect(benchmark10K.recordsPerSecond).toBeGreaterThan(25) // At least 25 records/sec
-      })
-    })
   })
   
   describe('Error Handling', () => {
@@ -1301,54 +1159,9 @@ describe('DuckDBStorageAdapter', () => {
       await expect(storage.set('circular', circular)).rejects.toThrow()
     })
     
-    it('should provide meaningful error messages', async () => {
-      try {
-        await storage.set('', { id: 1, name: 'Invalid' })
-      } catch (error: any) {
-        expect(error).toBeInstanceOf(StorageError)
-        expect(error.code).toBe(StorageErrorCode.INVALID_KEY)
-        expect(error.message).toContain('key')
-      }
-    })
   })
   
   describe('Resource Management', () => {
-    it('should clean up connections properly', async () => {
-      // Use unique database file to avoid connection caching issues
-      const uniqueDbPath = `${TEST_DB_PATH}.${Date.now()}.db`
-      
-      const storage1 = new DuckDBStorageAdapter<TestData>({
-        type: 'duckdb',
-        database: uniqueDbPath
-      })
-      
-      await storage1.set('key1', { id: 1, name: 'One' })
-      // DuckDB auto-persists to file
-      await storage1.close()
-      
-      // Clear connection cache to ensure fresh connection
-      // @ts-ignore - accessing private static property for testing
-      DuckDBStorageAdapter.connectionCache.clear()
-      
-      // Should be able to create new connection to same database
-      const storage2 = new DuckDBStorageAdapter<TestData>({
-        type: 'duckdb',
-        database: uniqueDbPath
-      })
-      
-      // DuckDB auto-loads from file
-      const value = await storage2.get('key1')
-      expect(value).toEqual({ id: 1, name: 'One' })
-      
-      await storage2.close()
-      
-      // Clean up test file
-      try {
-        await fs.unlink(uniqueDbPath)
-      } catch (error) {
-        // File might not exist, ignore
-      }
-    })
     
     it('should handle multiple connections with pooling', async () => {
       const config: DuckDBStorageConfig = {

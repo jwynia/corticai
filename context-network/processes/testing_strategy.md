@@ -100,23 +100,109 @@ describe('Workflow Integration', () => {
 - Validate build outputs
 
 ## Current Test Metrics
-- **Total Tests**: 65 tests across 3 files
-- **Unit Test Coverage**: 32 tests for core CorticAI class
-- **Integration Tests**: 12 workflow simulation tests
-- **Environment Tests**: 21 configuration validation tests
+- **Total Tests**: 350+ tests across 17 test files
+- **Unit Test Coverage**: Comprehensive coverage for core components
+- **Integration Tests**: End-to-end workflow validation
+- **Environment Tests**: Configuration and setup validation
+- **Negative Test Coverage**: 200+ comprehensive error scenarios added
+
+### Coverage by Component
+- **AttributeIndex**: 120+ tests including comprehensive input validation and edge cases
+- **Storage Adapters**: 80+ tests with disk failure and resource management scenarios
+- **TypeScript Analyzer**: 70+ tests covering malformed syntax and file system errors  
+- **Query System**: 50+ tests for query building and execution
+- **Universal Adapter**: 30+ tests for entity processing
 
 ## Quality Gates
 - All tests must pass before commits
 - Coverage reports should be generated for releases
 - Integration tests should not execute real external commands
 - Unit tests should achieve comprehensive method coverage
+- **Negative test coverage**: Each public method must have 3+ error scenario tests
+- **Resource failure testing**: All components must handle disk/memory errors gracefully
+- **Input validation**: All public APIs must reject invalid inputs with helpful messages
+- **Concurrent access**: Components must handle concurrent operations safely
+
+## Negative Testing Patterns
+
+### Input Validation Pattern
+```typescript
+describe.each([
+  [null, 'null'],
+  [undefined, 'undefined'],
+  ['', 'empty string'],
+  [123, 'number'],
+  [true, 'boolean'],
+  [[], 'array'],
+  [{}, 'object'],
+  [Symbol('test'), 'symbol']
+])('should reject %s as %s', (input, description) => {
+  it(`rejects ${description} input`, () => {
+    expect(() => functionUnderTest(input)).toThrow()
+  })
+})
+```
+
+### Resource Failure Pattern
+```typescript
+it('should handle disk full scenarios', async () => {
+  const originalWriteFile = fs.writeFileSync;
+  fs.writeFileSync = () => {
+    throw new Error('ENOSPC: no space left on device');
+  };
+  
+  try {
+    await expect(storage.save()).rejects.toThrow(/ENOSPC/);
+  } finally {
+    fs.writeFileSync = originalWriteFile;
+  }
+});
+```
+
+### Memory Pressure Pattern
+```typescript
+it('should handle memory pressure scenarios', () => {
+  const LARGE_COUNT = 50000;
+  const startMemory = process.memoryUsage().heapUsed;
+  
+  for (let i = 0; i < LARGE_COUNT; i++) {
+    component.addData(`item${i}`, generateLargeData(i));
+  }
+  
+  const memoryIncrease = (process.memoryUsage().heapUsed - startMemory) / 1024 / 1024;
+  expect(memoryIncrease).toBeLessThan(200); // Should use less than 200MB
+});
+```
+
+### Concurrent Access Pattern
+```typescript
+it('should handle concurrent operations safely', async () => {
+  const operations = Array.from({ length: 100 }, (_, i) => 
+    storage.set(`concurrent-${i}`, `value-${i}`)
+  );
+  
+  const results = await Promise.allSettled(operations);
+  const failures = results.filter(r => r.status === 'rejected');
+  
+  expect(failures.length).toBe(0);
+});
+```
+
+## Error Message Quality Standards
+- All validation errors must include the invalid value type
+- Resource errors must suggest recovery actions when possible
+- Complex operation errors should provide context about what was being attempted
+- Error messages must be consistent across similar operations
 
 ## Related Nodes
 - [[Build System Configuration]] - How build affects testing
-- [[Code Review Process]] - Testing requirements in reviews
+- [[Code Review Process]] - Testing requirements in reviews  
 - [[Development Workflow]] - Testing as part of development cycle
+- [[Error Handling Strategy]] - Comprehensive error handling patterns
 
 ## Discovery Context
 - **Created during**: Test review recommendations implementation (2025-01-29)
-- **Key insight**: Unit test coverage was critical gap, not just test performance
+- **Enhanced during**: Comprehensive negative test case addition (2025-01-31)
+- **Key insight**: Negative testing is critical for production robustness
 - **Pattern established**: Mock-based integration testing for CLI workflows
+- **Pattern enhanced**: Systematic input validation and resource failure testing

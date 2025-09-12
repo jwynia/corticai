@@ -40,8 +40,20 @@ export class AttributeIndex {
    */
   addAttribute(entityId: string, attribute: string, value: any): void {
     // Validate inputs
+    if (entityId === null || entityId === undefined) {
+      throw new Error('Entity ID cannot be null or undefined');
+    }
+    if (typeof entityId !== 'string') {
+      throw new Error('Entity ID must be a string');
+    }
     if (!entityId) {
       throw new Error('Entity ID cannot be empty');
+    }
+    if (attribute === null || attribute === undefined) {
+      throw new Error('Attribute name cannot be null or undefined');
+    }
+    if (typeof attribute !== 'string') {
+      throw new Error('Attribute name must be a string');
     }
     if (!attribute) {
       throw new Error('Attribute name cannot be empty');
@@ -78,6 +90,20 @@ export class AttributeIndex {
    * Remove a specific attribute from an entity
    */
   removeAttribute(entityId: string, attribute: string, value?: any): void {
+    // Validate inputs
+    if (entityId === null || entityId === undefined) {
+      throw new Error('Entity ID cannot be null or undefined');
+    }
+    if (typeof entityId !== 'string') {
+      throw new Error('Entity ID must be a string');
+    }
+    if (attribute === null || attribute === undefined) {
+      throw new Error('Attribute name cannot be null or undefined');
+    }
+    if (typeof attribute !== 'string') {
+      throw new Error('Attribute name must be a string');
+    }
+    
     const attributeMap = this.index.get(attribute);
     if (!attributeMap) return;
 
@@ -144,6 +170,14 @@ export class AttributeIndex {
    * Remove all attributes for an entity
    */
   removeEntity(entityId: string): void {
+    // Validate inputs
+    if (entityId === null || entityId === undefined) {
+      throw new Error('Entity ID cannot be null or undefined');
+    }
+    if (typeof entityId !== 'string') {
+      throw new Error('Entity ID must be a string');
+    }
+    
     const entityAttrs = this.entityAttributes.get(entityId);
     if (!entityAttrs) return;
 
@@ -216,6 +250,11 @@ export class AttributeIndex {
    * Find entities by multiple attributes with boolean logic
    */
   findByAttributes(queries: AttributeQuery[], operator: BooleanOperator = 'AND'): Set<string> {
+    // Validate operator
+    if (operator !== 'AND' && operator !== 'OR') {
+      throw new Error(`Invalid combinator: ${operator}`);
+    }
+    
     if (queries.length === 0) {
       return new Set();
     }
@@ -223,6 +262,25 @@ export class AttributeIndex {
     const resultSets: Set<string>[] = [];
 
     for (const query of queries) {
+      // Validate query object
+      if (!query || typeof query !== 'object') {
+        throw new Error('Invalid query object');
+      }
+      if (!('attribute' in query)) {
+        throw new Error('Attribute name is required');
+      }
+      if (query.attribute === null || query.attribute === undefined) {
+        throw new Error('Attribute name cannot be null or undefined');
+      }
+      if (!query.attribute) {
+        throw new Error('Attribute name is required');
+      }
+      
+      // Validate operator
+      if ('operator' in query && (query.operator === null || query.operator === undefined)) {
+        throw new Error('Operator cannot be null or undefined');
+      }
+      
       let resultSet: Set<string>;
 
       switch (query.operator || 'equals') {
@@ -243,7 +301,7 @@ export class AttributeIndex {
           break;
 
         default:
-          resultSet = new Set();
+          throw new Error(`Invalid operator: ${query.operator}`);
       }
 
       resultSets.push(resultSet);
@@ -261,18 +319,35 @@ export class AttributeIndex {
    * Index multiple entities at once
    */
   indexEntities(entities: Entity[]): void {
+    if (!Array.isArray(entities)) {
+      throw new Error('Entities must be an array');
+    }
+    
     for (const entity of entities) {
-      // Index basic properties
-      this.addAttribute(entity.id, 'type', entity.type);
-      this.addAttribute(entity.id, 'name', entity.name);
+      // Skip invalid entities gracefully
+      if (!entity || typeof entity !== 'object') {
+        continue;
+      }
+      if (!entity.id || typeof entity.id !== 'string') {
+        continue;
+      }
       
-      // Index metadata if present
-      if (entity.metadata) {
-        for (const [key, value] of Object.entries(entity.metadata)) {
-          if (value !== undefined) {
-            this.addAttribute(entity.id, key, value);
+      try {
+        // Index basic properties
+        this.addAttribute(entity.id, 'type', entity.type);
+        this.addAttribute(entity.id, 'name', entity.name);
+        
+        // Index metadata if present
+        if (entity.metadata) {
+          for (const [key, value] of Object.entries(entity.metadata)) {
+            if (value !== undefined) {
+              this.addAttribute(entity.id, key, value);
+            }
           }
         }
+      } catch {
+        // Skip entities that cause errors during indexing
+        continue;
       }
     }
   }
@@ -347,8 +422,30 @@ export class AttributeIndex {
     } else {
       // Backward compatibility: treat keyOrPath as a file path
       const filePath = keyOrPath;
-      const data = await readFile(filePath, 'utf-8');
-      serialized = JSON.parse(data);
+      try {
+        const data = await readFile(filePath, 'utf-8');
+        serialized = JSON.parse(data);
+      } catch (error: any) {
+        if (error instanceof SyntaxError) {
+          throw new Error(`Invalid JSON format in file: ${filePath}`);
+        }
+        throw error;
+      }
+    }
+
+    // Validate data structure
+    if (!serialized || typeof serialized !== 'object') {
+      throw new Error('Invalid AttributeIndex data structure');
+    }
+    if (!serialized.index || typeof serialized.index !== 'object') {
+      throw new Error('Invalid AttributeIndex data structure');
+    }
+    
+    // Validate index structure - each attribute must map to an object
+    for (const [attr, valueMap] of Object.entries(serialized.index)) {
+      if (typeof valueMap !== 'object' || valueMap === null || Array.isArray(valueMap)) {
+        throw new Error('Invalid data structure');
+      }
     }
 
     // Clear existing index
@@ -359,15 +456,22 @@ export class AttributeIndex {
     for (const [attr, valueMap] of Object.entries(serialized.index)) {
       const attributeMap = new Map();
       for (const [serializedValue, entityIds] of Object.entries(valueMap)) {
-        const value = JSON.parse(serializedValue);
-        attributeMap.set(value, new Set(entityIds));
+        try {
+          const value = JSON.parse(serializedValue);
+          attributeMap.set(value, new Set(entityIds));
+        } catch {
+          // Skip invalid entries
+          continue;
+        }
       }
       this.index.set(attr, attributeMap);
     }
 
     // Restore entity attributes
-    for (const [entityId, attrs] of Object.entries(serialized.entityAttributes)) {
-      this.entityAttributes.set(entityId, new Set(attrs as any));
+    if (serialized.entityAttributes) {
+      for (const [entityId, attrs] of Object.entries(serialized.entityAttributes)) {
+        this.entityAttributes.set(entityId, new Set(attrs as any));
+      }
     }
   }
 
@@ -407,6 +511,13 @@ export class AttributeIndex {
    * Get all unique values for a specific attribute
    */
   getValuesForAttribute(attribute: string): Set<any> {
+    if (attribute === null || attribute === undefined) {
+      throw new Error('Attribute name cannot be null or undefined');
+    }
+    if (typeof attribute !== 'string') {
+      throw new Error('Attribute name must be a string');
+    }
+    
     const attributeMap = this.index.get(attribute);
     if (!attributeMap) {
       return new Set();
@@ -485,10 +596,10 @@ export class AttributeIndex {
       return results;
     }
 
-    const searchStr = String(searchValue).toLowerCase();
+    const searchStr = String(searchValue);
     
     for (const [value, entitySet] of attributeMap.entries()) {
-      if (String(value).toLowerCase().includes(searchStr)) {
+      if (String(value).includes(searchStr)) {
         entitySet.forEach(id => results.add(id));
       }
     }
@@ -504,10 +615,10 @@ export class AttributeIndex {
       return results;
     }
 
-    const searchStr = String(searchValue).toLowerCase();
+    const searchStr = String(searchValue);
     
     for (const [value, entitySet] of attributeMap.entries()) {
-      if (String(value).toLowerCase().startsWith(searchStr)) {
+      if (String(value).startsWith(searchStr)) {
         entitySet.forEach(id => results.add(id));
       }
     }

@@ -9,6 +9,10 @@
 import { DuckDBInstance, DuckDBConnection } from '@duckdb/node-api'
 import { BaseStorageAdapter } from '../base/BaseStorageAdapter'
 import { DuckDBStorageConfig, StorageError, StorageErrorCode } from '../interfaces/Storage'
+import { DuckDBConnectionManager } from './DuckDBConnectionManager'
+import { DuckDBTableValidator } from './DuckDBTableValidator'
+import { DuckDBTypeMapper } from './DuckDBTypeMapper'
+import { DuckDBSQLGenerator } from './DuckDBSQLGenerator'
 
 /**
  * DuckDB Storage Adapter
@@ -21,17 +25,11 @@ import { DuckDBStorageConfig, StorageError, StorageErrorCode } from '../interfac
  * - Connection pooling and resource management
  */
 export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
-  private database: DuckDBInstance | null = null
-  private connection: DuckDBConnection | null = null
   protected config: DuckDBStorageConfig
   private isLoaded = false
   private transactionDepth = 0
   private persistMutex = Promise.resolve()
-  private static connectionCache = new Map<string, DuckDBInstance>()
-  
-  // Global table creation mutex to prevent concurrent table creation conflicts
-  // Key format: `${database}:${tableName}`
-  private static tableCreationMutexes = new Map<string, Promise<void>>()
+  private connectionManager: DuckDBConnectionManager
   
   // Instance-level mutex for ensureLoaded synchronization
   private ensureLoadedMutex = Promise.resolve()
@@ -58,240 +56,41 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
     }
     
     // Validate table name before any operations
-    this.validateTableName(this.config.tableName)
+    DuckDBTableValidator.validateTableName(this.config.tableName)
+    
+    // Initialize connection manager
+    this.connectionManager = new DuckDBConnectionManager(this.config, this.config.debug)
     
     if (this.config.debug) {
       this.log(`Initializing with database: ${this.config.database}`)
     }
   }
 
-  // Constants for validation
-  private static readonly MAX_TABLE_NAME_LENGTH = 128
-  private static readonly VALID_TABLE_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/
-
-  /**
-   * Validate table name to prevent SQL injection and ensure compatibility
-   * @param tableName The table name to validate
-   * @throws StorageError if table name is invalid
-   */
-  private validateTableName(tableName: string | undefined): void {
-    // Check for null, undefined, or empty string
-    if (!tableName || typeof tableName !== 'string' || tableName.trim() === '') {
-      throw new StorageError(
-        'Invalid table name: Table name cannot be empty, null, or undefined',
-        StorageErrorCode.INVALID_VALUE,
-        { tableName }
-      )
-    }
-
-    const trimmedName = tableName.trim()
-
-    // Check maximum length (reasonable limit for identifiers)
-    if (trimmedName.length > DuckDBStorageAdapter.MAX_TABLE_NAME_LENGTH) {
-      throw new StorageError(
-        `Invalid table name: Table name exceeds maximum length of ${DuckDBStorageAdapter.MAX_TABLE_NAME_LENGTH} characters`,
-        StorageErrorCode.INVALID_VALUE,
-        { tableName, length: trimmedName.length }
-      )
-    }
-
-    // Check for valid characters: only alphanumeric and underscore allowed
-    if (!DuckDBStorageAdapter.VALID_TABLE_NAME_PATTERN.test(trimmedName)) {
-      throw new StorageError(
-        'Invalid table name: Table name must contain only alphanumeric characters and underscores, and cannot start with a number',
-        StorageErrorCode.INVALID_VALUE,
-        { tableName }
-      )
-    }
-
-    // Check against SQL reserved keywords (case-insensitive)
-    const reservedKeywords = new Set([
-      // DML Keywords
-      'select', 'from', 'where', 'insert', 'update', 'delete', 'values',
-      'set', 'into', 'join', 'inner', 'left', 'right', 'outer', 'on',
-      'union', 'intersect', 'except', 'order', 'by', 'group', 'having',
-      'limit', 'offset', 'distinct', 'all', 'as', 'in', 'exists',
-      'between', 'like', 'is', 'and', 'or', 'not', 'null',
-      
-      // DDL Keywords
-      'create', 'drop', 'alter', 'table', 'index', 'view', 'trigger',
-      'procedure', 'function', 'database', 'schema', 'column',
-      'constraint', 'primary', 'foreign', 'key', 'references', 'unique',
-      'check', 'default',
-      
-      // Data Types
-      'int', 'integer', 'bigint', 'smallint', 'tinyint', 'decimal', 'numeric',
-      'float', 'double', 'real', 'varchar', 'char', 'text', 'blob',
-      'boolean', 'bool', 'date', 'time', 'timestamp', 'datetime',
-      
-      // Aggregate Functions
-      'count', 'sum', 'avg', 'min', 'max', 'first', 'last',
-      
-      // Control Flow
-      'case', 'when', 'then', 'else', 'end', 'if', 'while', 'loop',
-      'for', 'repeat', 'until',
-      
-      // Transaction Keywords
-      'begin', 'commit', 'rollback', 'transaction', 'savepoint',
-      
-      // Logical Values
-      'true', 'false',
-      
-      // Common DuckDB-specific keywords
-      'copy', 'pragma', 'explain', 'analyze', 'describe', 'show',
-      'attach', 'detach', 'use', 'call', 'prepare', 'execute',
-      'deallocate', 'declare', 'fetch', 'open', 'close', 'cursor'
-    ])
-
-    if (reservedKeywords.has(trimmedName.toLowerCase())) {
-      throw new StorageError(
-        `Invalid table name: '${tableName}' is a reserved SQL keyword`,
-        StorageErrorCode.INVALID_VALUE,
-        { tableName, reason: 'reserved_keyword' }
-      )
-    }
-  }
+  // Table name validation is now handled by DuckDBTableValidator
   
   // ============================================================================
   // CONNECTION MANAGEMENT
   // ============================================================================
   
   /**
-   * Get or create database connection with caching and automatic reconnection
+   * Get database instance via connection manager
    */
   private async getDatabase(): Promise<DuckDBInstance> {
-    if (this.database) {
-      return this.database
-    }
-    
-    const cacheKey = this.config.database
-    
-    // Check cache for existing connection
-    if (DuckDBStorageAdapter.connectionCache.has(cacheKey)) {
-      this.database = DuckDBStorageAdapter.connectionCache.get(cacheKey)!
-      return this.database
-    }
-    
-    try {
-      this.database = await DuckDBInstance.create(this.config.database, this.config.options)
-      
-      // Configure DuckDB settings
-      if (this.config.threads && this.config.threads > 1) {
-        const conn = await this.database.connect()
-        try {
-          await conn.run(`PRAGMA threads=${this.config.threads}`)
-        } finally {
-          conn.closeSync()
-        }
-      }
-      
-      // Cache the connection for reuse
-      DuckDBStorageAdapter.connectionCache.set(cacheKey, this.database)
-      
-      if (this.config.debug) {
-        this.log(`Connected to database: ${this.config.database}`)
-      }
-      
-      return this.database
-    } catch (error) {
-      throw new StorageError(
-        `Failed to connect to DuckDB: ${(error as Error).message}`,
-        StorageErrorCode.CONNECTION_FAILED,
-        { database: this.config.database, originalError: error }
-      )
-    }
+    return this.connectionManager.getDatabase()
   }
   
   /**
-   * Get database connection with automatic reconnection support
+   * Get database connection via connection manager
    */
   private async getConnection(): Promise<DuckDBConnection> {
-    if (this.connection) {
-      return this.connection
-    }
-    
-    // If database is null, try to reconnect instead of throwing error
-    if (this.database === null) {
-      if (this.config.debug) {
-        this.log('Database connection was closed, attempting to reconnect')
-      }
-    }
-    
-    const database = await this.getDatabase()
-    this.connection = await database.connect()
-    
-    return this.connection
+    return this.connectionManager.getConnection()
   }
   
-  /**
-   * Get a mutex key for table creation synchronization
-   */
-  private getTableMutexKey(): string {
-    return `${this.config.database}:${this.config.tableName}`
-  }
-
-  /**
-   * Synchronize table creation to prevent concurrent conflicts
-   */
-  private async withTableCreationMutex<T>(operation: () => Promise<T>): Promise<T> {
-    const mutexKey = this.getTableMutexKey()
-    
-    // Get or create a mutex for this database+table combination
-    const existingMutex = DuckDBStorageAdapter.tableCreationMutexes.get(mutexKey)
-    
-    if (existingMutex) {
-      // Wait for the existing operation to complete before proceeding
-      await existingMutex
-    }
-    
-    // Create a new mutex for our operation
-    const currentMutex = operation().finally(() => {
-      // Clean up the mutex when our operation completes
-      if (DuckDBStorageAdapter.tableCreationMutexes.get(mutexKey) === currentMutex) {
-        DuckDBStorageAdapter.tableCreationMutexes.delete(mutexKey)
-      }
-    })
-    
-    // Store the mutex so other operations can wait for it
-    DuckDBStorageAdapter.tableCreationMutexes.set(mutexKey, currentMutex)
-    
-    return currentMutex
-  }
-
   /**
    * Create storage table if it doesn't exist
    */
   private async createTableIfNeeded(): Promise<void> {
-    // Synchronize table creation to prevent race conditions
-    return this.withTableCreationMutex(async () => {
-      const connection = await this.getConnection()
-      const tableName = this.config.tableName!
-      
-      try {
-        // Create table with proper schema for key-value storage
-        const createTableSQL = `
-          CREATE TABLE IF NOT EXISTS ${tableName} (
-            key VARCHAR PRIMARY KEY,
-            value JSON,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `
-        
-        await connection.run(createTableSQL)
-        
-        if (this.config.debug) {
-          this.log(`Created/verified table: ${tableName}`)
-        }
-        
-      } catch (error) {
-        throw new StorageError(
-          `Failed to create storage table: ${(error as Error).message}`,
-          StorageErrorCode.CONNECTION_FAILED,
-          { tableName, originalError: error }
-        )
-      }
-    })
+    return this.connectionManager.createTableIfNeeded()
   }
   
   // ============================================================================
@@ -315,16 +114,16 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         const tableName = this.config.tableName!
         
         // Load all data into memory for BaseStorageAdapter compatibility
-        const reader = await connection.runAndReadAll(`SELECT key, value FROM ${tableName}`)
-        const rows = reader.getRowObjectsJS()
+        const sql = DuckDBSQLGenerator.loadAllDataSQL(tableName)
+        const rows = await DuckDBSQLGenerator.executeQuery(connection, sql, [], this.config.debug)
         
         this.data.clear()
         for (const row of rows) {
           try {
-            const value = JSON.parse(row.value as string)
+            const value = DuckDBTypeMapper.fromStorageValue(row.value)
             this.data.set(row.key as string, value)
           } catch (parseError) {
-            this.logWarn(`Failed to parse JSON for key "${row.key}": ${parseError}`)
+            this.logWarn(`Failed to parse value for key "${row.key}": ${parseError}`)
           }
         }
         
@@ -372,11 +171,13 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
       if (this.data.size > 0) {
         // Ensure table exists before trying to delete from it
         await this.createTableIfNeeded()
-        const placeholders = Array.from(this.data.keys()).map(() => '?').join(',')
-        await connection.run(
-          `DELETE FROM ${tableName} WHERE key NOT IN (${placeholders})`,
-          Array.from(this.data.keys())
-        )
+        
+        // Delete entries not in current memory cache
+        const keys = Array.from(this.data.keys())
+        const { sql: deleteSQL, params: deleteParams } = DuckDBSQLGenerator.batchDeleteSQL(tableName, keys)
+        // Invert the logic - delete keys NOT in our current set
+        const notInSQL = `DELETE FROM ${tableName} WHERE key NOT IN (${keys.map(() => '?').join(',')})`
+        await DuckDBSQLGenerator.executeNonQuery(connection, notInSQL, keys, this.config.debug)
         
         // Then insert or replace all current data using batch operations for improved performance
         // PERFORMANCE OPTIMIZATION: Use prepared statements to batch insert operations
@@ -854,19 +655,8 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         await this.persist()
       }
       
-      if (this.connection) {
-        this.connection.closeSync()
-        this.connection = null
-      }
-      
-      if (this.database) {
-        const cacheKey = this.config.database
-        // Always remove from cache when explicitly closing
-        DuckDBStorageAdapter.connectionCache.delete(cacheKey)
-        
-        this.database.closeSync()
-        this.database = null
-      }
+      // Close connections via connection manager
+      await this.connectionManager.closeDatabase()
       
       // Reset state to allow reconnection
       this.isLoaded = false

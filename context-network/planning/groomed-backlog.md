@@ -1,11 +1,11 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Updated**: 2025-09-11  
+**Last Updated**: 2025-11-09  
 **Major Components Complete**: 10 (Universal Adapter, AttributeIndex, TypeScript Analyzer, Storage Abstraction, Test Infrastructure, DuckDB Adapter, Query Interface, Concurrency Fix, AggregationUtils, OR/NOT Conditions)
 **Test Status**: 798/798 passing (100%) ✅
 **Current Status**: Production-ready with all tests passing  
-**Latest Achievement**: ✅ Completed all top 3 recommendations - perfect test suite
+**Latest Achievement**: ✅ All major features complete - system fully operational
 
 ---
 
@@ -46,165 +46,112 @@
 ## 🚀 Ready for Implementation NOW
 
 ### 1. Split Large Implementation Files
-**One-liner**: Refactor files exceeding 500-600 lines for better maintainability
+**One-liner**: Refactor files exceeding 800 lines for better maintainability
 **Complexity**: Medium
 **Files to refactor**: 
-- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (884 lines)
-- `/app/src/query/QueryBuilder.ts` (813 lines)
+- `/app/src/storage/adapters/DuckDBStorageAdapter.ts` (887 lines)
+- `/app/src/query/QueryBuilder.ts` (853 lines)
 - `/app/src/query/executors/MemoryQueryExecutor.ts` (616 lines)
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: 2 DuckDB tests fail with "TransactionContext Error: Catalog write-write conflict" when creating tables concurrently
+**Context**: Large files reduce maintainability and make code navigation difficult
 
-**Current Errors**: 
-- Test 1: "should handle multiple database operations" - line 826
-- Test 2: "should handle concurrent persist operations safely" - line 1079
-
-**Root Cause**: Concurrent tests attempting to create the same table simultaneously
-
-**Acceptance Criteria**:
-- [ ] Add proper table creation synchronization
-- [ ] Tests pass consistently without race conditions
-- [ ] No performance degradation in non-concurrent scenarios
-- [ ] Achieve 100% test pass rate (715/715)
-
-**Implementation Options**:
-1. **Option A**: Add mutex/lock for table creation in ensureLoaded
-2. **Option B**: Use test isolation with unique table names per test
-3. **Option C**: Serialize these specific tests to run sequentially
-
-**Recommendation**: Option A - proper synchronization in production code
-
-**Watch Out For**: 
-- Don't introduce deadlocks
-- Maintain performance for single-threaded usage
-- Consider connection pooling implications
-
-</details>
-
----
-
-### 2. Complete Query Interface OR/NOT Conditions
-**One-liner**: Implement composite OR and NOT conditions to complete Query Interface Layer
-**Complexity**: Small
-**Files to modify**: 
-- `/app/src/query/executors/MemoryQueryExecutor.ts` (processConditions method)
-- `/app/src/query/types.ts` (CompositeCondition type)
-- `/app/tests/query/QueryBuilder.test.ts` (add OR/NOT tests)
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: Query Interface supports AND conditions implicitly but lacks explicit OR/NOT support
+**Current File Sizes**: 
+- DuckDBStorageAdapter: 887 lines (too many responsibilities)
+- QueryBuilder: 853 lines (could split builder methods)
+- MemoryQueryExecutor: 616 lines (mixed concerns)
 
 **Acceptance Criteria**:
-- [ ] Add `CompositeCondition` with operator: 'AND' | 'OR' | 'NOT'
-- [ ] Implement OR logic in all executors (Memory, JSON, DuckDB)
-- [ ] Add NOT logic in all executors
-- [ ] Support nested composite conditions
-- [ ] Add comprehensive tests for all combinations
-
-**Implementation Guide**:
-1. Update types to include explicit composite operators
-2. Modify MemoryQueryExecutor to handle OR/NOT logic
-3. Update DuckDB SQL generation for OR/NOT
-4. Add QueryBuilder methods: `or()`, `not()`, `andWhere()`, `orWhere()`
-5. Write comprehensive test cases
-
-**Watch Out For**: 
-- Operator precedence handling
-- Performance impact of complex nested conditions
-- SQL generation correctness
-
-</details>
-
----
-
-### 3. Split MemoryQueryExecutor into Smaller Modules
-**One-liner**: Break down 838-line file into focused processor modules
-**Complexity**: Small
-**Files to create**: 
-- `/app/src/query/executors/processors/FilterProcessor.ts`
-- `/app/src/query/executors/processors/SortProcessor.ts`
-- `/app/src/query/executors/processors/AggregationProcessor.ts`
-- `/app/src/query/executors/processors/GroupingProcessor.ts`
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: MemoryQueryExecutor is 838 lines, exceeding maintainability limits
-
-**Acceptance Criteria**:
-- [ ] Split filtering logic into FilterProcessor (~150 lines)
-- [ ] Extract sorting logic into SortProcessor (~100 lines)
-- [ ] Move aggregation logic to AggregationProcessor (~200 lines)
-- [ ] Create GroupingProcessor for GROUP BY logic (~150 lines)
-- [ ] Main executor coordinates between processors (~200 lines)
+- [ ] No single file exceeds 500 lines
+- [ ] Each file has single, clear responsibility
 - [ ] All existing tests continue to pass
-- [ ] No performance regression
+- [ ] Performance not degraded
 
 **Implementation Guide**:
-1. Create processors directory structure
-2. Extract filtering logic first (least dependencies)
-3. Move sorting logic (depends on filtering)
-4. Extract aggregation logic (most complex)
-5. Create grouping processor
-6. Update main executor to orchestrate processors
-7. Run full test suite
+1. **DuckDBStorageAdapter**: Extract SQL generation, connection management
+2. **QueryBuilder**: Split into QueryBuilder + QueryConditionBuilder
+3. **MemoryQueryExecutor**: Extract processors (filter, sort, aggregate)
 
 **Benefits**: 
 - Better maintainability
-- Easier to add new processors
+- Easier parallel development
 - Clear separation of concerns
-- Parallel development possible
 
 </details>
 
 ---
 
-### 4. Extract Common Aggregation Logic
-**One-liner**: Create shared aggregation utilities to reduce code duplication
+### 2. Add Table Name Validation for DuckDB Security
+**One-liner**: Validate table names to prevent SQL injection through configuration
 **Complexity**: Trivial
-**Files to create**: 
-- `/app/src/query/utils/AggregationUtils.ts`
-**Files to modify**:
-- `/app/src/query/executors/MemoryQueryExecutor.ts`
-- `/app/src/query/executors/DuckDBQueryExecutor.ts`
+**Files to modify**: 
+- `/app/src/storage/adapters/DuckDBStorageAdapter.ts`
+- `/app/tests/storage/duckdb.adapter.test.ts`
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: Aggregation logic is duplicated across multiple query executors
-
-**Current State**: 
-- MemoryQueryExecutor has its own aggregation implementation
-- DuckDBQueryExecutor converts to SQL aggregates
-- Opportunity to share common logic
+**Context**: Table names are interpolated into SQL without validation
 
 **Acceptance Criteria**:
-- [ ] Extract common aggregation functions (sum, avg, min, max, count)
-- [ ] Create type-safe aggregation utilities
-- [ ] Reduce code duplication by 50+ lines
-- [ ] All existing tests continue to pass
-- [ ] No performance regression
+- [ ] Add validateTableName method
+- [ ] Only allow alphanumeric characters and underscores
+- [ ] Reject SQL reserved keywords
+- [ ] Throw clear errors for invalid names
+- [ ] Add comprehensive tests
 
 **Implementation Guide**:
-1. Create AggregationUtils with static methods
-2. Extract shared validation logic
-3. Move common calculation functions
-4. Update executors to use utilities
-5. Run full test suite
+1. Add validation method to DuckDBStorageAdapter
+2. Call validation in constructor
+3. Use regex pattern: `/^[a-zA-Z_][a-zA-Z0-9_]*$/`
+4. Check against reserved keywords list
+5. Add tests for edge cases
 
-**Benefits**: Better maintainability, single source of truth for aggregations
+**Effort**: 30 minutes
 
 </details>
 
 ---
 
-### 5. Add Query Performance Benchmarks
-**One-liner**: Create benchmarking suite to compare query performance across adapters
+### 3. Add Comprehensive Negative Test Cases
+**One-liner**: Add error handling and edge case tests across all components
+**Complexity**: Medium
+**Files to update**: 
+- `/app/tests/indexes/attribute-index.test.ts`
+- `/app/tests/storage/adapters/*.test.ts`
+- `/app/tests/analyzers/typescript-deps.test.ts`
+- `/app/tests/adapters/universal.test.ts`
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Missing comprehensive tests for error conditions and edge cases
+
+**Acceptance Criteria**:
+- [ ] Each public method has 3+ negative test cases
+- [ ] Test invalid inputs (null, undefined, wrong types)
+- [ ] Test resource failures (disk full, permissions)
+- [ ] Test boundary conditions
+- [ ] Validate error messages
+- [ ] Test recovery paths
+
+**Implementation Guide**:
+1. Start with AttributeIndex (most used component)
+2. Add input validation tests using parameterized testing
+3. Add resource failure simulation
+4. Test circular references and memory limits
+5. Verify error message quality
+
+**Effort**: 2-3 hours total, can be incremental
+
+</details>
+
+---
+
+### 4. Add Query Performance Benchmarks
+**One-liner**: Create benchmarking suite to validate performance and prevent regressions
 **Complexity**: Small
 **Files to create**: 
 - `/app/benchmarks/query-performance.ts`
@@ -213,24 +160,55 @@
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: Need to validate query performance claims and prevent regressions
+**Context**: Need to validate query performance claims and detect regressions
 
 **Acceptance Criteria**:
 - [ ] Benchmark all three executors (Memory, JSON, DuckDB)
-- [ ] Test with various data sizes (1K, 10K, 100K records)
-- [ ] Measure different query types (filter, sort, aggregate)
-- [ ] Generate performance reports
-- [ ] CI integration to detect regressions
+- [ ] Test with 1K, 10K, 100K records
+- [ ] Measure filter, sort, aggregate performance
+- [ ] Generate comparison reports
+- [ ] Add to CI pipeline
 
 **Implementation Guide**:
-1. Create benchmark test data generators
+1. Create test data generators
 2. Implement timing utilities
-3. Create test scenarios for each query type
-4. Run benchmarks across all executors
+3. Create scenarios for each query type
+4. Run benchmarks across executors
 5. Generate comparison reports
-6. Add to CI pipeline
+6. Add npm script for benchmarking
 
-**Value**: Validates performance requirements, prevents regressions
+**Value**: Validates performance, prevents regressions
+
+</details>
+
+---
+
+### 5. Generate API Documentation from JSDoc
+**One-liner**: Auto-generate comprehensive API documentation from existing JSDoc comments
+**Complexity**: Trivial
+**Tools**: TypeDoc or API Extractor
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: System is mature with comprehensive JSDoc, ready for API docs
+
+**Acceptance Criteria**:
+- [ ] Install and configure TypeDoc
+- [ ] Generate HTML documentation
+- [ ] Include all public APIs
+- [ ] Add examples from JSDoc
+- [ ] Deploy to GitHub Pages or similar
+
+**Implementation Guide**:
+1. `npm install --save-dev typedoc`
+2. Add typedoc.json configuration
+3. Add npm script: `"docs": "typedoc"`
+4. Generate initial documentation
+5. Review and fix any warnings
+6. Set up CI to auto-generate on merge
+
+**Effort**: 1 hour
 
 </details>
 
@@ -238,106 +216,86 @@
 
 ## ⏳ Ready Soon (After Current Work)
 
-### 6. Query Interface Phase 3: Optimization
+### Split MemoryQueryExecutor into Processors
+**One-liner**: Break down 616-line file into focused processor modules
+**Complexity**: Small
+**Blocker**: Complete higher priority refactoring first
+**Why Deferred**: File is manageable size, not urgent
+
+### Query Interface Phase 3: Optimization
 **One-liner**: Add query optimization, advanced caching, and index hints
 **Complexity**: Large
-**Blocker**: Complete Phase 2 (OR/NOT conditions)
-**Why Deferred**: Current performance meets requirements, optimization not urgent
-
-### 7. Query Interface Phase 4: Advanced Features  
-**One-liner**: Add joins, transactions, and query DSL support
-**Complexity**: Large
-**Blocker**: Evaluate if actually needed based on usage patterns
-**Why Deferred**: Complex features that may not be required
+**Blocker**: Assess if needed based on benchmark results
+**Why Deferred**: Current performance already exceeds requirements
 
 ---
 
 ## 🔍 Needs Evaluation
 
-### 8. Novel Domain Adapter
+### Novel Domain Adapter
 **One-liner**: Extract narrative structure and character relationships from text
 **Complexity**: Medium
-**Decision needed**: Whether to prioritize cross-domain validation vs. current system optimization
+**Decision needed**: Whether to build domain-specific adapters
 **Options**: 
-- **Option A**: Build Novel Adapter to prove cross-domain capability
-- **Option B**: Focus on optimizing existing Query Interface for production
-- **Option C**: Build simpler domain adapter (e.g., CSV data analysis)
+- **Option A**: Novel Adapter for narrative analysis
+- **Option B**: CSV/Excel adapter for business data
+- **Option C**: Log file adapter for system monitoring
 
-**Recommendation**: Option C - simpler validation first
+**Recommendation**: Defer until clear use case emerges
 
-### 9. Redis Storage Adapter
+### Redis Storage Adapter
 **One-liner**: Add distributed storage with TTL and pub/sub support
 **Complexity**: Medium
-**Decision needed**: Whether distributed storage is needed now
-**Current State**: Local storage (Memory, JSON, DuckDB) covers current needs
-**Trigger**: When multi-instance deployment is required
+**Decision needed**: Whether distributed storage is needed
+**Current State**: Local storage meets all current needs
+**Trigger**: Multi-instance deployment requirement
 
 ---
 
 ## 🔧 Technical Debt & Infrastructure
 
-### 10. Refactor Large Query Executor Files
-**One-liner**: Split 838-line MemoryQueryExecutor and 569-line DuckDBQueryExecutor
-**Complexity**: Small
-**Priority**: Medium (maintainability concern)
-**Files**: 
-- `/app/src/query/executors/MemoryQueryExecutor.ts` (838 lines)
-- `/app/src/query/executors/DuckDBQueryExecutor.ts` (569 lines)
-
-### 11. Add Security Validation for DuckDB
-**One-liner**: Validate table names and SQL injection prevention
-**Complexity**: Small
-**Priority**: High (security concern)
-**Files**: `/app/src/storage/adapters/DuckDBStorageAdapter.ts`
-
-### 12. Test Infrastructure Improvements
-**One-liner**: Add better test isolation and mock file system operations
-**Complexity**: Small  
-**Priority**: Medium (prevents flaky tests)
-**Files**: Various test files across codebase
-
-### 13. API Documentation Generation
-**One-liner**: Generate comprehensive API docs from JSDoc comments
+### Improve Entity ID Generation
+**One-liner**: Replace Date.now() with crypto.randomUUID() for better uniqueness
 **Complexity**: Trivial
-**Priority**: High (system is mature enough for docs)
-**Tools**: TypeDoc or similar
+**Priority**: Low (no collisions reported)
+**Effort**: 35-50 minutes including test updates
 
-### 14. Optimize DuckDB Batch Operations
-**One-liner**: Improve performance for large dataset operations
+### Test File System Mocking
+**One-liner**: Add proper mocking for file system operations in tests
+**Complexity**: Small
+**Priority**: Medium (improves test reliability)
+
+### Logging Abstraction Layer
+**One-liner**: Create centralized logging system with levels and outputs
+**Complexity**: Medium
+**Priority**: Medium (needed for production monitoring)
+
+### Optimize DuckDB Batch Operations
+**One-liner**: Use prepared statements or Appender API for bulk inserts
 **Complexity**: Medium
 **Priority**: Low (current performance acceptable)
-**Approach**: Use prepared statements or Appender API
 
 ---
 
 ## 🗑️ Archived Tasks (Recently Completed)
 
-### Query Interface Layer Implementation - COMPLETED ✅
-- **Phase 1 Foundation**: 4/4 tasks complete
-- **Phase 2 Advanced**: 4.5/5 tasks complete  
-- **Test Coverage**: 139 tests, comprehensive coverage
-- **Quality**: Exceeded requirements with aggregations, retry logic
-
-### Test Quality Cleanup - COMPLETED ✅
-- Removed all skipped/placeholder tests
-- Fixed all DuckDB test failures
-- Clean test suite with meaningful assertions only
-
-### Storage Layer - COMPLETED ✅
-- Memory, JSON, and DuckDB adapters operational
-- Full Storage abstraction with 492+ tests
-- Production-ready with connection pooling
+### All Major Components - COMPLETED ✅
+- **Query Interface**: Complete with OR/NOT conditions
+- **Storage Layer**: 3 adapters fully operational
+- **DuckDB Concurrency**: Fixed with mutex synchronization
+- **AggregationUtils**: Extracted and tested
+- **Test Suite**: 798/798 passing (100%)
 
 ---
 
 ## 📊 Summary Statistics
 
-- **Total completed major components**: 7
-- **Tests passing**: 713/715 (99.7%)
-- **Query Interface**: 139/139 tests passing (100%)
+- **Total completed major components**: 10
+- **Tests passing**: 798/798 (100%)
 - **Ready for immediate work**: 5 tasks
-- **Technical debt items**: 12 (refactoring tasks identified)
-- **Evaluation needed**: 2 (Novel Adapter, Redis Storage)
+- **Deferred/blocked**: 2 tasks
+- **Technical debt items**: 4 low-priority items
+- **Evaluation needed**: 2 (domain adapters, Redis)
 
 ## 🏆 Current System Capabilities
 
@@ -365,20 +323,20 @@
 
 ## 🚦 Top 3 Recommendations
 
-### 1. **URGENT**: Fix DuckDB Concurrency Issues (1-2 hours)
-   - **BLOCKS**: 100% test pass rate (currently 99.7%)
-   - **ROOT CAUSE**: Table creation race condition
-   - **HIGH IMPACT**: Achieves clean CI and production stability
+### 1. **QUICK WIN**: Add DuckDB Table Name Validation (30 min)
+   - Security enhancement
+   - Trivial implementation
+   - Prevents SQL injection through config
 
-### 2. **QUICK WIN**: Extract Aggregation Utils (1-2 hours)
-   - Reduces code duplication between executors
-   - Improves maintainability
-   - Easy implementation with clear value
+### 2. **QUALITY**: Add Negative Test Cases (2-3 hours)
+   - Improves robustness
+   - Better error handling
+   - Can be done incrementally
 
-### 3. **QUALITY**: Complete OR/NOT Conditions (4-6 hours)
-   - Completes Query Interface feature set
-   - Addresses known gap in logical operators
-   - High user value for complex queries
+### 3. **MAINTAINABILITY**: Split Large Files (4-6 hours)
+   - DuckDBStorageAdapter (887 lines)
+   - QueryBuilder (853 lines)
+   - Improves code organization
 
 ---
 
@@ -424,8 +382,8 @@
 ---
 
 ## Metadata
-- **Last Groomed**: 2025-09-10 (comprehensive task scan and reality alignment)
-- **Next Review**: After concurrency fix (should be immediate)
-- **Focus**: Stability first (100% tests), then optimization and features
-- **Confidence**: HIGH - Strong foundation, 99.7% tests passing, clear quick wins identified
-- **New Tasks Discovered**: 5 refactoring tasks, 2 security items, 3 performance optimizations
+- **Last Groomed**: 2025-11-09 (full inventory and classification)
+- **Next Review**: After completing top 3 recommendations
+- **Focus**: Maintainability and robustness improvements
+- **Confidence**: EXCELLENT - 100% tests passing, system fully operational
+- **Key Finding**: System is production-ready, focus on polish and optimization
