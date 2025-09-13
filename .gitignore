@@ -4,5 +4,13 @@ node_modules
 dist
 
 # Generated documentation (built by CI/CD)
-docs/*
-!docs/.nojekyll
+docs/*.html
+docs/*.json
+docs/assets/
+docs/classes/
+docs/enums/
+docs/interfaces/
+docs/modules/
+docs/types/
+docs/variables/
+docs/CNAME
