@@ -50,6 +50,7 @@
     "./context": "./dist/context/index.js",
     "./context/tools": "./dist/context/tools/index.js",
     "./context/agents": "./dist/context/agents/index.js",
+    "./context/mcp": "./dist/context/mcp/index.js",
     "./storage": "./dist/storage/index.js",
     "./query": "./dist/query/index.js",
     "./mastra": "./dist/mastra/index.js"

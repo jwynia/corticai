@@ -31,6 +31,7 @@
 import { MCPServer } from '@mastra/mcp';
 import { contextTools } from '../tools/index.js';
 import { contextAgents } from '../agents/index.js';
+import type { Server } from 'http';
 
 /**
  * Configuration for the Context MCP Server
@@ -139,14 +140,18 @@ export const contextMCPServer = createContextMCPServer();
 /**
  * Run the MCP server as a standalone process
  */
-export function runContextMCPServer(config?: ContextMCPServerConfig): void {
+export function runContextMCPServer(config?: ContextMCPServerConfig): Server | void {
   const server = createContextMCPServer(config);
 
-  // Start based on environment
-  if (process.env.MCP_TRANSPORT === 'http') {
+  // Start based on environment or config
+  const transport = process.env.MCP_TRANSPORT || 'stdio';
+
+  if (transport === 'http' || transport === 'sse') {
     const port = parseInt(process.env.MCP_PORT || '3000', 10);
-    server.startHttp(port);
-    console.log(`Context MCP Server running on HTTP port ${port}`);
+    const httpServer = server.startHttp(port);
+    console.log(`Context MCP Server running on ${transport.toUpperCase()} port ${port}`);
+    console.log(`Endpoint: http://localhost:${port}/mcp${transport === 'sse' ? '-sse' : ''}`);
+    return httpServer;
   } else {
     // Default to stdio
     server.startStdio().catch((error) => {
@@ -154,6 +159,26 @@ export function runContextMCPServer(config?: ContextMCPServerConfig): void {
       process.exit(1);
     });
   }
+}
+
+/**
+ * Create an HTTP/SSE MCP server for use with Mastra
+ * This returns a configured server ready for HTTP/SSE transport
+ */
+export function createContextMCPServerHTTP(
+  port = 3000,
+  config?: ContextMCPServerConfig
+): { server: MCPServer; start: () => Server } {
+  const mcpServer = createContextMCPServer(config);
+
+  return {
+    server: mcpServer,
+    start: () => {
+      const httpServer = mcpServer.startHttp(port);
+      console.log(`Context MCP Server running on port ${port}`);
+      return httpServer;
+    }
+  };
 }
 
 // Run if executed directly

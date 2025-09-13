@@ -60,6 +60,9 @@ export * from './tools/index.js';
 // Export all agents
 export * from './agents/index.js';
 
+// Export MCP integration (optional)
+export * from './mcp/index.js';
+
 // Re-export for convenience
 import { contextTools, contextToolCategories } from './tools/index.js';
 import { contextAgents, createContextAgents } from './agents/index.js';

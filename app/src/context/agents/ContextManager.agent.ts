@@ -11,6 +11,7 @@ import {
   findRelatedContextTool,
   analyzeContextPatternsTool,
   analyzeContextQualityTool,
+  analyzeContextRelationshipsTool,
 } from '../tools/index.js';
 
 // Configure OpenRouter
@@ -123,7 +124,7 @@ export class ContextManagerAgent extends Agent {
     });
 
     // Look for potential duplicates
-    const potentialDuplicates = similarQuery.results.filter(existing => {
+    const potentialDuplicates = similarQuery.results.filter((existing: any) => {
       const similarity = this.calculateSimilarity(existing.content, data);
       return similarity > 0.8; // 80% similarity threshold
     });
