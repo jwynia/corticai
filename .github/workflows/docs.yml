@@ -40,13 +40,20 @@ jobs:
       - name: Build documentation
         run: npm run docs:build
 
+      - name: Copy documentation to root docs directory
+        run: |
+          # Copy TypeDoc output to root docs directory for GitHub Pages
+          cp -r ./app/docs/* ../docs/
+          # Ensure .nojekyll exists to disable Jekyll
+          touch ../docs/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./app/docs
+          path: ./docs
 
   # Deployment job
   deploy:

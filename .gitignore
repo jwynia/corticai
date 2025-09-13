@@ -2,3 +2,7 @@
 node_modules
 .DS_Store
 dist
+
+# Generated documentation (built by CI/CD)
+docs/*
+!docs/.nojekyll
