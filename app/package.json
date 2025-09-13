@@ -45,6 +45,15 @@
   "engines": {
     "node": ">=20.9.0"
   },
+  "exports": {
+    ".": "./dist/index.js",
+    "./context": "./dist/context/index.js",
+    "./context/tools": "./dist/context/tools/index.js",
+    "./context/agents": "./dist/context/agents/index.js",
+    "./storage": "./dist/storage/index.js",
+    "./query": "./dist/query/index.js",
+    "./mastra": "./dist/mastra/index.js"
+  },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.30",
     "@duckdb/node-api": "^1.3.4-alpha.27",

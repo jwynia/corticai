@@ -41,6 +41,9 @@ export * from './query/index.js'
 // Mastra integration exports
 export * from './mastra/index.js'
 
+// Context management exports
+export * from './context/index.js'
+
 // Type definitions
 export * from './types/entity.js'
 
