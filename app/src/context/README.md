@@ -183,60 +183,82 @@ await observer.observe({
 
 ## MCP Integration
 
-The context management system supports full MCP (Model Context Protocol) integration for cross-system interoperability.
+The context management system provides MCP (Model Context Protocol) servers that can be used with Mastra and other MCP-compatible systems.
 
-### As MCP Server
+### Using with Mastra
 
-Deploy context management as an MCP server:
-
-```typescript
-import { createContextMCPServer, runContextMCPServer } from 'corticai/context/mcp';
-
-// Stdio server (for local use)
-const server = createContextMCPServer({
-  storage: { type: 'duckdb', database: './context.db' },
-  tools: ['storeContext', 'queryContext'],
-  agents: ['ContextManager', 'QueryAssistant']
-});
-server.startStdio();
-
-// HTTP/SSE server (for network access)
-process.env.MCP_TRANSPORT = 'http';
-process.env.MCP_PORT = '3100';
-runContextMCPServer();
-```
-
-### As MCP Client in Mastra
-
-Use context management from a remote or local MCP server:
+Add the context MCP server to your Mastra configuration:
 
 ```typescript
 import { Mastra } from '@mastra/core';
-import { contextMCPClientHTTP, contextMCPClientLocal } from 'corticai/context/mcp';
+import { corticaiContextServer } from 'corticai/context/mcp';
 
 const mastra = new Mastra({
-  // Use in mcps configuration for SSE/HTTP
   mcps: {
-    // Remote HTTP/SSE server
-    remoteContext: contextMCPClientHTTP('http://localhost:3100/mcp'),
-
-    // Local package via stdio
-    localContext: contextMCPClientLocal('corticai'),
+    context: corticaiContextServer, // Adds all context tools to Mastra
   }
 });
 
-// Agents can now use MCP tools
+// Agents can now use context tools via MCP
 const agent = new Agent({
   name: 'MyAgent',
-  mcps: ['remoteContext'], // Use remote context tools
+  instructions: 'Manage context information',
+  model: openRouter.chat('anthropic/claude-3.5-haiku'),
+  mcps: ['context'], // Give agent access to context tools
 });
 ```
 
-### Transport Options
+### Available MCP Servers
 
-- **stdio**: Local process communication (default)
-- **HTTP**: RESTful HTTP endpoint at `/mcp`
-- **SSE**: Server-Sent Events at `/mcp-sse` for streaming
+```typescript
+import {
+  corticaiContextServer,    // Default server with all features
+  minimalContextServer,      // Minimal tools only
+  createProductionServer,    // Production server with DuckDB
+  createCorticaiMCPServer,   // Custom configuration
+} from 'corticai/context/mcp';
+
+// Custom server example
+const customServer = createCorticaiMCPServer({
+  tools: ['storeContext', 'queryContext'], // Select specific tools
+  includeAgents: true,                     // Include agents as tools
+  storage: {
+    type: 'duckdb',
+    duckdb: { database: './context.db' }
+  }
+});
+```
+
+### Standalone stdio Server
+
+Run as a standalone MCP server for external tools (Cursor, Windsurf, Claude Desktop):
+
+```bash
+# Build the project
+npm run build
+
+# Run the stdio server
+node dist/context/mcp/stdio.js
+
+# With environment variables
+CONTEXT_STORAGE=duckdb CONTEXT_DB=./context.db node dist/context/mcp/stdio.js
+```
+
+Configure in your MCP client:
+```json
+{
+  "mcpServers": {
+    "corticai-context": {
+      "command": "node",
+      "args": ["/path/to/dist/context/mcp/stdio.js"],
+      "env": {
+        "CONTEXT_STORAGE": "duckdb",
+        "CONTEXT_DB": "./context.db"
+      }
+    }
+  }
+}
+```
 
 ## Value-Add Scenarios
 

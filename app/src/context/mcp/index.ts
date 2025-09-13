@@ -1,19 +1,14 @@
 /**
  * MCP Integration for CorticAI Context Management
  *
- * Provides both MCP server (for serving) and MCP client (for consuming)
- * configurations for the context management system.
+ * Provides MCP server instances for use with Mastra and
+ * other MCP-compatible systems.
  */
 
 export {
-  createContextMCPServer,
-  contextMCPServer,
-  runContextMCPServer,
-  type ContextMCPServerConfig
+  createCorticaiMCPServer,
+  corticaiContextServer,
+  createProductionServer,
+  minimalContextServer,
+  type CorticaiMCPServerConfig
 } from './server.js';
-
-export {
-  createContextMCPClient,
-  contextMCPClient,
-  type ContextMCPClientConfig
-} from './client.js';

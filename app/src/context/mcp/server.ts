@@ -1,187 +1,133 @@
 /**
  * MCP Server for CorticAI Context Management
  *
- * Optional component that exposes context management capabilities
- * via the Model Context Protocol (MCP) for interoperability with
- * other MCP-compatible systems.
+ * Creates an MCP server that exposes context management capabilities
+ * via the Model Context Protocol for use with Mastra and other MCP-compatible systems.
  *
- * @example Standalone MCP Server
- * ```typescript
- * import { createContextMCPServer } from 'corticai/context/mcp';
- *
- * const server = createContextMCPServer({
- *   storage: { type: 'duckdb', database: './context.db' }
- * });
- *
- * // Run as stdio server
- * server.startStdio();
- * ```
- *
- * @example Integration with Mastra MCP
+ * @example Using with Mastra
  * ```typescript
  * import { Mastra } from '@mastra/core';
- * import { contextMCPServer } from 'corticai/context/mcp';
+ * import { corticaiContextServer } from 'corticai/context/mcp';
  *
  * const mastra = new Mastra({
- *   mcpServers: { contextServer: contextMCPServer }
+ *   mcps: {
+ *     context: corticaiContextServer
+ *   }
+ * });
+ * ```
+ *
+ * @example Custom configuration
+ * ```typescript
+ * import { createCorticaiMCPServer } from 'corticai/context/mcp';
+ *
+ * const customServer = createCorticaiMCPServer({
+ *   tools: ['storeContext', 'queryContext'],
+ *   includeAgents: true
  * });
  * ```
  */
 
 import { MCPServer } from '@mastra/mcp';
 import { contextTools } from '../tools/index.js';
-import { contextAgents } from '../agents/index.js';
-import type { Server } from 'http';
+import { createContextManager, createQueryAssistant, createContextObserver } from '../agents/index.js';
 
 /**
- * Configuration for the Context MCP Server
+ * Configuration options for creating a CorticAI MCP Server
  */
-export interface ContextMCPServerConfig {
-  /** Server name */
-  name?: string;
-  /** Server version */
-  version?: string;
-  /** Storage configuration */
+export interface CorticaiMCPServerConfig {
+  /** Which tools to include (defaults to all) */
+  tools?: string[];
+  /** Whether to include agents as tools */
+  includeAgents?: boolean;
+  /** Storage configuration for agents */
   storage?: {
     type: 'memory' | 'json' | 'duckdb';
     duckdb?: { database: string; tableName?: string };
     json?: { filePath: string; pretty?: boolean };
   };
-  /** Which tools to expose */
-  tools?: string[];
-  /** Which agents to expose */
-  agents?: string[];
-  /** Enable observational mode */
-  enableObserver?: boolean;
+  /** Whether to include observer agent */
+  includeObserver?: boolean;
 }
 
 /**
- * Create a Context MCP Server
+ * Create a configured CorticAI MCP Server
  */
-export function createContextMCPServer(config: ContextMCPServerConfig = {}): MCPServer {
+export function createCorticaiMCPServer(config: CorticaiMCPServerConfig = {}): MCPServer {
   const {
-    name = 'corticai-context',
-    version = '1.0.0',
+    tools = Object.keys(contextTools), // Default to all tools
+    includeAgents = true,
     storage = { type: 'memory' },
-    tools = [
-      'storeContext',
-      'queryContext',
-      'searchContext',
-      'findRelatedContext',
-      'analyzeContextPatterns',
-      'analyzeContextQuality',
-    ],
-    agents = ['ContextManager', 'QueryAssistant'],
-    enableObserver = false,
+    includeObserver = false,
   } = config;
 
-  // Prepare storage configuration
-  const storageConfig = storage.type === 'duckdb'
-    ? { type: 'duckdb' as const, ...storage.duckdb }
-    : storage.type === 'json'
-    ? { type: 'json' as const, ...storage.json }
-    : { type: 'memory' as const };
-
   // Filter tools based on configuration
-  const selectedTools = Object.fromEntries(
-    Object.entries(contextTools).filter(([key]) => tools.includes(key))
-  );
-
-  // Create agents based on configuration
-  const selectedAgents: Record<string, any> = {};
-
-  if (agents.includes('ContextManager')) {
-    selectedAgents.contextManager = contextAgents.ContextManager({
-      storageType: storage.type,
-      storageConfig,
-    });
+  const selectedTools: Record<string, any> = {};
+  for (const toolName of tools) {
+    if (toolName in contextTools) {
+      selectedTools[toolName] = (contextTools as any)[toolName];
+    }
   }
 
-  if (agents.includes('QueryAssistant')) {
-    selectedAgents.queryAssistant = contextAgents.QueryAssistant({
-      storageType: storage.type,
-      storageConfig,
-    });
-  }
+  // Create agents if requested
+  const agents: Record<string, any> = {};
 
-  if (enableObserver || agents.includes('ContextObserver')) {
-    selectedAgents.contextObserver = contextAgents.ContextObserver({
-      storageType: storage.type,
-      storageConfig,
-    });
+  if (includeAgents) {
+    // Storage config for agents
+    const storageConfig = storage.type === 'duckdb'
+      ? { storageType: 'duckdb' as const, storageConfig: storage.duckdb }
+      : storage.type === 'json'
+      ? { storageType: 'json' as const, storageConfig: storage.json }
+      : { storageType: 'memory' as const };
+
+    agents.contextManager = createContextManager(storageConfig);
+    agents.queryAssistant = createQueryAssistant(storageConfig);
+
+    if (includeObserver) {
+      agents.contextObserver = createContextObserver(storageConfig);
+    }
   }
 
   // Create the MCP server
   const server = new MCPServer({
-    name,
-    version,
+    name: 'corticai-context',
+    version: '1.0.0',
+    description: 'Intelligent context management for LLM applications',
     tools: selectedTools,
-    // Note: Agents in MCP are exposed as tools that can generate responses
-    // We'll wrap them as tool-like interfaces
-    agents: selectedAgents,
-  });
-
-  // Add custom handlers if needed
-  server.on('ready', () => {
-    console.log(`Context MCP Server '${name}' v${version} is ready`);
-    console.log(`- Storage: ${storage.type}`);
-    console.log(`- Tools: ${tools.join(', ')}`);
-    console.log(`- Agents: ${agents.join(', ')}`);
+    ...(Object.keys(agents).length > 0 && { agents }),
   });
 
   return server;
 }
 
 /**
- * Default Context MCP Server instance
+ * Default CorticAI Context MCP Server
+ * Includes all tools and agents with memory storage
  */
-export const contextMCPServer = createContextMCPServer();
+export const corticaiContextServer = createCorticaiMCPServer({
+  includeAgents: true,
+  storage: { type: 'memory' },
+});
 
 /**
- * Run the MCP server as a standalone process
+ * Production-ready CorticAI Context MCP Server with DuckDB
  */
-export function runContextMCPServer(config?: ContextMCPServerConfig): Server | void {
-  const server = createContextMCPServer(config);
-
-  // Start based on environment or config
-  const transport = process.env.MCP_TRANSPORT || 'stdio';
-
-  if (transport === 'http' || transport === 'sse') {
-    const port = parseInt(process.env.MCP_PORT || '3000', 10);
-    const httpServer = server.startHttp(port);
-    console.log(`Context MCP Server running on ${transport.toUpperCase()} port ${port}`);
-    console.log(`Endpoint: http://localhost:${port}/mcp${transport === 'sse' ? '-sse' : ''}`);
-    return httpServer;
-  } else {
-    // Default to stdio
-    server.startStdio().catch((error) => {
-      console.error('Error running Context MCP server:', error);
-      process.exit(1);
-    });
-  }
+export function createProductionServer(databasePath = './context.db'): MCPServer {
+  return createCorticaiMCPServer({
+    includeAgents: true,
+    storage: {
+      type: 'duckdb',
+      duckdb: {
+        database: databasePath,
+        tableName: 'context',
+      },
+    },
+  });
 }
 
 /**
- * Create an HTTP/SSE MCP server for use with Mastra
- * This returns a configured server ready for HTTP/SSE transport
+ * Minimal CorticAI Context MCP Server (tools only)
  */
-export function createContextMCPServerHTTP(
-  port = 3000,
-  config?: ContextMCPServerConfig
-): { server: MCPServer; start: () => Server } {
-  const mcpServer = createContextMCPServer(config);
-
-  return {
-    server: mcpServer,
-    start: () => {
-      const httpServer = mcpServer.startHttp(port);
-      console.log(`Context MCP Server running on port ${port}`);
-      return httpServer;
-    }
-  };
-}
-
-// Run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runContextMCPServer();
-}
+export const minimalContextServer = createCorticaiMCPServer({
+  tools: ['storeContext', 'queryContext', 'searchContext'],
+  includeAgents: false,
+});

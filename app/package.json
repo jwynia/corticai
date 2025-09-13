@@ -10,6 +10,8 @@
     "dev": "mastra dev",
     "build": "mastra build",
     "start": "mastra start",
+    "mcp:server": "tsx src/context/mcp/stdio.ts",
+    "mcp:build": "tsc src/context/mcp/stdio.ts --outDir dist --module esnext --target es2022",
     "docs": "typedoc",
     "docs:serve": "cd docs && python3 -m http.server 8080",
     "docs:watch": "typedoc --watch",
