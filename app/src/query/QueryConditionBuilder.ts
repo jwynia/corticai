@@ -10,7 +10,8 @@ import {
   EqualityCondition,
   ComparisonCondition,
   PatternCondition,
-  InclusionCondition,
+  SetCondition,
+  NullCondition,
   CompositeCondition,
   StringKeys
 } from './types'
@@ -83,11 +84,11 @@ export class QueryConditionBuilder<T> {
     field: K,
     operator: 'in' | 'not in',
     values: T[K][]
-  ): InclusionCondition<T> {
+  ): SetCondition<T> {
     return {
-      type: 'inclusion',
+      type: 'set',
       field,
-      operator,
+      operator: operator === 'in' ? 'in' : 'not_in',
       values
     }
   }
@@ -140,8 +141,12 @@ export class QueryConditionBuilder<T> {
         return QueryConditionBuilder.validateComparisonCondition(condition)
       case 'pattern':
         return QueryConditionBuilder.validatePatternCondition(condition)
-      case 'inclusion':
-        return QueryConditionBuilder.validateInclusionCondition(condition)
+      case 'set':
+        return QueryConditionBuilder.validateInclusionCondition(condition as SetCondition<T>)
+      case 'null':
+        return typeof (condition as NullCondition<T>).field === 'string' &&
+               ((condition as NullCondition<T>).operator === 'is_null' || 
+                (condition as NullCondition<T>).operator === 'is_not_null')
       case 'composite':
         return QueryConditionBuilder.validateCompositeCondition(condition)
       default:
@@ -186,10 +191,10 @@ export class QueryConditionBuilder<T> {
   /**
    * Validate an inclusion condition
    */
-  private static validateInclusionCondition<T>(condition: InclusionCondition<T>): boolean {
+  private static validateInclusionCondition<T>(condition: SetCondition<T>): boolean {
     return (
       typeof condition.field === 'string' &&
-      (condition.operator === 'in' || condition.operator === 'not in') &&
+      (condition.operator === 'in' || condition.operator === 'not_in') &&
       Array.isArray(condition.values) &&
       condition.values.length > 0
     )
@@ -230,9 +235,12 @@ export class QueryConditionBuilder<T> {
       case 'pattern':
         // Pattern matching is more expensive
         return 3
-      case 'inclusion':
+      case 'set':
         // Cost scales with number of values
-        return Math.max(1, Math.log2(condition.values.length))
+        return Math.max(1, Math.log2((condition as SetCondition<T>).values.length))
+      case 'null':
+        // Null checks are very cheap
+        return 0.5
       case 'composite':
         // Composite conditions add the complexity of all their children
         const baseComplexity = condition.conditions.reduce((total, cond) => 
@@ -276,32 +284,45 @@ export class QueryConditionBuilder<T> {
     switch (a.type) {
       case 'equality':
       case 'comparison':
+        const aComp = a as (EqualityCondition<T> | ComparisonCondition<T>)
+        const bComp = b as (EqualityCondition<T> | ComparisonCondition<T>)
         return (
-          a.field === b.field &&
-          a.operator === b.operator &&
-          a.value === (b as typeof a).value
+          aComp.field === bComp.field &&
+          aComp.operator === bComp.operator &&
+          aComp.value === bComp.value
         )
       case 'pattern':
+        const aPat = a as PatternCondition<T>
+        const bPat = b as PatternCondition<T>
         return (
-          a.field === b.field &&
-          a.operator === b.operator &&
-          a.value === (b as PatternCondition<T>).value &&
-          a.caseSensitive === (b as PatternCondition<T>).caseSensitive
+          aPat.field === bPat.field &&
+          aPat.operator === bPat.operator &&
+          aPat.value === bPat.value &&
+          aPat.caseSensitive === bPat.caseSensitive
         )
-      case 'inclusion':
-        const bInclusion = b as InclusionCondition<T>
+      case 'set':
+        const bSet = b as SetCondition<T>
+        const aSet = a as SetCondition<T>
         return (
-          a.field === bInclusion.field &&
-          a.operator === bInclusion.operator &&
-          a.values.length === bInclusion.values.length &&
-          a.values.every((val, idx) => val === bInclusion.values[idx])
+          aSet.field === bSet.field &&
+          aSet.operator === bSet.operator &&
+          aSet.values.length === bSet.values.length &&
+          aSet.values.every((val, idx) => val === bSet.values[idx])
+        )
+      case 'null':
+        const aNull = a as NullCondition<T>
+        const bNull = b as NullCondition<T>
+        return (
+          aNull.field === bNull.field &&
+          aNull.operator === bNull.operator
         )
       case 'composite':
+        const aComposite = a as CompositeCondition<T>
         const bComposite = b as CompositeCondition<T>
         return (
-          a.operator === bComposite.operator &&
-          a.conditions.length === bComposite.conditions.length &&
-          a.conditions.every((cond, idx) => 
+          aComposite.operator === bComposite.operator &&
+          aComposite.conditions.length === bComposite.conditions.length &&
+          aComposite.conditions.every((cond, idx) => 
             QueryConditionBuilder.areConditionsEqual(cond, bComposite.conditions[idx])
           )
         )
@@ -322,8 +343,12 @@ export class QueryConditionBuilder<T> {
       case 'pattern':
         const caseSuffix = condition.caseSensitive ? '' : ' (case insensitive)'
         return `${String(condition.field)} ${condition.operator} "${condition.value}"${caseSuffix}`
-      case 'inclusion':
-        return `${String(condition.field)} ${condition.operator} [${condition.values.map(v => JSON.stringify(v)).join(', ')}]`
+      case 'set':
+        const setCondition = condition as SetCondition<T>
+        return `${String(setCondition.field)} ${setCondition.operator} [${setCondition.values.map(v => JSON.stringify(v)).join(', ')}]`
+      case 'null':
+        const nullCondition = condition as NullCondition<T>
+        return `${String(nullCondition.field)} ${nullCondition.operator}`
       case 'composite':
         if (condition.operator === 'not') {
           return `NOT (${QueryConditionBuilder.conditionToString(condition.conditions[0])})`

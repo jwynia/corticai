@@ -1,0 +1,260 @@
+name: Performance Benchmarks
+
+on:
+  # Run on pull requests that affect performance-critical code
+  pull_request:
+    paths:
+      - 'app/src/query/**'
+      - 'app/src/storage/**'
+      - 'app/benchmarks/**'
+  
+  # Run on pushes to main branch
+  push:
+    branches: [main]
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      suites:
+        description: 'Benchmark suites to run (query,storage,comparison)'
+        required: false
+        default: 'query,storage'
+        type: string
+      adapters:
+        description: 'Adapters to test (Memory,JSON,DuckDB)'
+        required: false
+        default: 'Memory,JSON'
+        type: string
+      data_size:
+        description: 'Dataset sizes (1K,10K,100K)'
+        required: false
+        default: '1K,10K'
+        type: string
+
+jobs:
+  benchmark:
+    name: Run Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+      
+      - name: Create benchmarks results directory
+        run: mkdir -p app/benchmarks/results
+      
+      - name: Run performance benchmarks
+        working-directory: app
+        run: |
+          # Set benchmark parameters based on event
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Quick benchmarks for PRs
+            npx tsx ./benchmarks/cli.ts --suites query --adapters Memory,JSON --data-size 1K --iterations 5 --max-time 10
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Custom benchmarks from manual trigger
+            npx tsx ./benchmarks/cli.ts \
+              --suites "${{ github.event.inputs.suites || 'query,storage' }}" \
+              --adapters "${{ github.event.inputs.adapters || 'Memory,JSON' }}" \
+              --data-size "${{ github.event.inputs.data_size || '1K,10K' }}" \
+              --iterations 10 --max-time 20
+          else
+            # Full benchmarks for main branch
+            npx tsx ./benchmarks/cli.ts --suites query,storage --adapters Memory,JSON,DuckDB --data-size 1K,10K --iterations 10 --max-time 20
+          fi
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: app/benchmarks/results/
+          retention-days: 30
+      
+      - name: Download baseline results (for comparison)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: app/benchmarks/baseline/
+      
+      - name: Compare with baseline (PR only)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        working-directory: app
+        run: |
+          if [ -d "benchmarks/baseline" ]; then
+            npx tsx ./benchmarks/compare-with-baseline.ts
+          else
+            echo "No baseline found, skipping comparison"
+          fi
+      
+      - name: Post benchmark comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find latest benchmark result
+            const resultsDir = 'app/benchmarks/results';
+            if (!fs.existsSync(resultsDir)) {
+              console.log('No benchmark results found');
+              return;
+            }
+            
+            const files = fs.readdirSync(resultsDir)
+              .filter(f => f.endsWith('.json'))
+              .sort()
+              .reverse();
+            
+            if (files.length === 0) {
+              console.log('No JSON results found');
+              return;
+            }
+            
+            const resultFile = path.join(resultsDir, files[0]);
+            const results = JSON.parse(fs.readFileSync(resultFile, 'utf8'));
+            
+            // Create comment body
+            let comment = '## 📊 Performance Benchmark Results\n\n';
+            comment += `**Run ID:** ${results.runId}\n`;
+            comment += `**Timestamp:** ${results.timestamp}\n`;
+            comment += `**Total Benchmarks:** ${results.results.length}\n\n`;
+            
+            // Add requirement compliance
+            const requirementFailures = results.results.filter(r => {
+              if (r.dataSize === 1000 && isSimpleOperation(r.operation) && r.percentiles.p95 > 10) return true;
+              if (r.dataSize === 10000 && isComplexOperation(r.operation) && r.percentiles.p95 > 100) return true;
+              return false;
+            });
+            
+            function isSimpleOperation(op) {
+              return ['filter-equality', 'filter-comparison', 'filter-range', 'sort-single-field', 'paginate-simple', 'crud-single-get'].includes(op);
+            }
+            
+            function isComplexOperation(op) {
+              return op.startsWith('complex-') || op.includes('aggregate');
+            }
+            
+            const complianceRate = ((results.results.length - requirementFailures.length) / results.results.length * 100).toFixed(1);
+            
+            if (requirementFailures.length === 0) {
+              comment += '✅ **All performance requirements met!**\n\n';
+            } else {
+              comment += `⚠️ **Performance requirements:** ${complianceRate}% compliant (${requirementFailures.length} failures)\n\n`;
+            }
+            
+            // Add top performers
+            const sortedResults = results.results.sort((a, b) => b.opsPerSecond - a.opsPerSecond);
+            comment += '### 🏆 Top Performers\n';
+            comment += '| Operation | Adapter | Ops/Sec | P95 Latency |\n';
+            comment += '|-----------|---------|---------|-------------|\n';
+            
+            for (const result of sortedResults.slice(0, 5)) {
+              comment += `| ${result.operation} | ${result.adapter} | ${Math.round(result.opsPerSecond).toLocaleString()} | ${result.percentiles.p95.toFixed(2)}ms |\n`;
+            }
+            
+            // Add failures if any
+            if (requirementFailures.length > 0) {
+              comment += '\n### ❌ Requirement Failures\n';
+              comment += '| Operation | Adapter | Expected | Actual |\n';
+              comment += '|-----------|---------|----------|--------|\n';
+              
+              for (const failure of requirementFailures.slice(0, 5)) {
+                const expected = failure.dataSize === 1000 ? '<10ms' : '<100ms';
+                comment += `| ${failure.operation} | ${failure.adapter} | ${expected} | ${failure.percentiles.p95.toFixed(2)}ms |\n`;
+              }
+              
+              if (requirementFailures.length > 5) {
+                comment += `\n*... and ${requirementFailures.length - 5} more failures*\n`;
+              }
+            }
+            
+            comment += '\n---\n';
+            comment += '💾 Full benchmark results are available in the workflow artifacts.\n';
+            
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      - name: Save as baseline (main branch)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: app/benchmarks/results/
+          retention-days: 90
+
+  benchmark-regression-check:
+    name: Check for Performance Regressions
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+      
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: app/benchmarks/results/
+      
+      - name: Download baseline results
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: app/benchmarks/baseline/
+      
+      - name: Check for regressions
+        working-directory: app
+        run: |
+          if [ -d "benchmarks/baseline" ] && [ -d "benchmarks/results" ]; then
+            npx tsx ./benchmarks/regression-check.ts
+          else
+            echo "Baseline or results missing, skipping regression check"
+            exit 0
+          fi
+      
+      - name: Fail on significant regression
+        if: failure()
+        run: |
+          echo "Significant performance regression detected!"
+          echo "Review the benchmark results and consider optimizations."
+          exit 1

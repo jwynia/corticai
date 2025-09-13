@@ -1,0 +1,154 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": false,
+    "strict": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "entryPoints": [
+    "src/storage/adapters/DuckDBStorageAdapter.ts",
+    "src/storage/adapters/DuckDBConnectionManager.ts",
+    "src/storage/adapters/MemoryStorageAdapter.ts", 
+    "src/storage/interfaces/Storage.ts",
+    "src/analyzers/TypeScriptDependencyAnalyzer.ts",
+    "src/analyzers/types.ts",
+    "src/types/entity.ts",
+    "src/mastra/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "out": "docs",
+  "json": "docs/documentation.json",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/tests/**/*",
+    "**/test/**/*",
+    "**/__tests__/**/*",
+    "**/node_modules/**/*",
+    "**/dist/**/*",
+    "**/coverage/**/*"
+  ],
+  "excludeExternals": true,
+  "excludeInternal": false,
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "includeVersion": true,
+  "sort": [
+    "source-order",
+    "alphabetical"
+  ],
+  "groupOrder": [
+    "Classes",
+    "Interfaces",
+    "Type Aliases",
+    "Variables",
+    "Functions",
+    "Enumerations"
+  ],
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": [
+    "Core",
+    "Storage",
+    "Query Interface",
+    "Analyzers", 
+    "Mastra Integration",
+    "Types",
+    "Utilities",
+    "Other"
+  ],
+  "readme": "README.md",
+  "theme": "default",
+  "lightHighlightTheme": "light-plus",
+  "darkHighlightTheme": "dark-plus",
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  },
+  "navigationLinks": {
+    "GitHub": "https://github.com/your-username/corticai",
+    "NPM": "https://www.npmjs.com/package/corticai"
+  },
+  "sidebarLinks": {
+    "Documentation": "https://your-username.github.io/corticai/",
+    "Repository": "https://github.com/your-username/corticai"
+  },
+  "hideGenerator": false,
+  "searchInComments": true,
+  "searchInDocuments": true,
+  "cleanOutputDir": true,
+  "treatWarningsAsErrors": false,
+  "skipErrorChecking": true,
+  "emit": "docs",
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "commentStyle": "jsdoc",
+  "blockTags": [
+    "@alpha",
+    "@beta",
+    "@deprecated",
+    "@defaultValue",
+    "@example",
+    "@experimental",
+    "@internal",
+    "@override",
+    "@packageDocumentation",
+    "@param",
+    "@privateRemarks",
+    "@public",
+    "@readonly",
+    "@remarks",
+    "@returns",
+    "@sealed",
+    "@see",
+    "@since",
+    "@throws",
+    "@typeParam",
+    "@virtual"
+  ],
+  "inlineTags": [
+    "@inheritDoc",
+    "@label",
+    "@link",
+    "@linkcode",
+    "@linkplain"
+  ],
+  "modifierTags": [
+    "@alpha",
+    "@beta",
+    "@deprecated",
+    "@experimental",
+    "@internal",
+    "@override",
+    "@packageDocumentation",
+    "@public",
+    "@readonly",
+    "@sealed",
+    "@virtual"
+  ],
+  "markdownItOptions": {
+    "html": true
+  },
+  "githubPages": true,
+  "cname": "corticai-docs.your-domain.com",
+  "gitRevision": "main",
+  "gitRemote": "origin",
+  "sourceLinkTemplate": "https://github.com/your-username/corticai/blob/{gitRevision}/{path}#L{line}",
+  "includeHierarchySummary": true,
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "@internal": false
+  }
+}

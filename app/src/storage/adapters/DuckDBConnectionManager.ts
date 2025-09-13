@@ -135,7 +135,7 @@ export class DuckDBConnectionManager {
     // Store the mutex so other operations can wait for it
     DuckDBConnectionManager.tableCreationMutexes.set(mutexKey, currentMutex)
     
-    return operation()
+    return currentMutex
   }
 
   /**

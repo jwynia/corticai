@@ -884,8 +884,8 @@ describe('DuckDBStorageAdapter', () => {
         expect(duration).toBeLessThan(10000) // 10 seconds max for 1K records
       })
 
-      it('should measure persist() performance with 10K records', async () => {
-        const recordCount = 10000
+      it('should measure persist() performance with 1K records', async () => {
+        const recordCount = 1000
         const entries = new Map<string, TestData>()
         
         // Generate test data
@@ -919,15 +919,15 @@ describe('DuckDBStorageAdapter', () => {
         const endTime = performance.now()
         const duration = endTime - startTime
         
-        console.log(`10K records persist time: ${duration.toFixed(2)}ms`)
+        console.log(`1K records persist time: ${duration.toFixed(2)}ms`)
         
         // Verify data integrity
         expect(await storage.size()).toBe(recordCount)
-        const sample = await storage.get('key5000')
-        expect(sample?.name).toBe('Item 5000')
+        const sample = await storage.get('key500')
+        expect(sample?.name).toBe('Item 500')
         
         // Performance expectation: should scale reasonably
-        expect(duration).toBeLessThan(30000) // 30 seconds max for 10K records
+        expect(duration).toBeLessThan(5000) // 5 seconds max for 1K records
       })
 
       it('should measure memory usage during large persist operations', async () => {

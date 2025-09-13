@@ -5,7 +5,12 @@ import { LibSQLStore } from '@mastra/libsql';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { weatherAgent } from './agents/weather-agent';
 
-export const mastra = new Mastra({
+/**
+ * Pre-configured Mastra instance for CorticAI
+ * 
+ * Includes weather workflow and agent with in-memory LibSQL storage
+ */
+export const mastra: Mastra = new Mastra({
   workflows: { weatherWorkflow },
   agents: { weatherAgent },
   storage: new LibSQLStore({

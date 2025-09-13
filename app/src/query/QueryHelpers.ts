@@ -15,7 +15,9 @@ import {
   Aggregation,
   Projection,
   HavingCondition,
-  CompositeCondition
+  CompositeCondition,
+  SetCondition,
+  NullCondition
 } from './types'
 
 /**
@@ -54,15 +56,17 @@ export class QueryHelpers {
         return { ...condition }
       case 'pattern':
         return { ...condition }
-      case 'inclusion':
-        return { ...condition, values: [...condition.values] }
+      case 'set':
+        return { ...condition, values: [...(condition as SetCondition<T>).values] }
+      case 'null':
+        return { ...condition }
       case 'composite':
         return {
           ...condition,
           conditions: condition.conditions.map(cond => QueryHelpers.cloneCondition(cond))
         }
       default:
-        return { ...condition }
+        return { ...(condition as any) }
     }
   }
 
@@ -91,7 +95,7 @@ export class QueryHelpers {
    * Check if a query has aggregations
    */
   static hasAggregations<T>(query: Query<T>): boolean {
-    return query.aggregations && query.aggregations.length > 0
+    return !!(query.aggregations && query.aggregations.length > 0)
   }
 
   /**
@@ -154,8 +158,13 @@ export class QueryHelpers {
       case 'equality':
       case 'comparison':
       case 'pattern':
-      case 'inclusion':
-        fields.add(condition.field)
+        fields.add((condition as any).field)
+        break
+      case 'set':
+        fields.add((condition as SetCondition<T>).field)
+        break
+      case 'null':
+        fields.add((condition as NullCondition<T>).field)
         break
       case 'composite':
         condition.conditions.forEach(cond => QueryHelpers.addConditionFields(cond, fields))
@@ -238,10 +247,12 @@ export class QueryHelpers {
     switch (cond1.type) {
       case 'equality':
       case 'comparison':
+        const c1 = cond1 as any
+        const c2 = cond2 as any
         return (
-          cond1.field === cond2.field &&
-          cond1.operator === cond2.operator &&
-          cond1.value === (cond2 as typeof cond1).value
+          c1.field === c2.field &&
+          c1.operator === c2.operator &&
+          c1.value === c2.value
         )
       case 'pattern':
         const pattern2 = cond2 as typeof cond1
@@ -251,13 +262,21 @@ export class QueryHelpers {
           cond1.value === pattern2.value &&
           cond1.caseSensitive === pattern2.caseSensitive
         )
-      case 'inclusion':
-        const inclusion2 = cond2 as typeof cond1
+      case 'set':
+        const set1 = cond1 as SetCondition<T>
+        const set2 = cond2 as SetCondition<T>
         return (
-          cond1.field === inclusion2.field &&
-          cond1.operator === inclusion2.operator &&
-          cond1.values.length === inclusion2.values.length &&
-          cond1.values.every((val, idx) => val === inclusion2.values[idx])
+          set1.field === set2.field &&
+          set1.operator === set2.operator &&
+          set1.values.length === set2.values.length &&
+          set1.values.every((val, idx) => val === set2.values[idx])
+        )
+      case 'null':
+        const null1 = cond1 as NullCondition<T>
+        const null2 = cond2 as NullCondition<T>
+        return (
+          null1.field === null2.field &&
+          null1.operator === null2.operator
         )
       case 'composite':
         const composite2 = cond2 as CompositeCondition<T>
@@ -398,8 +417,12 @@ export class QueryHelpers {
       case 'pattern':
         const caseSuffix = condition.caseSensitive ? '' : ' (case insensitive)'
         return `${String(condition.field)} ${condition.operator} "${condition.value}"${caseSuffix}`
-      case 'inclusion':
-        return `${String(condition.field)} ${condition.operator} [${condition.values.map(v => JSON.stringify(v)).join(', ')}]`
+      case 'set':
+        const setCondition = condition as SetCondition<T>
+        return `${String(setCondition.field)} ${setCondition.operator} [${setCondition.values.map(v => JSON.stringify(v)).join(', ')}]`
+      case 'null':
+        const nullCondition = condition as NullCondition<T>
+        return `${String(nullCondition.field)} ${nullCondition.operator}`
       case 'composite':
         if (condition.operator === 'not') {
           return `NOT (${QueryHelpers.conditionToString(condition.conditions[0])})`
@@ -437,8 +460,10 @@ export class QueryHelpers {
         return 2
       case 'pattern':
         return 4 // Pattern matching is expensive
-      case 'inclusion':
-        return 2 + Math.log2(condition.values.length) // Scales with array size
+      case 'set':
+        return 2 + Math.log2((condition as SetCondition<T>).values.length) // Scales with array size
+      case 'null':
+        return 0.5 // Null checks are very cheap
       case 'composite':
         const baseComplexity = condition.conditions.reduce((total, cond) => 
           total + QueryHelpers.getConditionComplexity(cond), 0

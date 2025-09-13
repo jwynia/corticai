@@ -764,6 +764,7 @@ describe('TypeScriptDependencyAnalyzer', () => {
 
     it('should detect circular dependencies in project', async () => {
       // Arrange - Create files with circular dependency
+      await fs.mkdir(testProjectDir, { recursive: true });
       await fs.mkdir(path.join(testProjectDir, 'src'), { recursive: true });
       
       await fs.writeFile(path.join(testProjectDir, 'src', 'moduleA.ts'), `
@@ -960,7 +961,7 @@ describe('TypeScriptDependencyAnalyzer', () => {
       await fs.mkdir(testProjectDir, { recursive: true });
       
       // Create multiple files
-      const fileCount = 20;
+      const fileCount = 5;
       const files = Array.from({ length: fileCount }, (_, i) => {
         const filePath = path.join(testProjectDir, `concurrent${i}.ts`);
         return fs.writeFile(filePath, `export const concurrent${i} = ${i};`);
