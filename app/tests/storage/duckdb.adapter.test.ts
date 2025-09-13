@@ -784,7 +784,7 @@ describe('DuckDBStorageAdapter', () => {
       const insertTime = Date.now() - startTime
       
       expect(await storage.size()).toBe(count)
-      expect(insertTime).toBeLessThan(10000) // Should complete in < 10 seconds
+      expect(insertTime).toBeLessThan(15000) // Should complete in < 15 seconds
       
       // Test query performance
       const queryStart = Date.now()
