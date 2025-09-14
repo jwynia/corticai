@@ -3759,7 +3759,7 @@
 						"type": "reference",
 						"target": {
 							"packageName": "@mastra/core",
-							"packagePath": "dist/base-DnSegjq5.d.ts",
+							"packagePath": "src/mastra/index.ts",
 							"qualifiedName": "Mastra"
 						},
 						"name": "Mastra",
