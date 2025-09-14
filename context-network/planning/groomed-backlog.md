@@ -1,11 +1,11 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-09-13  
-**Major Components Complete**: 14 (Universal Adapter, AttributeIndex, TypeScript Analyzer, Storage Abstraction, Test Infrastructure, DuckDB Adapter, Query Interface, Concurrency Fix, AggregationUtils, OR/NOT Conditions, Negative Test Cases, File Refactoring, Test Suite Cleanup, Mastra Framework Upgrade)
-**Test Status**: 759/759 passing (100%) ✅  
-**Current Status**: Production-ready with latest Mastra 0.16.3
-**Latest Achievement**: ✅ Mastra framework upgraded to latest version
+**Last Groomed**: 2025-01-14
+**Major Components Complete**: 18 (Storage Layer, Query System, Indexing, Mastra Integration, Testing Infrastructure, Documentation System, Benchmarking Suite, AST-grep Tooling)
+**Test Status**: 759/759 passing (100%) ✅
+**Current Phase**: Universal Context Engine - Intelligence Layer Implementation
+**Latest Achievement**: ✅ Complete roadmap and task breakdown for Context Engine vision
 
 ---
 
@@ -105,12 +105,191 @@
 
 ---
 
-## 🚀 Ready for Implementation (After Test Fix)
+## 🎯 Current Sprint: Phase 1 - Graph Integration & Context Structure
 
-### 1. Generate API Documentation from JSDoc
-**One-liner**: Auto-generate comprehensive API documentation from existing JSDoc comments
-**Complexity**: Trivial
-**Priority**: HIGH - Low effort, high value
+### Critical Path to Intelligence Layer
+
+The Universal Context Engine vision requires these foundational components before intelligence features can be built. Phase 1 establishes the dual-database architecture and context separation.
+
+---
+
+## 🚀 Ready for Implementation (Phase 1 - Week 1)
+
+### 1. Kuzu Graph Database Integration
+**One-liner**: Add graph database for relationship tracking and pattern detection
+**Complexity**: Large (13 hours)
+**Priority**: CRITICAL - Enables all relationship-based intelligence
+**Status**: Ready to start
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Why Critical**: The vision's core intelligence features (Continuity Cortex, Lens System, Pattern Learning) all require relationship tracking that only a graph database can efficiently provide.
+
+**Acceptance Criteria**:
+- [ ] KuzuStorageAdapter extends BaseStorageAdapter
+- [ ] Graph operations: addNode, addEdge, traverse, findConnected
+- [ ] Cypher query support
+- [ ] Integration with storage factory
+- [ ] 90%+ test coverage
+
+**Implementation Steps**:
+1. Install kuzu dependency (already in package.json)
+2. Create KuzuStorageAdapter class
+3. Implement graph-specific operations
+4. Add graph query builder
+5. Integrate with existing storage system
+
+**Deliverables**:
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts`
+- `/app/src/query/GraphQueryBuilder.ts`
+- Comprehensive test suite
+- Integration with storage factory
+
+</details>
+
+---
+
+### 2. .context Directory Structure
+**One-liner**: Establish separate context storage layer as designed in vision
+**Complexity**: Medium (7 hours)
+**Priority**: CRITICAL - Required for context separation principle
+**Status**: Ready to start
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Why Critical**: The vision emphasizes separation between primary artifacts and context layer. This structure enables the three-tier memory model.
+
+**Directory Structure**:
+```
+.context/
+├── config.yaml           # Engine configuration
+├── working/             # Hot: Active working memory
+├── semantic/            # Warm: Consolidated patterns
+├── episodic/           # Cold: Historical archive
+└── meta/               # System metadata
+```
+
+**Acceptance Criteria**:
+- [ ] Directory structure created on init
+- [ ] Config system operational
+- [ ] Dual databases initialized
+- [ ] Added to .gitignore
+- [ ] Idempotent initialization
+
+**Implementation Steps**:
+1. Create ContextInitializer class
+2. Set up directory structure
+3. Initialize Kuzu and DuckDB in correct locations
+4. Create config loader
+5. Update main initialization
+
+</details>
+
+---
+
+### 3. Unified Storage Manager
+**One-liner**: Coordinate dual-database operations for attributes and relationships
+**Complexity**: Large (13 hours)
+**Priority**: CRITICAL - Core architectural component
+**Status**: Blocked by Tasks 1 & 2
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Why Critical**: Manages the dual-database architecture that separates attributes (DuckDB) from relationships (Kuzu), enabling efficient operations.
+
+**Acceptance Criteria**:
+- [ ] Routes operations to correct database
+- [ ] Handles cross-database queries
+- [ ] Manages distributed transactions
+- [ ] Provides unified query interface
+- [ ] Performance meets requirements
+
+**Routing Strategy**:
+- Attributes, analytics, temporal → DuckDB
+- Relationships, patterns, paths → Kuzu
+- Cross-database joins supported
+
+**Implementation Steps**:
+1. Create StorageManager class
+2. Implement routing logic
+3. Add transaction coordinator
+4. Build cross-database query support
+5. Add performance optimizations
+
+</details>
+
+---
+
+## 🔄 Phase 1 - Week 2 Tasks (After Core Integration)
+
+### 4. Basic Continuity Cortex
+**One-liner**: Implement file operation interceptor to prevent duplicates
+**Complexity**: Medium (8 hours)
+**Priority**: HIGH - Core intelligence feature
+**Status**: Blocked by Phase 1 Week 1
+
+### 5. Graph Relationship Mapping
+**One-liner**: Extract code relationships into Kuzu graph
+**Complexity**: Medium (6 hours)
+**Priority**: HIGH - Enables pattern detection
+**Status**: Blocked by Kuzu integration
+
+### 6. Initial Lens Implementation
+**One-liner**: Create debug lens for multi-perspective viewing
+**Complexity**: Medium (8 hours)
+**Priority**: HIGH - Key differentiator
+**Status**: Blocked by Storage Manager
+
+---
+
+## 📋 Complete Phase Roadmap
+
+### Phase 1: Graph Integration & Context Structure (Weeks 1-2) 🚀 CURRENT
+- Week 1: Kuzu integration, .context structure, Storage Manager
+- Week 2: Basic Cortex, relationship mapping, initial lens
+
+### Phase 2: Continuity Cortex (Weeks 3-4)
+- File operation interception
+- Deduplication and freshness management
+- Amnesia loop prevention
+
+### Phase 3: Lens System (Weeks 5-6)
+- Multi-perspective views
+- Task-specific context loading
+- Lens effectiveness tracking
+
+### Phase 4: Memory Architecture (Weeks 7-8)
+- Three-tier memory model
+- Consolidation processes
+- Temporal queries
+
+### Phase 5: Enhanced Domain Adapters (Weeks 9-10)
+- Deep TypeScript analysis → Kuzu
+- Document/markdown processing
+- Universal pattern detection
+
+### Phase 6: External Integration (Weeks 11-12)
+- GitHub/GitLab connection
+- Meta-repository pattern
+- Branch preservation
+
+### Phase 7: Intelligence Enhancement (Weeks 13-14)
+- Pattern learning
+- Autonomous maintenance
+- Self-optimization
+
+---
+
+## 🗑️ Archived/Completed Tasks
+
+### Previous Priority Tasks (Now Less Critical)
+
+#### Generate API Documentation from JSDoc
+**Status**: COMPLETED via TypeDoc ✅
+**Note**: Already implemented with full TypeDoc system
 
 <details>
 <summary>Full Implementation Details</summary>
