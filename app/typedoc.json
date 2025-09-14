@@ -14,12 +14,20 @@
     "sourceMap": true
   },
   "entryPoints": [
+    "src/index.ts",
     "src/storage/adapters/DuckDBStorageAdapter.ts",
-    "src/storage/adapters/DuckDBConnectionManager.ts",
-    "src/storage/adapters/MemoryStorageAdapter.ts", 
+    "src/storage/adapters/MemoryStorageAdapter.ts",
+    "src/storage/adapters/JSONStorageAdapter.ts",
     "src/storage/interfaces/Storage.ts",
+    "src/query/QueryBuilder.ts",
+    "src/query/QueryExecutor.ts",
+    "src/indexes/AttributeIndex.ts",
+    "src/context/index.ts",
+    "src/context/agents/ContextManager.agent.ts",
+    "src/context/agents/QueryAssistant.agent.ts",
+    "src/context/agents/ContextObserver.agent.ts",
+    "src/adapters/UniversalFallbackAdapter.ts",
     "src/analyzers/TypeScriptDependencyAnalyzer.ts",
-    "src/analyzers/types.ts",
     "src/types/entity.ts",
     "src/mastra/index.ts"
   ],
