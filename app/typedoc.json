@@ -82,12 +82,12 @@
     "includeGroups": true
   },
   "navigationLinks": {
-    "GitHub": "https://github.com/your-username/corticai",
+    "GitHub": "https://github.com/jwynia/corticai",
     "NPM": "https://www.npmjs.com/package/corticai"
   },
   "sidebarLinks": {
-    "Documentation": "https://your-username.github.io/corticai/",
-    "Repository": "https://github.com/your-username/corticai"
+    "Documentation": "https://jwynia.github.io/corticai/",
+    "Repository": "https://github.com/jwynia/corticai"
   },
   "hideGenerator": false,
   "searchInComments": true,
@@ -149,10 +149,9 @@
     "html": true
   },
   "githubPages": true,
-  "cname": "corticai-docs.your-domain.com",
   "gitRevision": "main",
   "gitRemote": "origin",
-  "sourceLinkTemplate": "https://github.com/your-username/corticai/blob/{gitRevision}/{path}#L{line}",
+  "sourceLinkTemplate": "https://github.com/jwynia/corticai/blob/{gitRevision}/{path}#L{line}",
   "includeHierarchySummary": true,
   "visibilityFilters": {
     "protected": false,

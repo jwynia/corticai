@@ -31,9 +31,9 @@ CorticAI is a TypeScript-based context management system built on the Mastra.ai 
 
 ## Quick Links
 
-- **Source Code**: [GitHub Repository](https://github.com/your-username/corticai)
-- **API Docs**: [TypeDoc Reference](https://your-username.github.io/corticai/)
-- **Issues**: [Issue Tracker](https://github.com/your-username/corticai/issues)
+- **Source Code**: [GitHub Repository](https://github.com/jwynia/corticai)
+- **API Docs**: [TypeDoc Reference](https://jwynia.github.io/corticai/)
+- **Issues**: [Issue Tracker](https://github.com/jwynia/corticai/issues)
 
 ## Key Features
 

@@ -147,7 +147,7 @@ Full API documentation is available in the `docs/` directory after running:
 npm run docs
 ```
 
-Or view online at: https://your-username.github.io/corticai/
+Or view online at: https://jwynia.github.io/corticai/
 
 ## Examples
 

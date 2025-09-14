@@ -14,7 +14,7 @@ npm install corticai
 
 ### Install from source
 ```bash
-git clone https://github.com/your-username/corticai.git
+git clone https://github.com/jwynia/corticai.git
 cd corticai/app
 npm install
 npm run build
@@ -290,6 +290,6 @@ Check out these example use cases in the `/examples` directory:
 
 ## Support
 
-- [GitHub Issues](https://github.com/your-username/corticai/issues)
-- [Documentation](https://your-username.github.io/corticai/)
+- [GitHub Issues](https://github.com/jwynia/corticai/issues)
+- [Documentation](https://jwynia.github.io/corticai/)
 - [Discord Community](#) (Coming soon)

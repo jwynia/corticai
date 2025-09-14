@@ -116,7 +116,7 @@ Comprehensive documentation is available in the `/docs` directory:
 - [Getting Started](./docs/getting-started.md) - Installation and quick start guide
 - [Architecture](./docs/architecture.md) - System design and components
 - [Storage System](./docs/storage-system.md) - Storage adapters and persistence
-- [API Reference](https://your-username.github.io/corticai/) - Complete API documentation
+- [API Reference](https://jwynia.github.io/corticai/) - Complete API documentation
 
 ## License
 
