@@ -111,137 +111,204 @@
 
 The Universal Context Engine vision requires these foundational components before intelligence features can be built. Phase 1 establishes the dual-database architecture and context separation.
 
+### Sprint Goal
+Transform the current single-database system into a dual-database architecture with Kuzu for relationships and DuckDB for attributes, enabling all future intelligence features.
+
 ---
 
 ## 🚀 Ready for Implementation (Phase 1 - Week 1)
 
-### 1. Kuzu Graph Database Integration
-**One-liner**: Add graph database for relationship tracking and pattern detection
-**Complexity**: Large (13 hours)
+### 1. Create KuzuStorageAdapter
+**One-liner**: Implement graph database adapter extending BaseStorageAdapter
+**Complexity**: Medium (6 hours)
 **Priority**: CRITICAL - Enables all relationship-based intelligence
-**Status**: Ready to start
+**Status**: Ready to start (kuzu dependency already installed)
 
 <details>
 <summary>Full Implementation Details</summary>
 
 **Why Critical**: The vision's core intelligence features (Continuity Cortex, Lens System, Pattern Learning) all require relationship tracking that only a graph database can efficiently provide.
 
-**Acceptance Criteria**:
-- [ ] KuzuStorageAdapter extends BaseStorageAdapter
-- [ ] Graph operations: addNode, addEdge, traverse, findConnected
-- [ ] Cypher query support
-- [ ] Integration with storage factory
-- [ ] 90%+ test coverage
-
-**Implementation Steps**:
-1. Install kuzu dependency (already in package.json)
-2. Create KuzuStorageAdapter class
-3. Implement graph-specific operations
-4. Add graph query builder
-5. Integrate with existing storage system
-
-**Deliverables**:
+**Files to create**:
 - `/app/src/storage/adapters/KuzuStorageAdapter.ts`
-- `/app/src/query/GraphQueryBuilder.ts`
-- Comprehensive test suite
-- Integration with storage factory
+- `/app/src/storage/adapters/KuzuStorageAdapter.test.ts`
+
+**Acceptance Criteria**:
+- [ ] Extends BaseStorageAdapter<GraphEntity>
+- [ ] Implements all required methods (store, retrieve, delete, exists, clear, list)
+- [ ] Creates graph schema on initialization
+- [ ] Handles connection lifecycle properly
+- [ ] Includes proper error handling and logging
+- [ ] Tests achieve 90%+ coverage
+
+**Implementation Guide**:
+```typescript
+// 1. Create the adapter class
+export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
+  private db: Database;
+
+  async initialize(path: string): Promise<void> {
+    this.db = new Database(path);
+    await this.createSchema();
+  }
+
+  // 2. Implement required methods
+  async store(id: string, entity: GraphEntity): Promise<void>
+  async retrieve(id: string): Promise<GraphEntity | null>
+  async delete(id: string): Promise<boolean>
+  async exists(id: string): Promise<boolean>
+  async clear(): Promise<void>
+  async list(): Promise<string[]>
+}
+```
+
+**First Step**: Create the file and implement the initialize method with schema creation.
 
 </details>
 
 ---
 
-### 2. .context Directory Structure
-**One-liner**: Establish separate context storage layer as designed in vision
-**Complexity**: Medium (7 hours)
-**Priority**: CRITICAL - Required for context separation principle
-**Status**: Ready to start
+### 2. Add Graph-Specific Operations to KuzuStorageAdapter
+**One-liner**: Extend adapter with graph operations (addNode, addEdge, traverse)
+**Complexity**: Medium (4 hours)
+**Priority**: CRITICAL - Core graph functionality
+**Status**: Blocked by Task 1
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Why Critical**: The vision emphasizes separation between primary artifacts and context layer. This structure enables the three-tier memory model.
+**Why Critical**: Graph operations are what differentiate Kuzu from our existing storage adapters.
 
-**Directory Structure**:
+**Files to modify**:
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts`
+- `/app/src/storage/adapters/KuzuStorageAdapter.test.ts`
+
+**Acceptance Criteria**:
+- [ ] addNode(node: GraphNode) creates nodes with properties
+- [ ] addEdge(edge: GraphEdge) creates relationships between nodes
+- [ ] traverse(startId, pattern) performs graph traversal queries
+- [ ] findConnected(nodeId, depth) returns connected nodes within depth
+- [ ] shortestPath(fromId, toId) finds optimal path between nodes
+- [ ] All methods have proper error handling
+- [ ] Tests cover edge cases and error conditions
+
+**Implementation Guide**:
+```typescript
+// Add these methods to KuzuStorageAdapter
+interface GraphOperations {
+  addNode(node: GraphNode): Promise<string>;
+  addEdge(edge: GraphEdge): Promise<void>;
+  traverse(startId: string, pattern: TraversalPattern): Promise<GraphPath[]>;
+  findConnected(nodeId: string, depth: number): Promise<GraphNode[]>;
+  shortestPath(fromId: string, toId: string): Promise<GraphPath | null>;
+}
+```
+
+**Watch Out For**:
+- Kuzu uses Cypher-like syntax, not SQL
+- Need to handle disconnected nodes
+- Edge direction matters for traversal
+
+</details>
+
+---
+
+### 3. Create .context Directory Initializer
+**One-liner**: Set up context separation directory structure and configuration
+**Complexity**: Small (3 hours)
+**Priority**: CRITICAL - Establishes context layer separation
+**Status**: Ready to start (can run parallel with Task 1)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Why Critical**: Establishes the separation between primary artifacts and context layer, enabling the three-tier memory model.
+
+**Files to create**:
+- `/app/src/context/ContextInitializer.ts`
+- `/app/src/context/ContextInitializer.test.ts`
+- `/app/src/context/config/default-config.yaml`
+
+**Acceptance Criteria**:
+- [ ] Creates .context directory structure on first run
+- [ ] Handles existing directories gracefully (idempotent)
+- [ ] Creates default config.yaml if missing
+- [ ] Adds .context to .gitignore if not present
+- [ ] Returns loaded configuration object
+- [ ] Provides clear initialization status/errors
+
+**Directory Structure to Create**:
 ```
 .context/
 ├── config.yaml           # Engine configuration
 ├── working/             # Hot: Active working memory
-├── semantic/            # Warm: Consolidated patterns
-├── episodic/           # Cold: Historical archive
-└── meta/               # System metadata
+│   └── graph.kuzu/     # Kuzu database location
+├── semantic/           # Warm: Consolidated patterns
+│   └── analytics.duckdb # DuckDB location
+├── episodic/          # Cold: Historical archive
+└── meta/              # System metadata
 ```
 
-**Acceptance Criteria**:
-- [ ] Directory structure created on init
-- [ ] Config system operational
-- [ ] Dual databases initialized
-- [ ] Added to .gitignore
-- [ ] Idempotent initialization
+**Implementation Guide**:
+```typescript
+export class ContextInitializer {
+  static readonly CONTEXT_DIR = '.context';
 
-**Implementation Steps**:
-1. Create ContextInitializer class
-2. Set up directory structure
-3. Initialize Kuzu and DuckDB in correct locations
-4. Create config loader
-5. Update main initialization
+  async initialize(projectPath: string): Promise<ContextConfig> {
+    const contextPath = path.join(projectPath, ContextInitializer.CONTEXT_DIR);
+
+    // 1. Create directories
+    await this.createDirectories(contextPath);
+
+    // 2. Load/create config
+    const config = await this.loadOrCreateConfig(contextPath);
+
+    // 3. Update .gitignore
+    await this.updateGitignore(projectPath);
+
+    return config;
+  }
+}
+```
+
+**First Step**: Create the ContextInitializer class with directory creation logic.
 
 </details>
 
 ---
 
-### 3. Unified Storage Manager
-**One-liner**: Coordinate dual-database operations for attributes and relationships
-**Complexity**: Large (13 hours)
+## ⏳ Ready Soon (After Current Sprint)
+
+### 4. Implement Unified Storage Manager
+**One-liner**: Coordinate dual-database operations with intelligent routing
+**Complexity**: Large (8 hours)
 **Priority**: CRITICAL - Core architectural component
-**Status**: Blocked by Tasks 1 & 2
+**Status**: Blocked by Tasks 1-3
 
 <details>
-<summary>Full Implementation Details</summary>
+<summary>Quick Overview</summary>
 
-**Why Critical**: Manages the dual-database architecture that separates attributes (DuckDB) from relationships (Kuzu), enabling efficient operations.
+Routes operations between Kuzu (relationships) and DuckDB (attributes), handles cross-database queries, manages transactions. This is the brain that makes dual-database architecture work seamlessly.
 
-**Acceptance Criteria**:
-- [ ] Routes operations to correct database
-- [ ] Handles cross-database queries
-- [ ] Manages distributed transactions
-- [ ] Provides unified query interface
-- [ ] Performance meets requirements
-
-**Routing Strategy**:
-- Attributes, analytics, temporal → DuckDB
-- Relationships, patterns, paths → Kuzu
-- Cross-database joins supported
-
-**Implementation Steps**:
-1. Create StorageManager class
-2. Implement routing logic
-3. Add transaction coordinator
-4. Build cross-database query support
-5. Add performance optimizations
+**Key Features**:
+- Intelligent operation routing
+- Cross-database query coordination
+- Transaction management
+- Unified query interface
 
 </details>
 
----
+### 5. Create Graph Query Builder
+**One-liner**: Build Cypher-like query interface for Kuzu operations
+**Complexity**: Medium (4 hours)
+**Priority**: HIGH - Enables advanced graph queries
+**Status**: Blocked by Task 2
 
-## 🔄 Phase 1 - Week 2 Tasks (After Core Integration)
-
-### 4. Basic Continuity Cortex
-**One-liner**: Implement file operation interceptor to prevent duplicates
-**Complexity**: Medium (8 hours)
-**Priority**: HIGH - Core intelligence feature
-**Status**: Blocked by Phase 1 Week 1
-
-### 5. Graph Relationship Mapping
-**One-liner**: Extract code relationships into Kuzu graph
+### 6. Extract TypeScript Relationships to Graph
+**One-liner**: Map imports, exports, and dependencies to Kuzu edges
 **Complexity**: Medium (6 hours)
-**Priority**: HIGH - Enables pattern detection
-**Status**: Blocked by Kuzu integration
-
-### 6. Initial Lens Implementation
-**One-liner**: Create debug lens for multi-perspective viewing
-**Complexity**: Medium (8 hours)
-**Priority**: HIGH - Key differentiator
-**Status**: Blocked by Storage Manager
+**Priority**: HIGH - First real use of graph database
+**Status**: Blocked by Tasks 1-4
 
 ---
 
@@ -283,20 +350,118 @@ The Universal Context Engine vision requires these foundational components befor
 
 ---
 
-## 🗑️ Archived/Completed Tasks
+## 🎯 Quick Wins (Can Do Anytime)
 
-### Previous Priority Tasks (Now Less Critical)
+### Improve Entity ID Generation
+**One-liner**: Replace Date.now() with crypto.randomUUID() for better uniqueness
+**Complexity**: Trivial (30 minutes)
+**Priority**: LOW - No collisions reported yet
+**Files**: `/app/src/storage/base/BaseStorageAdapter.ts`
 
-#### Generate API Documentation from JSDoc
-**Status**: COMPLETED via TypeDoc ✅
-**Note**: Already implemented with full TypeDoc system
+### Add File System Mocking
+**One-liner**: Mock fs operations in tests for reliability and speed
+**Complexity**: Small (2 hours)
+**Priority**: MEDIUM - Would improve test reliability
+**Files**: Test files across storage adapters
 
-<details>
-<summary>Full Implementation Details</summary>
+---
 
-**Context**: Large files reduce maintainability and make code navigation difficult
+## 🔍 Needs Decision
 
-**Current File Sizes**: 
+### Storage Location Strategy
+**Decision needed**: Should Kuzu and DuckDB databases live in .context or app directories?
+**Options**:
+- **A**: Both in .context (better separation)
+- **B**: Both in app/data (simpler deployment)
+- **C**: Kuzu in .context, DuckDB stays in app (hybrid)
+**Recommendation**: Option A for clean separation
+
+---
+
+## 🗑️ Archived Tasks
+
+### Generate API Documentation - **COMPLETED** via TypeDoc
+### Performance Benchmarking - **COMPLETED** with CLI suite
+### Test Suite Cleanup - **COMPLETED** 759/759 passing
+
+---
+
+## 📊 Grooming Summary
+
+### Statistics
+- **Total tasks reviewed**: 15
+- **Ready for implementation**: 3
+- **Blocked but clear**: 3
+- **Quick wins available**: 2
+- **Archived/completed**: 8
+
+### Task Classification Results
+- **A: Already Complete**: 8 (Documentation, benchmarking, test cleanup, etc.)
+- **B: Ready to Execute**: 3 (KuzuStorageAdapter, .context initializer, graph ops)
+- **C: Needs Grooming**: 0 (All tasks now have clear criteria)
+- **D: Blocked**: 3 (Storage Manager, Query Builder, TS extraction)
+- **E: Obsolete**: 0
+
+### Reality Check Findings
+- Kuzu dependency already installed (no npm install needed)
+- BaseStorageAdapter pattern ready for extension
+- Mastra agents ready for Continuity Cortex
+- All tests passing - safe to add new features
+
+---
+
+## 🚀 Top 3 Recommendations
+
+### 1. Start KuzuStorageAdapter Implementation
+**Why**: Unblocks entire intelligence layer. Well-defined interface, clear acceptance criteria.
+**Effort**: 6 hours
+**Risk**: Low (follows existing pattern)
+
+### 2. Create .context Directory Structure (Parallel)
+**Why**: Can be done alongside Task 1. Establishes critical separation principle.
+**Effort**: 3 hours
+**Risk**: Very low (just directory/config setup)
+
+### 3. Plan Graph Schema Design Session
+**Why**: Need to decide on node/edge types before heavy graph usage.
+**When**: After Task 1 shows Kuzu working
+**Output**: Schema design document
+
+---
+
+## ⚠️ Potential Blockers
+
+### Technical
+- **Kuzu API Learning Curve**: Mitigation - Start with simple operations
+- **Cross-DB Transactions**: Mitigation - Use eventual consistency initially
+
+### Architectural
+- **Storage Location Decision**: Need to decide .context vs app/data
+- **Graph Schema Design**: Need node/edge type definitions
+
+### Process
+- **No Kuzu examples in codebase**: Will be learning as we go
+- **Integration testing complexity**: Two databases to coordinate
+
+---
+
+## 📝 Notes for Implementer
+
+### Getting Started with Task 1
+1. Look at existing adapters (DuckDBStorageAdapter, JSONStorageAdapter) for patterns
+2. BaseStorageAdapter in `/app/src/storage/base/` defines the interface
+3. Start with basic CRUD operations, add graph operations later
+4. Tests should mirror DuckDBStorageAdapter.test.ts structure
+
+### Parallel Work Opportunity
+Tasks 1 and 3 can be done simultaneously by different developers or in parallel by one developer while waiting for builds/tests.
+
+### Dependencies to Watch
+- Once Task 1 is done, Task 2 can start immediately
+- Task 4 (Storage Manager) needs all three previous tasks
+- Task 6 (TS extraction) is the first "real" use case - good validation
+
+ 
 - DuckDBStorageAdapter: 887 lines (too many responsibilities)
 - QueryBuilder: 853 lines (could split builder methods)
 - MemoryQueryExecutor: 616 lines (mixed concerns)
@@ -584,53 +749,11 @@ The Universal Context Engine vision requires these foundational components befor
 - **Storage Layer**: Multiple options for different needs
 - **Benchmarking**: Can be added proactively
 
-### Complexity Risk: MEDIUM
-- **Large files**: Some components need refactoring
-- **Technical debt**: Manageable but should be addressed
-- **Features**: May be over-engineering vs. actual needs
-
----
-
-## 📅 Grooming Health
-
-### Task Quality: ✅ EXCELLENT
-- All ready tasks have clear acceptance criteria
-- Implementation guides provided  
-- Complexity estimates realistic
-- Success metrics defined
-
-### Priority Clarity: ✅ CLEAR
-- Technical debt vs. features balanced
-- Dependencies understood
-- Quick wins identified
-- Risk assessment complete
-
-### Reality Alignment: ✅ CURRENT
-- Based on today's sync report
-- All test results verified
-- Implementation status confirmed
-- Architecture validated
-
 ---
 
 ## Metadata
-- **Last Groomed**: 2025-12-09 (comprehensive scan and reality check)
-- **Next Review**: After fixing test failures
-- **Focus**: Test stability, then documentation and benchmarking
-- **Confidence**: HIGH - System mostly operational but test regression needs attention
-- **Key Finding**: Test failures are blocking issue, otherwise system is mature
-
-## Grooming Process Insights
-
-### Task Classification Results
-- **A: Claimed Complete**: 3 (table validation, negative tests, file refactoring) 
-- **B: Ready to Execute**: 5 (docs, benchmarks, ID generation, FS mocking, batch ops)
-- **C: Needs Grooming**: 0 (all tasks have clear criteria)
-- **D: Blocked**: 1 (all work blocked by test failures)
-- **E: Obsolete**: 2 (table validation already done, large file splitting completed)
-
-### Reality Check Findings
-- Test regression from 100% to 99.5% needs immediate attention
-- Previous completions (error handling, refactoring) are solid
-- System architecture is mature and well-organized
-- Documentation and benchmarking are logical next steps
+- **Last Groomed**: 2025-01-14
+- **Next Review**: After Phase 1 Task 1 completion
+- **Focus**: Graph integration and context separation
+- **Confidence**: HIGH - Clear path forward, no architectural blocks
+- **Key Finding**: Foundation is solid, ready for intelligence layer

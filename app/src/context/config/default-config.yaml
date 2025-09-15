@@ -1,0 +1,24 @@
+engine:
+  version: 1.0.0
+  mode: development
+
+databases:
+  kuzu:
+    path: working/graph.kuzu
+    cache_size: 1GB
+  duckdb:
+    path: semantic/analytics.duckdb
+    memory_limit: 2GB
+
+consolidation:
+  enabled: true
+  schedule: "0 2 * * *"  # 2 AM daily
+  batch_size: 1000
+
+lenses:
+  default: development
+  auto_activate: true
+
+storage:
+  archive_after_days: 90
+  compress_archives: true
