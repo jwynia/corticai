@@ -12,29 +12,35 @@ Central navigation point for all project planning, prioritization, and task mana
 ## Primary Planning Documents
 
 ### 🎯 Start Here for Task Selection
-→ **[Unified Backlog](./unified_backlog.md)** - Single source of truth for ALL work items (research + implementation)
+→ **[Technical Backlog](./backlog.md)** - Detailed technical tasks by phase with implementation specifics
 
 ### Strategic Planning
-- [Roadmap](./roadmap.md) - High-level project phases and vision
+- [Roadmap](./roadmap.md) - High-level project phases and vision (UPDATED with use case insights)
 - [Implementation Phases](./implementation_phases.md) - Detailed phase dependencies and approach
 - [Milestones](./milestones.md) - Key delivery targets
 
-### Specialized Backlogs (Reference Only)
-- [Research Backlog](./research_backlog.md) - Detailed research tasks (integrated into unified backlog)
+### Legacy Backlogs (Being Migrated)
+- [Unified Backlog](./unified_backlog.md) - Previous combined backlog
+- [Research Backlog](./research_backlog.md) - Research-specific tasks
 
 ## Current Status
 
 ### Active Phase
-**Implementation** - Building core components with validated research
+**Phase 1: Core Engine ✅ COMPLETE**
+- KuzuStorageAdapter implemented
+- QueryBuilder/QueryExecutor working
+- UniversalFallbackAdapter created
+- ContextInitializer functional
 
 ### Recently Completed
-✅ **Universal Fallback Adapter** - Foundation implementation complete (95.71% coverage)
-✅ **Research Validation** - Universal patterns validated against academic sources
+✅ **Phase 1 Core Engine** - Graph storage and query system complete
+✅ **Use Case Analysis** - Place context validated design choices
 
-### Next Up (From Groomed Backlog 2025-08-30)
-1. Create Basic Attribute Index (unblocked)
-2. Prototype TypeScript Dependency Analyzer (unblocked)
-3. Build Simple Novel Adapter (depends on #1)
+### Next Priority: Phase 2 - Progressive Loading
+1. Define ContextDepth enum (Week 1)
+2. Implement depth-aware queries (Week 1-2)
+3. Add property filtering (Week 2-3)
+4. Create lazy loading (Week 3-4)
 
 ### Key Decisions Pending
 - File watching library choice
