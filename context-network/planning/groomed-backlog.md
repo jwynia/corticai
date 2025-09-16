@@ -1,11 +1,11 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-01-14
-**Major Components Complete**: 18 (Storage Layer, Query System, Indexing, Mastra Integration, Testing Infrastructure, Documentation System, Benchmarking Suite, AST-grep Tooling)
+**Last Groomed**: 2025-09-16
+**Major Components Complete**: Phase 1 Universal Context Engine (KuzuStorageAdapter, ContextInitializer)
 **Test Status**: 759/759 passing (100%) ✅
-**Current Phase**: Universal Context Engine - Intelligence Layer Implementation
-**Latest Achievement**: ✅ Complete roadmap and task breakdown for Context Engine vision
+**Current Phase**: Phase 2 - Continuity Cortex Implementation
+**Latest Achievement**: ✅ Complete Phase 1 with working graph database and context separation
 
 ---
 
@@ -105,19 +105,110 @@
 
 ---
 
-## 🎯 Current Sprint Status: Phase 1 COMPLETED ✅
+## 🚀 Ready for Implementation
 
-### Critical Path to Intelligence Layer - ACHIEVED
+### 1. Complete Kuzu Graph Traversal Operations
+**One-liner**: Finish implementing traverse, findConnected, and shortestPath methods in KuzuStorageAdapter
+**Complexity**: Medium
+**Files to modify**:
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts`
 
-The Universal Context Engine vision required foundational components before intelligence features could be built. Phase 1 successfully established the dual-database architecture and context separation.
+<details>
+<summary>Full Implementation Details</summary>
 
-### Sprint Goal - ACHIEVED ✅
-Successfully transformed the system into a dual-database architecture with Kuzu for relationships and DuckDB for attributes, enabling all future intelligence features.
+**Context**: KuzuStorageAdapter has TODO comments indicating incomplete graph traversal operations. Currently returns mock data to prevent test hangs.
 
-## 🚀 Next Phase: Phase 2 - Continuity Cortex
+**Acceptance Criteria**:
+- [ ] Implement proper traverse() method using Kuzu's Cypher queries
+- [ ] Implement findConnected() to find nodes within N hops
+- [ ] Implement shortestPath() using Kuzu's path algorithms
+- [ ] Remove all TODO comments and mock returns
+- [ ] Ensure all tests pass without hangs
 
-### New Sprint Goal
-Implement the Continuity Cortex for file operation interception, deduplication, and amnesia loop prevention.
+**Implementation Guide**:
+1. Study Kuzu's Cypher documentation for path queries
+2. Replace mock implementations with proper Cypher queries
+3. Handle edge cases (disconnected nodes, cycles)
+4. Test with complex graph structures
+
+**Watch Out For**:
+- Kuzu query performance with deep traversals
+- Proper transaction handling
+- Memory usage with large result sets
+
+</details>
+
+---
+
+### 2. Create Continuity Cortex File Interceptor
+**One-liner**: Build Mastra agent that intercepts file operations to prevent duplicates
+**Complexity**: Large
+**Files to create**:
+- `/app/src/context/agents/ContinuityCortex.agent.ts`
+- `/app/src/context/agents/ContinuityCortex.test.ts`
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Phase 2 of the Universal Context Engine vision - prevents duplicate file creation and amnesia loops
+
+**Acceptance Criteria**:
+- [ ] Intercepts write operations before execution
+- [ ] Finds similar existing files using multiple strategies
+- [ ] Suggests merge or update instead of create when appropriate
+- [ ] Tracks file operation patterns
+- [ ] Detects amnesia loops (repeatedly creating same file)
+- [ ] Integrates with Mastra workflow system
+
+**Implementation Guide**:
+```typescript
+class ContinuityCortex extends MastraAgent {
+  async interceptWrite(request: WriteRequest): Promise<WriteResponse> {
+    // 1. Check for exact path match
+    // 2. Find similar by name patterns
+    // 3. Find similar by content hash
+    // 4. Semantic similarity check
+    // 5. Return action: 'create' | 'merge' | 'update'
+  }
+}
+```
+
+**First Step**: Create the agent class extending MastraAgent with basic similarity detection
+
+</details>
+
+---
+
+### 3. Implement Unified Storage Manager
+**One-liner**: Coordinate operations between Kuzu (graph) and DuckDB (attributes)
+**Complexity**: Large
+**Files to create**:
+- `/app/src/storage/UnifiedStorageManager.ts`
+- `/app/src/storage/UnifiedStorageManager.test.ts`
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Routes operations intelligently between graph and columnar databases
+
+**Acceptance Criteria**:
+- [ ] Routes entities to appropriate database (relationships→Kuzu, attributes→DuckDB)
+- [ ] Handles cross-database queries
+- [ ] Manages distributed transactions
+- [ ] Provides unified query interface
+- [ ] Maintains referential integrity
+- [ ] Handles cascade operations
+
+**Implementation Guide**:
+1. Create manager class that holds both adapters
+2. Implement routing logic based on entity type
+3. Add transaction coordinator for multi-db operations
+4. Create query planner for cross-db joins
+5. Add consistency checker
+
+**Dependencies**: Requires completed KuzuStorageAdapter graph operations
+
+</details>
 
 ---
 
@@ -304,92 +395,92 @@ export class ContextInitializer {
 
 ---
 
-## ⏳ Ready Soon (After Current Sprint)
+## ⏳ Ready Soon (Blocked)
 
-### 4. Implement Unified Storage Manager
-**One-liner**: Coordinate dual-database operations with intelligent routing
-**Complexity**: Large (8 hours)
-**Priority**: CRITICAL - Core architectural component
-**Status**: Blocked by Tasks 1-3
+### 4. Create Lens System for Context Views
+**One-liner**: Build task-specific context loading with perspective management
+**Complexity**: Large
+**Blocker**: Need Continuity Cortex operational first
+**Unblocks after**: Tasks 1-3 complete
 
 <details>
 <summary>Quick Overview</summary>
 
-Routes operations between Kuzu (relationships) and DuckDB (attributes), handles cross-database queries, manages transactions. This is the brain that makes dual-database architecture work seamlessly.
+Enables different "lenses" or perspectives on the same context data, optimizing what's loaded based on current task.
 
 **Key Features**:
-- Intelligent operation routing
-- Cross-database query coordination
-- Transaction management
-- Unified query interface
+- Task detection and lens activation
+- Selective context loading
+- Effectiveness tracking
+- Lens learning from usage patterns
 
 </details>
 
-### 5. Create Graph Query Builder
-**One-liner**: Build Cypher-like query interface for Kuzu operations
-**Complexity**: Medium (4 hours)
-**Priority**: HIGH - Enables advanced graph queries
-**Status**: Blocked by Task 2
+---
 
-### 6. Extract TypeScript Relationships to Graph
-**One-liner**: Map imports, exports, and dependencies to Kuzu edges
-**Complexity**: Medium (6 hours)
-**Priority**: HIGH - First real use of graph database
-**Status**: Blocked by Tasks 1-4
+### 5. Build Deduplication Engine
+**One-liner**: Implement similarity algorithms for content deduplication
+**Complexity**: Medium
+**Blocker**: Needs Continuity Cortex framework
+**Prep work possible**: Research similarity algorithms
 
 ---
 
-## 📋 Complete Phase Roadmap
+### 6. Extract TypeScript Relationships to Graph
+**One-liner**: Map imports, exports, and dependencies to Kuzu edges
+**Complexity**: Medium
+**Blocker**: Unified Storage Manager needed
+**Prep work possible**: Design graph schema for code relationships
 
-### Phase 1: Graph Integration & Context Structure (Weeks 1-2) 🚀 CURRENT
-- Week 1: Kuzu integration, .context structure, Storage Manager
-- Week 2: Basic Cortex, relationship mapping, initial lens
+---
 
-### Phase 2: Continuity Cortex (Weeks 3-4)
-- File operation interception
-- Deduplication and freshness management
-- Amnesia loop prevention
+## 🔍 Needs Decisions
 
-### Phase 3: Lens System (Weeks 5-6)
-- Multi-perspective views
-- Task-specific context loading
-- Lens effectiveness tracking
+### Graph Schema Design for Code Relationships
+**Decision needed**: How to model TypeScript code relationships in Kuzu
+**Options**:
+- **A**: Simple import/export edges between file nodes
+- **B**: Rich schema with class, function, variable nodes
+- **C**: Hybrid with file nodes and metadata properties
+**Recommendation**: Start with A, evolve to B as needed
 
-### Phase 4: Memory Architecture (Weeks 7-8)
-- Three-tier memory model
-- Consolidation processes
-- Temporal queries
+### Deduplication Strategy Priority
+**Decision needed**: Which similarity algorithm to implement first
+**Options**:
+- **A**: Name-based (file path similarity)
+- **B**: Content hash (exact duplicate detection)
+- **C**: Semantic (meaning-based similarity)
+**Recommendation**: B for quick wins, then A, then C
 
-### Phase 5: Enhanced Domain Adapters (Weeks 9-10)
-- Deep TypeScript analysis → Kuzu
-- Document/markdown processing
-- Universal pattern detection
-
-### Phase 6: External Integration (Weeks 11-12)
-- GitHub/GitLab connection
-- Meta-repository pattern
-- Branch preservation
-
-### Phase 7: Intelligence Enhancement (Weeks 13-14)
-- Pattern learning
-- Autonomous maintenance
-- Self-optimization
+### Context Storage Strategy
+**Decision needed**: How to handle .context in version control
+**Options**:
+- **A**: Fully gitignored (local only)
+- **B**: Config tracked, data ignored
+- **C**: Separate repository for context
+**Recommendation**: B for flexibility
 
 ---
 
 ## 🎯 Quick Wins (Can Do Anytime)
 
-### Improve Entity ID Generation
-**One-liner**: Replace Date.now() with crypto.randomUUID() for better uniqueness
-**Complexity**: Trivial (30 minutes)
-**Priority**: LOW - No collisions reported yet
-**Files**: `/app/src/storage/base/BaseStorageAdapter.ts`
+### 1. Add Build Status to README
+**One-liner**: Update README with current project status and Phase 1 completion
+**Complexity**: Trivial
+**Files**: `/README.md`
+**Effort**: 15 minutes
 
-### Add File System Mocking
-**One-liner**: Mock fs operations in tests for reliability and speed
-**Complexity**: Small (2 hours)
-**Priority**: MEDIUM - Would improve test reliability
-**Files**: Test files across storage adapters
+### 2. Create Context Network Discovery Guide
+**One-liner**: Document how to navigate the context network for new developers
+**Complexity**: Small
+**Files**: `/context-network/discovery.md`
+**Effort**: 1 hour
+
+### 3. Add Graph Database Examples
+**One-liner**: Create example scripts showing Kuzu usage patterns
+**Complexity**: Small
+**Files**: `/app/examples/graph-operations.ts`
+**Effort**: 2 hours
 
 ---
 
@@ -407,20 +498,42 @@ Routes operations between Kuzu (relationships) and DuckDB (attributes), handles 
 
 ## 🗑️ Archived Tasks
 
-### Generate API Documentation - **COMPLETED** via TypeDoc
-### Performance Benchmarking - **COMPLETED** with CLI suite
-### Test Suite Cleanup - **COMPLETED** 759/759 passing
+### Phase 1 Tasks - **COMPLETED** ✅
+- KuzuStorageAdapter implementation (711 lines)
+- ContextInitializer with .context structure (323 lines)
+- Graph operations (addNode, addEdge)
+- YAML configuration system
+- Three-tier memory model structure
+
+### Previous Infrastructure - **COMPLETED** ✅
+- Mastra Framework upgrade to v0.16.3
+- TypeDoc documentation system
+- Performance benchmarking suite
+- AST-grep tooling integration
 
 ---
+
+## ⚠️ Red Flags Identified
+
+### Technical Debt
+- **Kuzu Graph Operations**: Currently using mock implementations with TODOs
+- **Missing Graph Tests**: Graph traversal operations not fully tested
+- **No Integration Examples**: Need real-world usage patterns
+
+### Process Gaps
+- **No Active Development**: Last commit 2 days ago (place context backlog)
+- **Unclear Priorities**: Multiple backlogs with different priorities
+- **Research vs Implementation**: Gap between research docs and actual code
 
 ## 📊 Grooming Summary
 
 ### Statistics
-- **Total tasks reviewed**: 15
-- **Ready for implementation**: 3
-- **Blocked but clear**: 3
-- **Quick wins available**: 2
-- **Archived/completed**: 8
+- **Total tasks reviewed**: 12
+- **Ready for immediate work**: 3 (Graph traversal, Cortex, Storage Manager)
+- **Blocked but clear**: 3 (Lens, Deduplication, TS extraction)
+- **Quick wins available**: 3 (README, Discovery guide, Examples)
+- **Decisions needed**: 3 (Schema, Dedup strategy, Storage)
+- **Archived/completed**: Phase 1 + Infrastructure
 
 ### Task Classification Results
 - **A: Already Complete**: 8 (Documentation, benchmarking, test cleanup, etc.)
@@ -439,20 +552,20 @@ Routes operations between Kuzu (relationships) and DuckDB (attributes), handles 
 
 ## 🚀 Top 3 Recommendations
 
-### 1. Start KuzuStorageAdapter Implementation
-**Why**: Unblocks entire intelligence layer. Well-defined interface, clear acceptance criteria.
-**Effort**: 6 hours
-**Risk**: Low (follows existing pattern)
+### 1. **Complete Kuzu Graph Operations** (2-3 hours)
+**Why**: Removes technical debt, enables all graph-based features
+**Action**: Replace mock implementations with real Kuzu queries
+**Risk**: Low - tests already in place
 
-### 2. Create .context Directory Structure (Parallel)
-**Why**: Can be done alongside Task 1. Establishes critical separation principle.
-**Effort**: 3 hours
-**Risk**: Very low (just directory/config setup)
+### 2. **Start Continuity Cortex** (4-6 hours)
+**Why**: Core Phase 2 feature, prevents duplicate work
+**Action**: Build basic file operation interceptor
+**Risk**: Medium - new architectural pattern
 
-### 3. Plan Graph Schema Design Session
-**Why**: Need to decide on node/edge types before heavy graph usage.
-**When**: After Task 1 shows Kuzu working
-**Output**: Schema design document
+### 3. **Create Examples** (1-2 hours)
+**Why**: Quick win, helps understand system capabilities
+**Action**: Add graph operation examples
+**Risk**: Very low - documentation only
 
 ---
 
@@ -778,9 +891,25 @@ Tasks 1 and 3 can be done simultaneously by different developers or in parallel 
 
 ---
 
+## Quality Validation
+
+### Well-Groomed Task Checklist
+✅ Each task has clear acceptance criteria
+✅ Dependencies explicitly listed
+✅ Implementation guides provided
+✅ First steps identified
+✅ Complexity estimates included
+✅ Files to modify specified
+
+### Next Sprint Readiness
+- **Sprint Goal**: Complete Kuzu integration and start Continuity Cortex
+- **Sprint Capacity**: 3 major tasks (10-15 hours total)
+- **Dependencies Clear**: Yes - sequential progression identified
+- **Blockers Identified**: Schema design decision needed
+
 ## Metadata
-- **Last Groomed**: 2025-01-14
-- **Next Review**: After Phase 1 Task 1 completion
-- **Focus**: Graph integration and context separation
-- **Confidence**: HIGH - Clear path forward, no architectural blocks
-- **Key Finding**: Foundation is solid, ready for intelligence layer
+- **Last Groomed**: 2025-09-16
+- **Next Review**: After Kuzu graph operations complete
+- **Focus**: Phase 2 Continuity Cortex implementation
+- **Confidence**: HIGH - Clear technical path, Phase 1 foundation solid
+- **Key Finding**: Project ready for intelligence layer features

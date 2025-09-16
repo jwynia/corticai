@@ -37,6 +37,11 @@ const DEFAULT_MAX_THREADS = 4
 const DEFAULT_TIMEOUT_MS = 30000
 const MIN_BUFFER_SIZE = 4 * 1024 // 4KB minimum
 
+// Query limits and constraints
+const DEFAULT_PATH_LIMIT = 100
+const DEFAULT_CONNECTED_LIMIT = 1000
+const DEFAULT_MAX_TRAVERSAL_DEPTH = 10
+
 /**
  * Kuzu Storage Adapter
  *
@@ -562,6 +567,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
   /**
    * Traverse the graph according to a pattern
+   * Executes graph traversal queries to find paths matching specified criteria
    */
   async traverse(pattern: TraversalPattern): Promise<GraphPath[]> {
     await this.ensureLoaded()
@@ -571,19 +577,59 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      // For now, return simplified paths to prevent test hangs
-      // TODO: Implement proper path traversal once we understand Kuzu API better
+      // Validate input parameters
+      const maxDepth = Math.min(Math.max(1, parseInt(String(pattern.maxDepth), 10) || 1), DEFAULT_MAX_TRAVERSAL_DEPTH)
 
-      // Return mock paths for testing
-      const mockPath: GraphPath = {
-        nodes: [
-          { id: pattern.startNode, type: 'Node', properties: {} }
-        ],
-        edges: [],
-        length: 1
+      // Escape the starting node ID
+      const escapedStartNode = this.escapeString(pattern.startNode)
+
+      // Build the relationship pattern based on direction
+      let relationshipPattern = ''
+      if (pattern.direction === 'outgoing') {
+        relationshipPattern = '-[r*1..' + maxDepth + ']->'
+      } else if (pattern.direction === 'incoming') {
+        relationshipPattern = '<-[r*1..' + maxDepth + ']-'
+      } else {
+        // Both directions
+        relationshipPattern = '-[r*1..' + maxDepth + ']-'
       }
 
-      return pattern.maxDepth > 1 ? [mockPath, mockPath] : [mockPath]
+      // Build edge type filter if specified
+      let whereClause = ''
+      if (pattern.edgeTypes && pattern.edgeTypes.length > 0) {
+        const types = pattern.edgeTypes.map(t => `'${this.escapeString(t)}'`).join(', ')
+        whereClause = `WHERE r.type IN [${types}]`
+      }
+
+      // Build the query - ensure proper formatting
+      let query = `MATCH path = (start:Entity {id: '${escapedStartNode}'})${relationshipPattern}(end:Entity)`
+      if (whereClause) {
+        query += `\n${whereClause}`
+      }
+      query += `\nRETURN path, length(r) as pathLength\nLIMIT ${DEFAULT_PATH_LIMIT}`
+
+      if (this.config.debug) {
+        this.log(`Executing traversal from ${pattern.startNode} with depth ${pattern.maxDepth}`)
+      }
+
+      // Execute the query
+      const result = await this.connection.query(query)
+      const rows = await result.getAll()
+
+      // Convert all paths to GraphPath objects
+      const paths: GraphPath[] = []
+      for (const row of rows) {
+        const graphPath = this.convertToGraphPath(row.path, row.pathLength)
+        if (graphPath) {
+          paths.push(graphPath)
+        }
+      }
+
+      if (this.config.debug) {
+        this.log(`Found ${paths.length} paths`)
+      }
+
+      return paths
     } catch (error) {
       if (this.config.debug) {
         this.logWarn(`Could not traverse graph: ${error}`)
@@ -594,6 +640,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
   /**
    * Find nodes connected to a given node within specified depth
+   * Uses breadth-first search to discover all reachable nodes up to N hops away
    */
   async findConnected(nodeId: string, depth: number): Promise<GraphNode[]> {
     await this.ensureLoaded()
@@ -603,20 +650,51 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      // For now, return mock connected nodes to prevent test hangs
-      // TODO: Implement proper connected node finding once we understand Kuzu API better
-
-      // Return empty array for isolated nodes, mock nodes for connected ones
-      if (nodeId === 'isolated') {
-        return []
+      // Validate depth parameter
+      if (!Number.isInteger(depth) || depth < 1 || depth > DEFAULT_MAX_TRAVERSAL_DEPTH) {
+        throw new StorageError(`Depth must be an integer between 1 and ${DEFAULT_MAX_TRAVERSAL_DEPTH}`, StorageErrorCode.INVALID_VALUE)
       }
 
-      // Return mock connected nodes for testing
-      return [
-        { id: 'B', type: 'Leaf', properties: {} },
-        { id: 'C', type: 'Leaf', properties: {} },
-        { id: 'D', type: 'Leaf', properties: {} }
-      ]
+      // Escape input for query safety
+      const escapedNodeId = this.escapeString(nodeId)
+
+      // Build query to find all nodes connected within specified depth
+      // Using bidirectional edges to find all connected nodes
+      const query = `
+        MATCH (start:Entity {id: '${escapedNodeId}'})
+              -[*1..${depth}]-
+              (connected:Entity)
+        WHERE connected.id <> '${escapedNodeId}'
+        RETURN DISTINCT connected.id as id,
+                        connected.type as type,
+                        connected.data as data
+        LIMIT ${DEFAULT_CONNECTED_LIMIT}
+      `
+
+      if (this.config.debug) {
+        this.log(`Finding nodes connected to ${nodeId} within depth ${depth}`)
+      }
+
+      // Execute the query
+      const result = await this.connection.query(query)
+      const rows = await result.getAll()
+
+      // Convert results to GraphNode objects
+      const connectedNodes: GraphNode[] = []
+      for (const row of rows) {
+        const node: GraphNode = {
+          id: row.id || '',
+          type: row.type || 'Entity',
+          properties: typeof row.data === 'string' ? JSON.parse(row.data || '{}') : (row.data || {})
+        }
+        connectedNodes.push(node)
+      }
+
+      if (this.config.debug) {
+        this.log(`Found ${connectedNodes.length} connected nodes`)
+      }
+
+      return connectedNodes
     } catch (error) {
       if (this.config.debug) {
         this.logWarn(`Could not find connected nodes: ${error}`)
@@ -627,6 +705,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
   /**
    * Find shortest path between two nodes
+   * Uses Kuzu's SHORTEST algorithm to find the optimal path between two nodes
    */
   async shortestPath(fromId: string, toId: string): Promise<GraphPath | null> {
     await this.ensureLoaded()
@@ -636,27 +715,40 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      // For now, return mock shortest path to prevent test hangs
-      // TODO: Implement proper shortest path once we understand Kuzu API better
+      // Escape input strings for query safety
+      const escapedFromId = this.escapeString(fromId)
+      const escapedToId = this.escapeString(toId)
 
-      if (fromId === 'A' && toId === 'C') {
-        // Return mock path for test: A -> D -> C
-        const path: GraphPath = {
-          nodes: [
-            { id: 'A', type: 'Node', properties: {} },
-            { id: 'D', type: 'Node', properties: {} },
-            { id: 'C', type: 'Node', properties: {} }
-          ],
-          edges: [
-            { from: 'A', to: 'D', type: 'path', properties: { weight: 1 } },
-            { from: 'D', to: 'C', type: 'path', properties: { weight: 1 } }
-          ],
-          length: 3
-        }
-        return path
+      // Build shortest path query using Kuzu's SHORTEST keyword
+      const query = `
+        MATCH path = (from:Entity {id: '${escapedFromId}'})
+                     -[r* SHORTEST 1..${DEFAULT_MAX_TRAVERSAL_DEPTH}]-
+                     (to:Entity {id: '${escapedToId}'})
+        RETURN path, length(r) as pathLength
+        LIMIT 1
+      `
+
+      if (this.config.debug) {
+        this.log(`Executing shortest path query from ${fromId} to ${toId}`)
       }
 
-      return null
+      // Execute the query
+      const result = await this.connection.query(query)
+      const rows = await result.getAll()
+
+      // Check if a path was found
+      if (!rows || rows.length === 0) {
+        if (this.config.debug) {
+          this.log(`No path found from ${fromId} to ${toId}`)
+        }
+        return null
+      }
+
+      // Convert the result to GraphPath
+      const row = rows[0]
+      const graphPath = this.convertToGraphPath(row.path, row.pathLength)
+
+      return graphPath
     } catch (error) {
       if (this.config.debug) {
         this.logWarn(`Could not find shortest path: ${error}`)
@@ -679,6 +771,96 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
   private escapeString(str: string): string {
     // Escape backslashes first, then single quotes
     return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+  }
+
+  /**
+   * Extract and parse properties from a node or edge result
+   * @param data - Raw result data from Kuzu
+   * @param fieldName - Property field name to extract
+   * @returns Parsed properties object
+   */
+  private extractProperties(data: any, fieldName: string = 'data'): any {
+    const value = data[`Entity.${fieldName}`] || data[`Relationship.${fieldName}`] || data[fieldName]
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value || '{}')
+      } catch {
+        return {}
+      }
+    }
+    return value || {}
+  }
+
+  /**
+   * Convert Kuzu path result to GraphPath interface
+   * @param pathResult - Raw path result from Kuzu query
+   * @param pathLength - Length of the path
+   * @returns Formatted GraphPath object
+   */
+  private convertToGraphPath(pathResult: any, pathLength?: number): GraphPath | null {
+    if (!pathResult) return null
+
+    try {
+      const nodes: GraphNode[] = []
+      const edges: GraphEdge[] = []
+
+      // Debug log to understand the structure
+      if (this.config.debug) {
+        this.log(`Path result type: ${typeof pathResult}, keys: ${Object.keys(pathResult || {}).join(', ')}`)
+      }
+
+      // Kuzu returns RECURSIVE_REL type for paths
+      // The structure should have _nodes and _rels arrays
+      if (pathResult._nodes && Array.isArray(pathResult._nodes)) {
+        // Extract nodes - they should have Entity properties
+        for (const node of pathResult._nodes) {
+          nodes.push({
+            id: node['Entity.id'] || node.id || '',
+            type: node['Entity.type'] || node.type || 'Entity',
+            properties: this.extractProperties(node)
+          })
+        }
+
+        // Extract edges
+        if (pathResult._rels && Array.isArray(pathResult._rels)) {
+          for (let i = 0; i < pathResult._rels.length; i++) {
+            const rel = pathResult._rels[i]
+            edges.push({
+              from: nodes[i]?.id || '',
+              to: nodes[i + 1]?.id || '',
+              type: rel['Relationship.type'] || rel.type || 'Relationship',
+              properties: this.extractProperties(rel)
+            })
+          }
+        }
+      } else {
+        // If the structure is different, log it for debugging
+        if (this.config.debug) {
+          this.logWarn(`Unexpected path structure: ${JSON.stringify(pathResult).substring(0, 200)}`)
+        }
+        // Try to create a simple path with just the start node
+        return {
+          nodes: [{
+            id: pathResult.id || '',
+            type: pathResult.type || 'Entity',
+            properties: {}
+          }],
+          edges: [],
+          length: 0
+        }
+      }
+
+      return {
+        nodes,
+        edges,
+        length: pathLength !== undefined ? pathLength : edges.length
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        this.logWarn(`Error converting path: ${error}`)
+      }
+      return null
+    }
   }
 
   // ============================================================================
