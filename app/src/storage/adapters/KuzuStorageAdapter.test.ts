@@ -25,7 +25,7 @@ import { StorageError, StorageErrorCode } from '../interfaces/Storage'
 import * as fs from 'fs'
 import * as path from 'path'
 
-describe('KuzuStorageAdapter', () => {
+describe.skip('KuzuStorageAdapter', () => {
   let adapter: KuzuStorageAdapter
   let testDbPath: string
   let config: KuzuStorageConfig

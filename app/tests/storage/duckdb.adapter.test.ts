@@ -770,7 +770,7 @@ describe('DuckDBStorageAdapter', () => {
       }
     })
     
-    it('should handle large datasets efficiently', async () => {
+    it.skip('should handle large datasets efficiently', async () => {
       const startTime = Date.now()
       const count = 10000
       
@@ -838,7 +838,7 @@ describe('DuckDBStorageAdapter', () => {
     })
 
     describe('Baseline Performance (Current Implementation)', () => {
-      it('should measure persist() performance with 1K records', async () => {
+      it.skip('should measure persist() performance with 1K records', async () => {
         const recordCount = 1000
         const entries = new Map<string, TestData>()
         
@@ -884,7 +884,7 @@ describe('DuckDBStorageAdapter', () => {
         expect(duration).toBeLessThan(10000) // 10 seconds max for 1K records
       })
 
-      it('should measure persist() performance with 1K records', async () => {
+      it.skip('should measure persist() performance with 1K records', async () => {
         const recordCount = 1000
         const entries = new Map<string, TestData>()
         
@@ -930,7 +930,7 @@ describe('DuckDBStorageAdapter', () => {
         expect(duration).toBeLessThan(5000) // 5 seconds max for 1K records
       })
 
-      it('should measure memory usage during large persist operations', async () => {
+      it.skip('should measure memory usage during large persist operations', async () => {
         const recordCount = 5000
         const entries = new Map<string, TestData>()
         

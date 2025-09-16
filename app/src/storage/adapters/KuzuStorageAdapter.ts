@@ -185,14 +185,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
       // Create node table for storing entities
       try {
-        await this.connection.query(`
-          CREATE NODE TABLE Entity(
-            id STRING,
-            type STRING,
-            data STRING,
-            PRIMARY KEY (id)
-          )
-        `)
+        await this.connection.query(`CREATE NODE TABLE Entity(id STRING, type STRING, data STRING, PRIMARY KEY (id))`)
       } catch (error: any) {
         // If table exists, that's fine
         if (error?.message?.includes('already exists') || error?.message?.includes('duplicate')) {
@@ -206,13 +199,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
       // Create relationship table for graph edges
       try {
-        await this.connection.query(`
-          CREATE REL TABLE Relationship(
-            FROM Entity TO Entity,
-            type STRING,
-            data STRING
-          )
-        `)
+        await this.connection.query(`CREATE REL TABLE Relationship(FROM Entity TO Entity, type STRING, data STRING)`)
       } catch (error: any) {
         // If table exists, that's fine
         if (error?.message?.includes('already exists') || error?.message?.includes('duplicate')) {
@@ -360,10 +347,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       const escapedType = this.escapeString(value.type)
       const escapedData = this.escapeString(serializedData)
 
-      await this.connection.query(`
-        MERGE (e:Entity {id: '${escapedKey}'})
-        SET e.type = '${escapedType}', e.data = '${escapedData}'
-      `)
+      await this.connection.query(`MERGE (e:Entity {id: '${escapedKey}'}) SET e.type = '${escapedType}', e.data = '${escapedData}'`)
 
       // Store in memory cache
       this.data.set(key, entityWithStorage)
@@ -512,10 +496,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       const serializedEdgeData = JSON.stringify(edge)
       const escapedEdgeData = serializedEdgeData.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 
-      const query = `
-        MATCH (from:Entity {id: '${edge.from}'}), (to:Entity {id: '${edge.to}'})
-        CREATE (from)-[r:Relationship {type: '${edge.type}', data: '${escapedEdgeData}'}]->(to)
-      `
+      const query = `MATCH (from:Entity {id: '${edge.from}'}), (to:Entity {id: '${edge.to}'}) CREATE (from)-[r:Relationship {type: '${edge.type}', data: '${escapedEdgeData}'}]->(to)`
 
       await this.connection.query(query)
 
@@ -545,10 +526,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      const result = await this.connection.query(`
-        MATCH (from:Entity {id: '${nodeId}'})-[r:Relationship]->(to:Entity)
-        RETURN from.id, to.id, r.type, r.data
-      `)
+      const result = await this.connection.query(`MATCH (from:Entity {id: '${nodeId}'})-[r:Relationship]->(to:Entity) RETURN from.id, to.id, r.type, r.data`)
 
       const edges: GraphEdge[] = []
 
@@ -660,16 +638,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
       // Build query to find all nodes connected within specified depth
       // Using bidirectional edges to find all connected nodes
-      const query = `
-        MATCH (start:Entity {id: '${escapedNodeId}'})
-              -[*1..${depth}]-
-              (connected:Entity)
-        WHERE connected.id <> '${escapedNodeId}'
-        RETURN DISTINCT connected.id as id,
-                        connected.type as type,
-                        connected.data as data
-        LIMIT ${DEFAULT_CONNECTED_LIMIT}
-      `
+      const query = `MATCH (start:Entity {id: '${escapedNodeId}'})-[*1..${depth}]-(connected:Entity) WHERE connected.id <> '${escapedNodeId}' RETURN DISTINCT connected.id as id, connected.type as type, connected.data as data LIMIT ${DEFAULT_CONNECTED_LIMIT}`
 
       if (this.config.debug) {
         this.log(`Finding nodes connected to ${nodeId} within depth ${depth}`)
@@ -720,13 +689,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       const escapedToId = this.escapeString(toId)
 
       // Build shortest path query using Kuzu's SHORTEST keyword
-      const query = `
-        MATCH path = (from:Entity {id: '${escapedFromId}'})
-                     -[r* SHORTEST 1..${DEFAULT_MAX_TRAVERSAL_DEPTH}]-
-                     (to:Entity {id: '${escapedToId}'})
-        RETURN path, length(r) as pathLength
-        LIMIT 1
-      `
+      const query = `MATCH path = (from:Entity {id: '${escapedFromId}'})-[r* SHORTEST 1..${DEFAULT_MAX_TRAVERSAL_DEPTH}]-(to:Entity {id: '${escapedToId}'}) RETURN path, length(r) as pathLength LIMIT 1`
 
       if (this.config.debug) {
         this.log(`Executing shortest path query from ${fromId} to ${toId}`)

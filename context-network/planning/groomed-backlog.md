@@ -3,9 +3,9 @@
 ## 📊 Project Status Summary
 **Last Groomed**: 2025-09-16
 **Major Components Complete**: Phase 1 Universal Context Engine (KuzuStorageAdapter, ContextInitializer)
-**Test Status**: 759/759 passing (100%) ✅
-**Current Phase**: Phase 2 - Continuity Cortex Implementation
-**Latest Achievement**: ✅ Complete Phase 1 with working graph database and context separation
+**Test Status**: Tests experiencing Kuzu query syntax errors ⚠️
+**Current Phase**: Phase 1 Completion - Fix Graph Operations
+**Latest Achievement**: ✅ Complete Phase 1 foundation with graph database structure
 
 ---
 
@@ -107,40 +107,76 @@
 
 ## 🚀 Ready for Implementation
 
-### 1. Complete Kuzu Graph Traversal Operations
-**One-liner**: Finish implementing traverse, findConnected, and shortestPath methods in KuzuStorageAdapter
-**Complexity**: Medium
+### 1. Fix Kuzu Query Syntax Errors (CRITICAL)
+**One-liner**: Correct the Cypher query syntax in KuzuStorageAdapter to match Kuzu's dialect
+**Complexity**: Small (1-2 hours)
 **Files to modify**:
 - `/app/src/storage/adapters/KuzuStorageAdapter.ts`
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: KuzuStorageAdapter has TODO comments indicating incomplete graph traversal operations. Currently returns mock data to prevent test hangs.
+**Context**: Tests are failing due to query syntax error: `Invalid input` at the end of MATCH pattern. The query `MATCH path = (start:Entity {id: 'isolated'})-[r*1..1]-(end:Entity)` has incorrect syntax.
+
+**Acceptance Criteria**:
+- [ ] Fix the Cypher query syntax in traverse() method
+- [ ] Fix any other query syntax issues in findConnected() and shortestPath()
+- [ ] Ensure all Kuzu tests pass without errors
+- [ ] Verify queries work with Kuzu's specific Cypher dialect
+
+**Implementation Guide**:
+1. Check Kuzu documentation for correct Cypher syntax
+2. The issue appears to be with the `(end:Entity)` part - should likely be `(end:Entity)` without the arrow
+3. Test each query method independently
+4. Ensure proper error handling for malformed queries
+
+**First Step**: Fix the traverse() query - change pattern ending from `-(end>` to `-(end)`
+
+</details>
+
+---
+
+### 2. Complete Real Kuzu Graph Operations
+**One-liner**: Replace mock implementations with actual Cypher queries for graph traversal
+**Complexity**: Medium (4-6 hours)
+**Files to modify**:
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts`
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: After fixing syntax errors, need to replace mock implementations with real Kuzu Cypher queries.
 
 **Acceptance Criteria**:
 - [ ] Implement proper traverse() method using Kuzu's Cypher queries
 - [ ] Implement findConnected() to find nodes within N hops
 - [ ] Implement shortestPath() using Kuzu's path algorithms
 - [ ] Remove all TODO comments and mock returns
-- [ ] Ensure all tests pass without hangs
+- [ ] Add performance optimizations for large graphs
 
 **Implementation Guide**:
-1. Study Kuzu's Cypher documentation for path queries
-2. Replace mock implementations with proper Cypher queries
-3. Handle edge cases (disconnected nodes, cycles)
-4. Test with complex graph structures
+```typescript
+// 1. traverse() - Variable depth traversal
+MATCH path = (start:Entity {id: $startId})-[*1..5]-(end:Entity)
+WHERE /* apply pattern filters */
+RETURN path
 
-**Watch Out For**:
-- Kuzu query performance with deep traversals
-- Proper transaction handling
-- Memory usage with large result sets
+// 2. findConnected() - Find nodes within depth
+MATCH (start:Entity {id: $nodeId})-[*1..$depth]-(connected:Entity)
+RETURN DISTINCT connected
+
+// 3. shortestPath() - Shortest path between nodes
+MATCH path = shortestPath((from:Entity {id: $fromId})-[*]-(to:Entity {id: $toId}))
+RETURN path
+```
+
+**Dependencies**: Task 1 (Fix syntax errors) must be complete first
 
 </details>
 
 ---
 
-### 2. Create Continuity Cortex File Interceptor
+### 3. Create Continuity Cortex File Interceptor
 **One-liner**: Build Mastra agent that intercepts file operations to prevent duplicates
 **Complexity**: Large
 **Files to create**:
@@ -179,7 +215,40 @@ class ContinuityCortex extends MastraAgent {
 
 ---
 
-### 3. Implement Unified Storage Manager
+### 4. Implement Progressive Loading System (Phase 2)
+**One-liner**: Add depth-based context loading to optimize memory usage
+**Complexity**: Large
+**Files to create/modify**:
+- `/app/src/types/context.ts` - Add ContextDepth enum
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts` - Depth-aware queries
+- `/app/src/query/QueryBuilder.ts` - Add withDepth() method
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Phase 2 priority from backlog.md - implement progressive loading with 5 depth levels.
+
+**Acceptance Criteria**:
+- [ ] Define ContextDepth enum (SIGNATURE, STRUCTURE, SEMANTIC, DETAILED, HISTORICAL)
+- [ ] Implement depth-aware property loading
+- [ ] Add caching layer with depth awareness
+- [ ] Support per-query depth override
+- [ ] Benchmark performance at each depth level
+
+**Implementation Guide**:
+1. Create ContextDepth enum and utilities
+2. Modify KuzuStorageAdapter to filter properties by depth
+3. Extend QueryBuilder with withDepth() method
+4. Implement property projection maps
+5. Add LRU cache for loaded nodes
+
+**Dependencies**: Tasks 1-2 (Kuzu operations working properly)
+
+</details>
+
+---
+
+### 5. Implement Unified Storage Manager
 **One-liner**: Coordinate operations between Kuzu (graph) and DuckDB (attributes)
 **Complexity**: Large
 **Files to create**:
@@ -397,11 +466,11 @@ export class ContextInitializer {
 
 ## ⏳ Ready Soon (Blocked)
 
-### 4. Create Lens System for Context Views
+### Create Lens System for Context Views
 **One-liner**: Build task-specific context loading with perspective management
 **Complexity**: Large
-**Blocker**: Need Continuity Cortex operational first
-**Unblocks after**: Tasks 1-3 complete
+**Blocker**: Need Progressive Loading System first (Task 4)
+**Unblocks after**: Progressive loading infrastructure in place
 
 <details>
 <summary>Quick Overview</summary>
@@ -418,81 +487,76 @@ Enables different "lenses" or perspectives on the same context data, optimizing 
 
 ---
 
-### 5. Build Deduplication Engine
+### Build Deduplication Engine
 **One-liner**: Implement similarity algorithms for content deduplication
 **Complexity**: Medium
-**Blocker**: Needs Continuity Cortex framework
+**Blocker**: Needs Continuity Cortex framework (Task 3)
 **Prep work possible**: Research similarity algorithms
 
----
-
-### 6. Extract TypeScript Relationships to Graph
+### Extract TypeScript Relationships to Graph
 **One-liner**: Map imports, exports, and dependencies to Kuzu edges
 **Complexity**: Medium
-**Blocker**: Unified Storage Manager needed
+**Blocker**: Kuzu graph operations must be working (Tasks 1-2)
 **Prep work possible**: Design graph schema for code relationships
 
 ---
 
-## 🔍 Needs Decisions
+## 🔍 Key Decisions Needed
 
-### Graph Schema Design for Code Relationships
-**Decision needed**: How to model TypeScript code relationships in Kuzu
+### 1. Graph Schema Design
+**Decision**: How to model entities and relationships in Kuzu
+**Current Issue**: Using generic Entity nodes - need domain-specific types
 **Options**:
-- **A**: Simple import/export edges between file nodes
-- **B**: Rich schema with class, function, variable nodes
-- **C**: Hybrid with file nodes and metadata properties
-**Recommendation**: Start with A, evolve to B as needed
+- **A**: Keep generic Entity with type field (current)
+- **B**: Specific node types (Module, Class, Function, etc.)
+- **C**: Hybrid with base Entity + specialized types
+**Recommendation**: Move to B for better query performance and clarity
+**Impact**: Affects all graph operations going forward
 
-### Deduplication Strategy Priority
-**Decision needed**: Which similarity algorithm to implement first
+### 2. Storage Location Strategy
+**Decision**: Where to store Kuzu and DuckDB databases
 **Options**:
-- **A**: Name-based (file path similarity)
-- **B**: Content hash (exact duplicate detection)
-- **C**: Semantic (meaning-based similarity)
-**Recommendation**: B for quick wins, then A, then C
-
-### Context Storage Strategy
-**Decision needed**: How to handle .context in version control
-**Options**:
-- **A**: Fully gitignored (local only)
-- **B**: Config tracked, data ignored
-- **C**: Separate repository for context
-**Recommendation**: B for flexibility
+- **A**: Both in .context/ (clean separation)
+- **B**: Both in app/data/ (simpler deployment)
+- **C**: Split locations based on purpose
+**Recommendation**: A for clean architecture
+**Impact**: Affects initialization and deployment
 
 ---
 
 ## 🎯 Quick Wins (Can Do Anytime)
 
-### 1. Add Build Status to README
-**One-liner**: Update README with current project status and Phase 1 completion
-**Complexity**: Trivial
-**Files**: `/README.md`
-**Effort**: 15 minutes
+### 1. Add Query Performance Monitoring
+**One-liner**: Implement query timing and performance tracking
+**Complexity**: Small (2 hours)
+**Files**: `/app/src/query/utils/PerformanceMonitor.ts`
+**Value**: Immediate visibility into query performance
 
-### 2. Create Context Network Discovery Guide
-**One-liner**: Document how to navigate the context network for new developers
-**Complexity**: Small
-**Files**: `/context-network/discovery.md`
-**Effort**: 1 hour
+### 2. Implement Logging Strategy
+**One-liner**: Create structured logging with levels and context
+**Complexity**: Small (2-3 hours)
+**Files**: `/app/src/utils/Logger.ts`
+**Value**: Better debugging and production monitoring
 
-### 3. Add Graph Database Examples
-**One-liner**: Create example scripts showing Kuzu usage patterns
-**Complexity**: Small
-**Files**: `/app/examples/graph-operations.ts`
-**Effort**: 2 hours
+### 3. Add Table Name Validation
+**One-liner**: Validate table names in DuckDB to prevent SQL injection
+**Complexity**: Trivial (30 minutes)
+**Files**: `/app/src/storage/adapters/DuckDBStorageAdapter.ts`
+**Value**: Security improvement
 
 ---
 
 ## 🔍 Needs Decision
 
-### Storage Location Strategy
-**Decision needed**: Should Kuzu and DuckDB databases live in .context or app directories?
+### 3. Error Handling Strategy
+**Decision**: Standardize error handling across adapters
+**Current Issue**: Inconsistent error handling patterns
 **Options**:
-- **A**: Both in .context (better separation)
-- **B**: Both in app/data (simpler deployment)
-- **C**: Kuzu in .context, DuckDB stays in app (hybrid)
-**Recommendation**: Option A for clean separation
+- **A**: Throw errors directly (current)
+- **B**: Return Result<T, Error> types
+- **C**: Use error codes with centralized handling
+**Recommendation**: B for better error recovery
+**Impact**: API changes across all storage adapters
 
 ---
 
@@ -513,75 +577,91 @@ Enables different "lenses" or perspectives on the same context data, optimizing 
 
 ---
 
-## ⚠️ Red Flags Identified
+## ⚠️ Critical Issues & Red Flags
 
-### Technical Debt
-- **Kuzu Graph Operations**: Currently using mock implementations with TODOs
-- **Missing Graph Tests**: Graph traversal operations not fully tested
-- **No Integration Examples**: Need real-world usage patterns
+### Immediate Issues
+- **🔴 CRITICAL**: Kuzu query syntax errors causing test failures
+- **🔴 CRITICAL**: Graph operations using mock implementations
+- **🟡 MEDIUM**: No error handling strategy documented
+- **🟡 MEDIUM**: Missing logging infrastructure
 
-### Process Gaps
-- **No Active Development**: Last commit 2 days ago (place context backlog)
-- **Unclear Priorities**: Multiple backlogs with different priorities
-- **Research vs Implementation**: Gap between research docs and actual code
+### Technical Debt (from task analysis)
+- **Graph Operations**: Mock implementations need replacement (Tasks created)
+- **Security**: Table name validation missing in DuckDB (Task created)
+- **Performance**: No query monitoring or benchmarking (Task created)
+- **Testing**: File system operations not properly mocked
+
+### Process Observations
+- Multiple overlapping backlogs (groomed-backlog.md, backlog.md, phase-1-tasks.md)
+- Phase 2 tasks defined but Phase 1 not fully complete
+- Good task documentation but execution gaps
 
 ## 📊 Grooming Summary
 
 ### Statistics
-- **Total tasks reviewed**: 12
-- **Ready for immediate work**: 3 (Graph traversal, Cortex, Storage Manager)
-- **Blocked but clear**: 3 (Lens, Deduplication, TS extraction)
-- **Quick wins available**: 3 (README, Discovery guide, Examples)
-- **Decisions needed**: 3 (Schema, Dedup strategy, Storage)
-- **Archived/completed**: Phase 1 + Infrastructure
+- **Total tasks reviewed**: 25+
+- **Critical issues**: 1 (Kuzu query syntax errors)
+- **Ready for immediate work**: 5 (Fix syntax, Complete graph ops, Cortex, Progressive loading, Storage Manager)
+- **Blocked but clear**: 3 (Lens System, Deduplication, TS extraction)
+- **Quick wins available**: 3 (Performance monitoring, Logging, Table validation)
+- **Decisions needed**: 2 (Storage location, Graph schema)
+- **Archived/completed**: Phase 1 foundation + Mastra upgrade
 
 ### Task Classification Results
-- **A: Already Complete**: 8 (Documentation, benchmarking, test cleanup, etc.)
-- **B: Ready to Execute**: 3 (KuzuStorageAdapter, .context initializer, graph ops)
-- **C: Needs Grooming**: 0 (All tasks now have clear criteria)
-- **D: Blocked**: 3 (Storage Manager, Query Builder, TS extraction)
-- **E: Obsolete**: 0
+- **A: Claimed Complete**: Phase 1 foundation (but with issues)
+- **B: Ready to Execute**: 5 high-priority tasks with clear criteria
+- **C: Needs Grooming**: 0 (all tasks have implementation guides)
+- **D: Blocked**: 3 (waiting on prerequisites)
+- **E: Obsolete**: Several tasks from old backlogs superseded
 
 ### Reality Check Findings
-- Kuzu dependency already installed (no npm install needed)
-- BaseStorageAdapter pattern ready for extension
-- Mastra agents ready for Continuity Cortex
-- All tests passing - safe to add new features
+- ⚠️ **Tests NOT passing** - Kuzu syntax errors need immediate fix
+- ✅ Kuzu installed and database structure created
+- ✅ ContextInitializer working with .context directory
+- ⚠️ Graph operations incomplete (mock implementations)
+- ✅ Foundation solid for Phase 2 after fixes
 
 ---
 
 ## 🚀 Top 3 Recommendations
 
-### 1. **Complete Kuzu Graph Operations** (2-3 hours)
-**Why**: Removes technical debt, enables all graph-based features
+### 1. **URGENT: Fix Kuzu Query Syntax** (1-2 hours)
+**Why**: Tests are currently failing, blocking all development
+**Action**: Correct Cypher syntax in KuzuStorageAdapter
+**Risk**: Low - straightforward syntax fix
+**First Step**: Fix the traverse() query pattern ending
+
+### 2. **Complete Graph Operations** (4-6 hours)
+**Why**: Removes technical debt, enables Phase 2 features
 **Action**: Replace mock implementations with real Kuzu queries
-**Risk**: Low - tests already in place
+**Risk**: Medium - need to learn Kuzu's Cypher dialect
+**Dependencies**: Complete Task 1 first
 
-### 2. **Start Continuity Cortex** (4-6 hours)
-**Why**: Core Phase 2 feature, prevents duplicate work
-**Action**: Build basic file operation interceptor
-**Risk**: Medium - new architectural pattern
-
-### 3. **Create Examples** (1-2 hours)
-**Why**: Quick win, helps understand system capabilities
-**Action**: Add graph operation examples
-**Risk**: Very low - documentation only
+### 3. **Quick Win: Add Security Validation** (30 minutes)
+**Why**: Prevents SQL injection in DuckDB adapter
+**Action**: Add validateTableName() method
+**Risk**: Very low - simple validation
+**Value**: Immediate security improvement
 
 ---
 
-## ⚠️ Potential Blockers
+## ⚠️ Blockers & Mitigations
 
-### Technical
-- **Kuzu API Learning Curve**: Mitigation - Start with simple operations
-- **Cross-DB Transactions**: Mitigation - Use eventual consistency initially
+### Immediate Blockers
+- **🔴 Test Failures**: Kuzu syntax errors blocking all development
+  - **Mitigation**: Fix syntax errors immediately (Task 1)
 
-### Architectural
-- **Storage Location Decision**: Need to decide .context vs app/data
-- **Graph Schema Design**: Need node/edge type definitions
+### Technical Blockers
+- **Kuzu Cypher Dialect**: Differences from standard Cypher not documented
+  - **Mitigation**: Create test queries, document findings
+- **Graph Performance**: Unknown performance with 10k+ nodes
+  - **Mitigation**: Add benchmarking early, optimize incrementally
 
-### Process
-- **No Kuzu examples in codebase**: Will be learning as we go
-- **Integration testing complexity**: Two databases to coordinate
+### Architectural Decisions Needed
+- **Storage Location**: .context vs app/data for databases
+  - **Recommendation**: Use .context for separation
+- **Graph Schema**: Node and edge type definitions
+  - **Recommendation**: Start simple, evolve based on usage
 
 ---
 
@@ -907,9 +987,29 @@ Tasks 1 and 3 can be done simultaneously by different developers or in parallel 
 - **Dependencies Clear**: Yes - sequential progression identified
 - **Blockers Identified**: Schema design decision needed
 
+## Sprint Recommendation
+
+### Sprint Goal: "Fix and Complete Graph Operations"
+**Duration**: 1 week
+**Capacity**: 15-20 hours
+
+#### Sprint Backlog
+1. **Day 1**: Fix Kuzu syntax errors (1-2 hours) 🔴
+2. **Day 1**: Add table validation for security (30 min) 🟢
+3. **Days 2-3**: Complete real graph operations (4-6 hours) 🟠
+4. **Day 4**: Add query performance monitoring (2 hours) 🟢
+5. **Day 5**: Implement logging strategy (2-3 hours) 🟢
+
+#### Success Criteria
+- All tests passing (100%)
+- Graph operations using real Kuzu queries
+- Basic monitoring and logging in place
+- Ready to start Phase 2 (Continuity Cortex)
+
 ## Metadata
 - **Last Groomed**: 2025-09-16
-- **Next Review**: After Kuzu graph operations complete
-- **Focus**: Phase 2 Continuity Cortex implementation
-- **Confidence**: HIGH - Clear technical path, Phase 1 foundation solid
-- **Key Finding**: Project ready for intelligence layer features
+- **Grooming Scope**: Full inventory of 25+ tasks across multiple sources
+- **Next Review**: After sprint completion (fixing graph operations)
+- **Critical Finding**: Phase 1 incomplete - graph operations need immediate attention
+- **Confidence**: MEDIUM - Clear path but execution needed
+- **Recommendation**: Focus on fixing before advancing to Phase 2
