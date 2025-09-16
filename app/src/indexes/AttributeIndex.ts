@@ -345,8 +345,11 @@ export class AttributeIndex {
             }
           }
         }
-      } catch {
+      } catch (error) {
         // Skip entities that cause errors during indexing
+        if (this.debugMode) {
+          console.warn(`Failed to index entity: ${error instanceof Error ? error.message : String(error)}`);
+        }
         continue;
       }
     }

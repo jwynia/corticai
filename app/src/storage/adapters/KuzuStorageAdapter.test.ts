@@ -53,7 +53,8 @@ describe.skip('KuzuStorageAdapter', () => {
         }
       }
     } catch (error) {
-      // Ignore cleanup errors
+      // Log but don't fail test on cleanup errors
+      console.debug('Cleanup error (non-critical):', error);
     }
 
     // Remove test database files
@@ -62,7 +63,8 @@ describe.skip('KuzuStorageAdapter', () => {
         fs.rmSync(testDbPath, { recursive: true, force: true })
       }
     } catch (error) {
-      // Ignore cleanup errors
+      // Log but don't fail test on cleanup errors
+      console.debug('Cleanup error (non-critical):', error);
     }
   })
 
