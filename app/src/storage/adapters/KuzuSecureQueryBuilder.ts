@@ -54,7 +54,7 @@ export class KuzuSecureQueryBuilder {
    */
   buildEdgeCreateQuery(fromId: string, toId: string, edgeType: string, edgeData: string): SecureQuery {
     return {
-      statement: 'MATCH (from:Entity {id: $fromId}), (to:Entity {id: $toId}) CREATE (from)-[r:Relationship {type: $edgeType, data: $edgeData}]->(to)',
+      statement: 'MATCH (a:Entity), (b:Entity) WHERE a.id = $fromId AND b.id = $toId CREATE (a)-[:Relationship {type: $edgeType, data: $edgeData}]->(b)',
       parameters: {
         fromId: fromId,
         toId: toId,
@@ -69,7 +69,7 @@ export class KuzuSecureQueryBuilder {
    */
   buildGetEdgesQuery(nodeId: string): SecureQuery {
     return {
-      statement: 'MATCH (from:Entity {id: $nodeId})-[r:Relationship]->(to:Entity) RETURN from.id, to.id, r.type, r.data',
+      statement: 'MATCH (a:Entity {id: $nodeId})-[r:Relationship]->(b:Entity) RETURN a.id, b.id, r.type, r.data',
       parameters: {
         nodeId: nodeId
       }
@@ -85,7 +85,9 @@ export class KuzuSecureQueryBuilder {
     maxDepth: number,
     edgeTypes?: string[]
   ): SecureQuery {
-    let statement = `MATCH path = (start:Entity {id: $startNodeId})${relationshipPattern}(end:Entity)`
+    // Replace the literal relationship pattern with parameterized version
+    const parameterizedPattern = relationshipPattern.replace(/\*1\.\.\d+/, '*1..$maxDepth')
+    let statement = `MATCH path = (start:Entity {id: $startNodeId})${parameterizedPattern}(end:Entity)`
     const parameters: QueryParameters = {
       startNodeId: startNodeId,
       maxDepth: maxDepth

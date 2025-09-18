@@ -332,6 +332,32 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
   async set(key: string, value: GraphEntity): Promise<void> {
     StorageValidator.validateKey(key)
     StorageValidator.validateValue(value)
+
+    // Additional validation for GraphEntity structure
+    if (typeof value.id !== 'string' || value.id === '') {
+      throw new StorageError(
+        'Entity ID must be a non-empty string',
+        StorageErrorCode.INVALID_VALUE,
+        { entityId: value.id, type: typeof value.id }
+      )
+    }
+
+    if (typeof value.type !== 'string' || value.type === '') {
+      throw new StorageError(
+        'Entity type must be a non-empty string',
+        StorageErrorCode.INVALID_VALUE,
+        { entityType: value.type, type: typeof value.type }
+      )
+    }
+
+    if (!value.properties || typeof value.properties !== 'object') {
+      throw new StorageError(
+        'Entity properties must be an object',
+        StorageErrorCode.INVALID_VALUE,
+        { properties: value.properties, type: typeof value.properties }
+      )
+    }
+
     await this.ensureLoaded()
 
     if (!this.connection) {
@@ -498,8 +524,8 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      // Verify source and target nodes exist
-      if (!await this.has(edge.from)) {
+      // Verify source and target nodes exist by entity ID (not storage key)
+      if (!await this.hasEntityById(edge.from)) {
         throw new StorageError(
           `Source node '${edge.from}' does not exist`,
           StorageErrorCode.INVALID_VALUE,
@@ -507,7 +533,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
         )
       }
 
-      if (!await this.has(edge.to)) {
+      if (!await this.hasEntityById(edge.to)) {
         throw new StorageError(
           `Target node '${edge.to}' does not exist`,
           StorageErrorCode.INVALID_VALUE,
@@ -566,10 +592,23 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
         return []
       }
 
+      // Process the query results to build edge objects
       const edges: GraphEdge[] = []
 
-      // Note: For now, return empty array since we need to understand
-      // the actual Kuzu result format better. This prevents test hangs.
+      if (queryResult.data && typeof queryResult.data.getAll === 'function') {
+        const rows = await queryResult.data.getAll()
+
+        for (const row of rows) {
+          // Row should contain: a.id, b.id, r.type, r.data
+          const edge: GraphEdge = {
+            from: row['a.id'],
+            to: row['b.id'],
+            type: row['r.type'],
+            properties: row['r.data'] ? JSON.parse(row['r.data']) : {}
+          }
+          edges.push(edge)
+        }
+      }
 
       return edges
     } catch (error) {
@@ -592,52 +631,50 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
     }
 
-    try {
-      // Validate input parameters
-      const maxDepth = Math.min(Math.max(1, parseInt(String(pattern.maxDepth), 10) || 1), DEFAULT_MAX_TRAVERSAL_DEPTH)
+    // Validate maxDepth parameter before try block to ensure validation errors are thrown
+    const depth = parseInt(String(pattern.maxDepth), 10)
+    if (!Number.isInteger(depth) || depth < 1 || depth > DEFAULT_MAX_TRAVERSAL_DEPTH) {
+      throw new StorageError(
+        `Traversal depth must be an integer between 1 and ${DEFAULT_MAX_TRAVERSAL_DEPTH}`,
+        StorageErrorCode.INVALID_VALUE,
+        { maxDepth: pattern.maxDepth }
+      )
+    }
 
-      // Escape the starting node ID
-      const escapedStartNode = this.escapeString(pattern.startNode)
+    try {
+      // Use validated depth
+      const maxDepth = depth
 
       // Build the relationship pattern based on direction
       let relationshipPattern = ''
       if (pattern.direction === 'outgoing') {
-        relationshipPattern = '-[r*1..' + maxDepth + ']->'
+        relationshipPattern = '-[r*1..$maxDepth]->'
       } else if (pattern.direction === 'incoming') {
-        relationshipPattern = '<-[r*1..' + maxDepth + ']-'
+        relationshipPattern = '<-[r*1..$maxDepth]-'
       } else {
         // Both directions
-        relationshipPattern = '-[r*1..' + maxDepth + ']-'
+        relationshipPattern = '-[r*1..$maxDepth]-'
       }
 
-      // Build edge type filter if specified
-      let whereClause = ''
-      if (pattern.edgeTypes && pattern.edgeTypes.length > 0) {
-        const types = pattern.edgeTypes.map(t => `'${this.escapeString(t)}'`).join(', ')
-        whereClause = `WHERE r.type IN [${types}]`
-      }
+      // Use secure parameterized query builder
+      const secureQuery = this.buildSecureQuery('traversal', pattern.startNode, relationshipPattern, maxDepth, pattern.edgeTypes)
+      const result = await this.executeSecureQuery(secureQuery)
 
-      // Build the query - ensure proper formatting
-      let query = `MATCH path = (start:Entity {id: '${escapedStartNode}'})${relationshipPattern}(end:Entity)`
-      if (whereClause) {
-        query += `\n${whereClause}`
+      if (!result.success) {
+        if (this.config.debug) {
+          this.logWarn(`Traversal query failed: ${result.error}`)
+        }
+        return []
       }
-      query += `\nRETURN path, length(r) as pathLength\nLIMIT ${DEFAULT_PATH_LIMIT}`
-
-      if (this.config.debug) {
-        this.log(`Executing traversal from ${pattern.startNode} with depth ${pattern.maxDepth}`)
-      }
-
-      // Execute the query
-      const result = await this.connection.query(query)
-      const rows = await result.getAll()
 
       // Convert all paths to GraphPath objects
       const paths: GraphPath[] = []
-      for (const row of rows) {
-        const graphPath = this.convertToGraphPath(row.path, row.pathLength)
-        if (graphPath) {
-          paths.push(graphPath)
+      if (result.data && result.data.length > 0) {
+        for (const row of result.data) {
+          const graphPath = this.convertToGraphPath(row.path, row.pathLength)
+          if (graphPath) {
+            paths.push(graphPath)
+          }
         }
       }
 
@@ -665,36 +702,34 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
     }
 
+    // Validate depth parameter BEFORE try-catch to ensure validation errors are thrown
+    if (!Number.isInteger(depth) || depth < 1 || depth > DEFAULT_MAX_TRAVERSAL_DEPTH) {
+      throw new StorageError(`Depth must be an integer between 1 and ${DEFAULT_MAX_TRAVERSAL_DEPTH}`, StorageErrorCode.INVALID_VALUE)
+    }
+
     try {
-      // Validate depth parameter
-      if (!Number.isInteger(depth) || depth < 1 || depth > DEFAULT_MAX_TRAVERSAL_DEPTH) {
-        throw new StorageError(`Depth must be an integer between 1 and ${DEFAULT_MAX_TRAVERSAL_DEPTH}`, StorageErrorCode.INVALID_VALUE)
+      // Use secure parameterized query builder
+      const secureQuery = this.buildSecureQuery('findConnected', nodeId, depth)
+      const result = await this.executeSecureQuery(secureQuery)
+
+      if (!result.success) {
+        if (this.config.debug) {
+          this.logWarn(`findConnected query failed: ${result.error}`)
+        }
+        return []
       }
-
-      // Escape input for query safety
-      const escapedNodeId = this.escapeString(nodeId)
-
-      // Build query to find all nodes connected within specified depth
-      // Using bidirectional edges to find all connected nodes
-      const query = `MATCH (start:Entity {id: '${escapedNodeId}'})-[*1..${depth}]-(connected:Entity) WHERE connected.id <> '${escapedNodeId}' RETURN DISTINCT connected.id as id, connected.type as type, connected.data as data LIMIT ${DEFAULT_CONNECTED_LIMIT}`
-
-      if (this.config.debug) {
-        this.log(`Finding nodes connected to ${nodeId} within depth ${depth}`)
-      }
-
-      // Execute the query
-      const result = await this.connection.query(query)
-      const rows = await result.getAll()
 
       // Convert results to GraphNode objects
       const connectedNodes: GraphNode[] = []
-      for (const row of rows) {
-        const node: GraphNode = {
-          id: row.id || '',
-          type: row.type || 'Entity',
-          properties: typeof row.data === 'string' ? JSON.parse(row.data || '{}') : (row.data || {})
+      if (result.data && result.data.length > 0) {
+        for (const row of result.data) {
+          const node: GraphNode = {
+            id: row.id || '',
+            type: row.type || 'Entity',
+            properties: typeof row.data === 'string' ? JSON.parse(row.data || '{}') : (row.data || {})
+          }
+          connectedNodes.push(node)
         }
-        connectedNodes.push(node)
       }
 
       if (this.config.debug) {
@@ -722,23 +757,19 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      // Escape input strings for query safety
-      const escapedFromId = this.escapeString(fromId)
-      const escapedToId = this.escapeString(toId)
+      // Use secure parameterized query builder
+      const secureQuery = this.buildSecureQuery('shortestPath', fromId, toId, DEFAULT_MAX_TRAVERSAL_DEPTH)
+      const result = await this.executeSecureQuery(secureQuery)
 
-      // Build shortest path query using Kuzu's SHORTEST keyword
-      const query = `MATCH path = (from:Entity {id: '${escapedFromId}'})-[r* SHORTEST 1..${DEFAULT_MAX_TRAVERSAL_DEPTH}]-(to:Entity {id: '${escapedToId}'}) RETURN path, length(r) as pathLength LIMIT 1`
-
-      if (this.config.debug) {
-        this.log(`Executing shortest path query from ${fromId} to ${toId}`)
+      if (!result.success) {
+        if (this.config.debug) {
+          this.logWarn(`shortestPath query failed: ${result.error}`)
+        }
+        return null
       }
 
-      // Execute the query
-      const result = await this.connection.query(query)
-      const rows = await result.getAll()
-
       // Check if a path was found
-      if (!rows || rows.length === 0) {
+      if (!result.data || result.data.length === 0) {
         if (this.config.debug) {
           this.log(`No path found from ${fromId} to ${toId}`)
         }
@@ -746,7 +777,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       }
 
       // Convert the result to GraphPath
-      const row = rows[0]
+      const row = result.data[0]
       const graphPath = this.convertToGraphPath(row.path, row.pathLength)
 
       return graphPath
@@ -761,6 +792,41 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
+
+  /**
+   * Check if an entity exists in the database by its entity ID
+   * @param entityId - The entity ID to check
+   * @returns Promise<boolean> - True if entity exists
+   */
+  private async hasEntityById(entityId: string): Promise<boolean> {
+    await this.ensureLoaded()
+
+    if (!this.connection) {
+      return false
+    }
+
+    try {
+      // Use the entity ID to find matching entities
+      // Check both the in-memory cache and database
+      for (const [key, entity] of this.data.entries()) {
+        if (entity.id === entityId) {
+          return true
+        }
+      }
+
+      // If not found in cache, check database directly with escaped query for now
+      const escapedEntityId = this.escapeString(entityId)
+      const query = `MATCH (e:Entity {id: '${escapedEntityId}'}) RETURN e.id LIMIT 1`
+      const result = await this.connection.query(query)
+      const rows = await result.getAll()
+      return rows && rows.length > 0
+    } catch (error) {
+      if (this.config.debug) {
+        this.logWarn(`Could not check entity existence: ${error}`)
+      }
+      return false
+    }
+  }
 
   /**
    * Safely escape a string for use in Kuzu queries

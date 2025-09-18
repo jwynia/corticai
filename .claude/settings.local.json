@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__research__deepResearchReport",
+      "mcp__research__mediumResearchReport",
+      "Bash(npm test)",
+      "Bash(npm install)",
+      "Bash(npx husky init:*)",
+      "Bash(npm run lint)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run format:check:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ast-grep:*)",
+      "Bash(npm outdated)",
+      "mcp__research__lightResearchReport",
+      "Bash(npm outdated:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(xargs ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
