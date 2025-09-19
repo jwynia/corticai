@@ -23,7 +23,15 @@
       "Bash(npm outdated:*)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.kuzudb.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)",
+      "Bash(awk:*)",
+      "Bash(npm view:*)",
+      "Bash(chmod:*)",
+      "Bash(/workspaces/corticai/scripts/sync-verify.sh:*)"
     ],
     "deny": [],
     "ask": []

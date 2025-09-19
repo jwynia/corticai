@@ -33,6 +33,7 @@ import {
   executeSecureQueryWithMonitoring,
   QueryExecutionResult
 } from './KuzuSecureQueryBuilder'
+import { PerformanceMonitor } from '../../utils/PerformanceMonitor'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -58,6 +59,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
   private db: Database | null = null
   private connection: Connection | null = null
   private secureQueryBuilder: KuzuSecureQueryBuilder | null = null
+  private performanceMonitor: PerformanceMonitor
   private isLoaded = false
   private initMutex = Promise.resolve()
 
@@ -90,8 +92,16 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       ...config
     }
 
+    // Initialize performance monitor
+    this.performanceMonitor = new PerformanceMonitor({
+      enabled: this.config.performanceMonitoring?.enabled ?? true,
+      slowOperationThreshold: this.config.performanceMonitoring?.slowOperationThreshold ?? 100,
+      maxMetricsHistory: this.config.performanceMonitoring?.maxMetricsHistory ?? 1000
+    })
+
     if (this.config.debug) {
       this.log(`Initializing Kuzu adapter with database: ${this.config.database}`)
+      this.log(`Performance monitoring: ${this.performanceMonitor.isEnabled() ? 'enabled' : 'disabled'}`)
     }
   }
 
@@ -330,124 +340,128 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
    * Store entity in both memory cache and database
    */
   async set(key: string, value: GraphEntity): Promise<void> {
-    StorageValidator.validateKey(key)
-    StorageValidator.validateValue(value)
+    return this.performanceMonitor.measure('storage.set', async () => {
+      StorageValidator.validateKey(key)
+      StorageValidator.validateValue(value)
 
-    // Additional validation for GraphEntity structure
-    if (typeof value.id !== 'string' || value.id === '') {
-      throw new StorageError(
-        'Entity ID must be a non-empty string',
-        StorageErrorCode.INVALID_VALUE,
-        { entityId: value.id, type: typeof value.id }
-      )
-    }
-
-    if (typeof value.type !== 'string' || value.type === '') {
-      throw new StorageError(
-        'Entity type must be a non-empty string',
-        StorageErrorCode.INVALID_VALUE,
-        { entityType: value.type, type: typeof value.type }
-      )
-    }
-
-    if (!value.properties || typeof value.properties !== 'object') {
-      throw new StorageError(
-        'Entity properties must be an object',
-        StorageErrorCode.INVALID_VALUE,
-        { properties: value.properties, type: typeof value.properties }
-      )
-    }
-
-    await this.ensureLoaded()
-
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    try {
-      // Add storage metadata
-      const storageMetadata = this.generateStorageMetadata(value)
-      const entityWithStorage: GraphEntity = {
-        ...value,
-        _storage: storageMetadata
-      }
-
-      // Store in database using secure parameterized queries
-      const serializedData = JSON.stringify(entityWithStorage)
-
-      // Use secure query builder to prevent SQL injection
-      const secureQuery = this.buildSecureQuery('entityStore', key, value.id, value.type, serializedData)
-      const result = await this.executeSecureQuery(secureQuery)
-
-      if (!result.success) {
+      // Additional validation for GraphEntity structure
+      if (typeof value.id !== 'string' || value.id === '') {
         throw new StorageError(
-          `Failed to store entity: ${result.error}`,
-          StorageErrorCode.WRITE_FAILED,
-          { key, value, error: result.error }
+          'Entity ID must be a non-empty string',
+          StorageErrorCode.INVALID_VALUE,
+          { entityId: value.id, type: typeof value.id }
         )
       }
 
-      // Store in memory cache
-      this.data.set(key, entityWithStorage)
-
-      if (this.config.debug) {
-        this.log(`SET ${key} -> stored entity with type ${value.type}`)
+      if (typeof value.type !== 'string' || value.type === '') {
+        throw new StorageError(
+          'Entity type must be a non-empty string',
+          StorageErrorCode.INVALID_VALUE,
+          { entityType: value.type, type: typeof value.type }
+        )
       }
-    } catch (error) {
-      throw new StorageError(
-        `Failed to store entity: ${error}`,
-        StorageErrorCode.WRITE_FAILED,
-        { key, error }
-      )
-    }
+
+      if (!value.properties || typeof value.properties !== 'object') {
+        throw new StorageError(
+          'Entity properties must be an object',
+          StorageErrorCode.INVALID_VALUE,
+          { properties: value.properties, type: typeof value.properties }
+        )
+      }
+
+      await this.ensureLoaded()
+
+      if (!this.connection) {
+        throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
+      }
+
+      try {
+        // Add storage metadata
+        const storageMetadata = this.generateStorageMetadata(value)
+        const entityWithStorage: GraphEntity = {
+          ...value,
+          _storage: storageMetadata
+        }
+
+        // Store in database using secure parameterized queries
+        const serializedData = JSON.stringify(entityWithStorage)
+
+        // Use secure query builder to prevent SQL injection
+        const secureQuery = this.buildSecureQuery('entityStore', key, value.id, value.type, serializedData)
+        const result = await this.executeSecureQuery(secureQuery)
+
+        if (!result.success) {
+          throw new StorageError(
+            `Failed to store entity: ${result.error}`,
+            StorageErrorCode.WRITE_FAILED,
+            { key, value, error: result.error }
+          )
+        }
+
+        // Store in memory cache
+        this.data.set(key, entityWithStorage)
+
+        if (this.config.debug) {
+          this.log(`SET ${key} -> stored entity with type ${value.type}`)
+        }
+      } catch (error) {
+        throw new StorageError(
+          `Failed to store entity: ${error}`,
+          StorageErrorCode.WRITE_FAILED,
+          { key, error }
+        )
+      }
+    }, { operation: 'set', key, entityType: value.type })
   }
 
   /**
    * Delete entity from both memory cache and database
    */
   async delete(key: string): Promise<boolean> {
-    StorageValidator.validateKey(key)
-    await this.ensureLoaded()
+    return this.performanceMonitor.measure('storage.delete', async () => {
+      StorageValidator.validateKey(key)
+      await this.ensureLoaded()
 
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
-    }
+      if (!this.connection) {
+        throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
+      }
 
-    try {
-      const existed = this.data.has(key)
+      try {
+        const existed = this.data.has(key)
 
-      if (existed) {
-        // Delete from database using secure parameterized query
-        const entity = this.data.get(key)
-        if (entity) {
-          const secureQuery = this.buildSecureQuery('entityDelete', entity.id)
-          const result = await this.executeSecureQuery(secureQuery)
+        if (existed) {
+          // Delete from database using secure parameterized query
+          const entity = this.data.get(key)
+          if (entity) {
+            const secureQuery = this.buildSecureQuery('entityDelete', entity.id)
+            const result = await this.executeSecureQuery(secureQuery)
 
-          if (!result.success) {
-            throw new StorageError(
-              `Failed to delete entity: ${result.error}`,
-              StorageErrorCode.DELETE_FAILED,
-              { key, error: result.error }
-            )
+            if (!result.success) {
+              throw new StorageError(
+                `Failed to delete entity: ${result.error}`,
+                StorageErrorCode.DELETE_FAILED,
+                { key, error: result.error }
+              )
+            }
+          }
+
+          // Delete from memory cache
+          this.data.delete(key)
+
+          if (this.config.debug) {
+            this.log(`DELETE ${key} -> entity removed`)
           }
         }
 
-        // Delete from memory cache
-        this.data.delete(key)
-
-        if (this.config.debug) {
-          this.log(`DELETE ${key} -> entity removed`)
-        }
+        return existed
+      } catch (error) {
+        throw new StorageError(
+          `Failed to delete entity: ${error}`,
+          StorageErrorCode.IO_ERROR,
+          { key, error }
+        )
       }
-
-      return existed
-    } catch (error) {
-      throw new StorageError(
-        `Failed to delete entity: ${error}`,
-        StorageErrorCode.IO_ERROR,
-        { key, error }
-      )
-    }
+    }, { operation: 'delete', key })
   }
 
   /**
@@ -489,20 +503,22 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
    * Add a node to the graph database
    */
   async addNode(node: GraphNode): Promise<string> {
-    await this.ensureLoaded()
+    return this.performanceMonitor.measure('graph.addNode', async () => {
+      await this.ensureLoaded()
 
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
-    }
+      if (!this.connection) {
+        throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
+      }
 
-    // Convert GraphNode to GraphEntity for storage
-    const entity: GraphEntity = {
-      ...node,
-      _storage: this.generateStorageMetadata(node as GraphEntity)
-    }
+      // Convert GraphNode to GraphEntity for storage
+      const entity: GraphEntity = {
+        ...node,
+        _storage: this.generateStorageMetadata(node as GraphEntity)
+      }
 
-    await this.set(node.id, entity)
-    return node.id
+      await this.set(node.id, entity)
+      return node.id
+    }, { operation: 'addNode', nodeId: node.id, nodeType: node.type })
   }
 
   /**
@@ -517,57 +533,59 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
    * Add an edge between two nodes
    */
   async addEdge(edge: GraphEdge): Promise<void> {
-    await this.ensureLoaded()
+    return this.performanceMonitor.measure('graph.addEdge', async () => {
+      await this.ensureLoaded()
 
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    try {
-      // Verify source and target nodes exist by entity ID (not storage key)
-      if (!await this.hasEntityById(edge.from)) {
-        throw new StorageError(
-          `Source node '${edge.from}' does not exist`,
-          StorageErrorCode.INVALID_VALUE,
-          { edge }
-        )
+      if (!this.connection) {
+        throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
       }
 
-      if (!await this.hasEntityById(edge.to)) {
+      try {
+        // Verify source and target nodes exist by entity ID (not storage key)
+        if (!await this.hasEntityById(edge.from)) {
+          throw new StorageError(
+            `Source node '${edge.from}' does not exist`,
+            StorageErrorCode.INVALID_VALUE,
+            { edge }
+          )
+        }
+
+        if (!await this.hasEntityById(edge.to)) {
+          throw new StorageError(
+            `Target node '${edge.to}' does not exist`,
+            StorageErrorCode.INVALID_VALUE,
+            { edge }
+          )
+        }
+
+        // Add relationship to database using secure parameterized query
+        const serializedEdgeData = JSON.stringify(edge)
+
+        const secureQuery = this.buildSecureQuery('edgeCreate', edge.from, edge.to, edge.type, serializedEdgeData)
+        const result = await this.executeSecureQuery(secureQuery)
+
+        if (!result.success) {
+          throw new StorageError(
+            `Failed to add edge: ${result.error}`,
+            StorageErrorCode.WRITE_FAILED,
+            { edge, error: result.error }
+          )
+        }
+
+        if (this.config.debug) {
+          this.log(`Added edge: ${edge.from} -[${edge.type}]-> ${edge.to}`)
+        }
+      } catch (error) {
+        if (error instanceof StorageError) {
+          throw error
+        }
         throw new StorageError(
-          `Target node '${edge.to}' does not exist`,
-          StorageErrorCode.INVALID_VALUE,
-          { edge }
-        )
-      }
-
-      // Add relationship to database using secure parameterized query
-      const serializedEdgeData = JSON.stringify(edge)
-
-      const secureQuery = this.buildSecureQuery('edgeCreate', edge.from, edge.to, edge.type, serializedEdgeData)
-      const result = await this.executeSecureQuery(secureQuery)
-
-      if (!result.success) {
-        throw new StorageError(
-          `Failed to add edge: ${result.error}`,
+          `Failed to add edge: ${error}`,
           StorageErrorCode.WRITE_FAILED,
-          { edge, error: result.error }
+          { edge, error }
         )
       }
-
-      if (this.config.debug) {
-        this.log(`Added edge: ${edge.from} -[${edge.type}]-> ${edge.to}`)
-      }
-    } catch (error) {
-      if (error instanceof StorageError) {
-        throw error
-      }
-      throw new StorageError(
-        `Failed to add edge: ${error}`,
-        StorageErrorCode.WRITE_FAILED,
-        { edge, error }
-      )
-    }
+    }, { operation: 'addEdge', from: edge.from, to: edge.to, edgeType: edge.type })
   }
 
   /**
@@ -625,70 +643,79 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
    * Executes graph traversal queries to find paths matching specified criteria
    */
   async traverse(pattern: TraversalPattern): Promise<GraphPath[]> {
-    await this.ensureLoaded()
+    return this.performanceMonitor.measure('graph.traverse', async () => {
+      await this.ensureLoaded()
 
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    // Validate maxDepth parameter before try block to ensure validation errors are thrown
-    const depth = parseInt(String(pattern.maxDepth), 10)
-    if (!Number.isInteger(depth) || depth < 1 || depth > DEFAULT_MAX_TRAVERSAL_DEPTH) {
-      throw new StorageError(
-        `Traversal depth must be an integer between 1 and ${DEFAULT_MAX_TRAVERSAL_DEPTH}`,
-        StorageErrorCode.INVALID_VALUE,
-        { maxDepth: pattern.maxDepth }
-      )
-    }
-
-    try {
-      // Use validated depth
-      const maxDepth = depth
-
-      // Build the relationship pattern based on direction
-      let relationshipPattern = ''
-      if (pattern.direction === 'outgoing') {
-        relationshipPattern = '-[r*1..$maxDepth]->'
-      } else if (pattern.direction === 'incoming') {
-        relationshipPattern = '<-[r*1..$maxDepth]-'
-      } else {
-        // Both directions
-        relationshipPattern = '-[r*1..$maxDepth]-'
+      if (!this.connection) {
+        throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
       }
 
-      // Use secure parameterized query builder
-      const secureQuery = this.buildSecureQuery('traversal', pattern.startNode, relationshipPattern, maxDepth, pattern.edgeTypes)
-      const result = await this.executeSecureQuery(secureQuery)
+      // Validate maxDepth parameter before try block to ensure validation errors are thrown
+      const depth = parseInt(String(pattern.maxDepth), 10)
+      if (!Number.isInteger(depth) || depth < 1 || depth > DEFAULT_MAX_TRAVERSAL_DEPTH) {
+        throw new StorageError(
+          `Traversal depth must be an integer between 1 and ${DEFAULT_MAX_TRAVERSAL_DEPTH}`,
+          StorageErrorCode.INVALID_VALUE,
+          { maxDepth: pattern.maxDepth }
+        )
+      }
 
-      if (!result.success) {
+      try {
+        // Use validated depth
+        const maxDepth = depth
+
+        // Build the relationship pattern based on direction
+        // Note: Need to include relationship type :Relationship for Kuzu
+        let relationshipPattern = ''
+        if (pattern.direction === 'outgoing') {
+          relationshipPattern = `-[r:Relationship*1..${maxDepth}]->`
+        } else if (pattern.direction === 'incoming') {
+          relationshipPattern = `<-[r:Relationship*1..${maxDepth}]-`
+        } else {
+          // Both directions
+          relationshipPattern = `-[r:Relationship*1..${maxDepth}]-`
+        }
+
+        // Use secure parameterized query builder
+        const secureQuery = this.buildSecureQuery('traversal', pattern.startNode, relationshipPattern, maxDepth, pattern.edgeTypes)
+        const result = await this.executeSecureQuery(secureQuery)
+
+        if (!result.success) {
+          if (this.config.debug) {
+            this.logWarn(`Traversal query failed: ${result.error}`)
+          }
+          return []
+        }
+
+        // Convert all paths to GraphPath objects
+        const paths: GraphPath[] = []
+        if (result.data && result.data.length > 0) {
+          for (const row of result.data) {
+            const graphPath = this.convertToGraphPath(row.path, row.pathLength)
+            if (graphPath) {
+              paths.push(graphPath)
+            }
+          }
+        }
+
         if (this.config.debug) {
-          this.logWarn(`Traversal query failed: ${result.error}`)
+          this.log(`Found ${paths.length} paths`)
+        }
+
+        return paths
+      } catch (error) {
+        if (this.config.debug) {
+          this.logWarn(`Could not traverse graph: ${error}`)
         }
         return []
       }
-
-      // Convert all paths to GraphPath objects
-      const paths: GraphPath[] = []
-      if (result.data && result.data.length > 0) {
-        for (const row of result.data) {
-          const graphPath = this.convertToGraphPath(row.path, row.pathLength)
-          if (graphPath) {
-            paths.push(graphPath)
-          }
-        }
-      }
-
-      if (this.config.debug) {
-        this.log(`Found ${paths.length} paths`)
-      }
-
-      return paths
-    } catch (error) {
-      if (this.config.debug) {
-        this.logWarn(`Could not traverse graph: ${error}`)
-      }
-      return []
-    }
+    }, {
+      operation: 'traverse',
+      startNode: pattern.startNode,
+      direction: pattern.direction,
+      maxDepth: pattern.maxDepth,
+      edgeTypes: pattern.edgeTypes?.length || 0
+    })
   }
 
   /**
@@ -957,6 +984,49 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     } catch (error) {
       this.logWarn(`Error closing database: ${error}`)
     }
+  }
+
+  // ============================================================================
+  // PERFORMANCE MONITORING
+  // ============================================================================
+
+  /**
+   * Get performance metrics for all operations
+   */
+  getPerformanceMetrics() {
+    return this.performanceMonitor.getAllMetrics()
+  }
+
+  /**
+   * Get performance metrics for a specific operation
+   */
+  getOperationMetrics(operationName: string) {
+    return this.performanceMonitor.getMetrics(operationName)
+  }
+
+  /**
+   * Clear performance metrics
+   */
+  clearPerformanceMetrics(operationName?: string) {
+    this.performanceMonitor.clearMetrics(operationName)
+  }
+
+  /**
+   * Enable or disable performance monitoring
+   */
+  setPerformanceMonitoring(enabled: boolean) {
+    if (enabled) {
+      this.performanceMonitor.enable()
+    } else {
+      this.performanceMonitor.disable()
+    }
+  }
+
+  /**
+   * Check if performance monitoring is enabled
+   */
+  isPerformanceMonitoringEnabled(): boolean {
+    return this.performanceMonitor.isEnabled()
   }
 
   // ============================================================================

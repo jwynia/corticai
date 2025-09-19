@@ -132,6 +132,15 @@ export interface KuzuStorageConfig {
   maxNumThreads?: number
   /** Timeout for operations in ms */
   timeoutMs?: number
+  /** Performance monitoring configuration */
+  performanceMonitoring?: {
+    /** Enable performance monitoring */
+    enabled?: boolean
+    /** Threshold in milliseconds to log slow operations */
+    slowOperationThreshold?: number
+    /** Maximum number of timing records to keep per operation */
+    maxMetricsHistory?: number
+  }
 }
 
 /**

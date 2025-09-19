@@ -76,12 +76,15 @@ describe('KuzuStorageAdapter Query Syntax Fixes', () => {
         ['CONNECTS', 'CALLS']
       )
 
-      expect(traversalQuery.statement).toContain('MATCH path = (start:Entity {id: $startNodeId})')
-      expect(traversalQuery.statement).toContain('*1..$maxDepth')
-      expect(traversalQuery.statement).toContain('WHERE r.type IN $edgeTypes')
+      // Using 'source' instead of 'start' (reserved keyword in Kuzu)
+      expect(traversalQuery.statement).toContain('MATCH path = (source:Entity {id: $startNodeId})')
+      // In Kuzu 0.11.2, depth is literal and edge types use ALL() predicate
+      expect(traversalQuery.statement).toContain('*1..3')
+      expect(traversalQuery.statement).toContain("WHERE ALL(rel IN r WHERE rel.type = 'CONNECTS' OR rel.type = 'CALLS')")
       expect(traversalQuery.parameters.startNodeId).toBe('node1')
-      expect(traversalQuery.parameters.maxDepth).toBe(3)
-      expect(traversalQuery.parameters.edgeTypes).toEqual(['CONNECTS', 'CALLS'])
+      // maxDepth and edgeTypes are no longer parameters (embedded in query)
+      expect(traversalQuery.parameters.maxDepth).toBeUndefined()
+      expect(traversalQuery.parameters.edgeTypes).toBeUndefined()
     })
 
     it('should generate valid parameterized findConnected queries', async () => {
@@ -93,11 +96,14 @@ describe('KuzuStorageAdapter Query Syntax Fixes', () => {
 
       const connectedQuery = queryBuilder.buildFindConnectedQuery('node1', 2)
 
-      expect(connectedQuery.statement).toContain('MATCH (start:Entity {id: $nodeId})')
-      expect(connectedQuery.statement).toContain('-[*1..$depth]-')
+      // Using 'source' instead of 'start' (reserved keyword in Kuzu)
+      expect(connectedQuery.statement).toContain('MATCH (source:Entity {id: $nodeId})')
+      // In Kuzu 0.11.2, depth is literal
+      expect(connectedQuery.statement).toContain('-[*1..2]-')
       expect(connectedQuery.statement).toContain('WHERE connected.id <> $nodeId')
       expect(connectedQuery.parameters.nodeId).toBe('node1')
-      expect(connectedQuery.parameters.depth).toBe(2)
+      // depth is no longer a parameter (embedded in query)
+      expect(connectedQuery.parameters.depth).toBeUndefined()
     })
 
     it('should generate valid parameterized shortestPath queries', async () => {
@@ -109,12 +115,15 @@ describe('KuzuStorageAdapter Query Syntax Fixes', () => {
 
       const pathQuery = queryBuilder.buildShortestPathQuery('from1', 'to1', 5)
 
-      expect(pathQuery.statement).toContain('MATCH path = (from:Entity {id: $fromId})')
-      expect(pathQuery.statement).toContain('-[r* SHORTEST 1..$maxDepth]-')
-      expect(pathQuery.statement).toContain('(to:Entity {id: $toId})')
+      // In Kuzu 0.11.2, uses sourceNode/targetNode instead of from/to
+      expect(pathQuery.statement).toContain('MATCH path = (sourceNode:Entity {id: $fromId})')
+      // In Kuzu 0.11.2, depth is literal in SHORTEST path
+      expect(pathQuery.statement).toContain('-[r* SHORTEST 1..5]-')
+      expect(pathQuery.statement).toContain('(targetNode:Entity {id: $toId})')
       expect(pathQuery.parameters.fromId).toBe('from1')
       expect(pathQuery.parameters.toId).toBe('to1')
-      expect(pathQuery.parameters.maxDepth).toBe(5)
+      // maxDepth is no longer a parameter (embedded in query)
+      expect(pathQuery.parameters.maxDepth).toBeUndefined()
     })
   })
 
@@ -214,17 +223,17 @@ describe('KuzuStorageAdapter Query Syntax Fixes', () => {
       // Test various variable-length path patterns
       const queryBuilder = (adapter as any).secureQueryBuilder as KuzuSecureQueryBuilder
 
-      // Test 1-hop path
+      // Test 1-hop path with literal depth in Kuzu 0.11.2
       const oneHop = queryBuilder.buildTraversalQuery('node1', '-[r*1..1]->', 1)
-      expect(oneHop.statement).toContain('*1..$maxDepth')
+      expect(oneHop.statement).toContain('*1..1')
 
-      // Test multi-hop path
+      // Test multi-hop path with literal depth in Kuzu 0.11.2
       const multiHop = queryBuilder.buildTraversalQuery('node1', '-[r*1..5]->', 5)
-      expect(multiHop.statement).toContain('*1..$maxDepth')
+      expect(multiHop.statement).toContain('*1..5')
 
-      // Test bidirectional path
+      // Test bidirectional path with literal depth in Kuzu 0.11.2
       const bidirectional = queryBuilder.buildFindConnectedQuery('node1', 3)
-      expect(bidirectional.statement).toContain('*1..$depth')
+      expect(bidirectional.statement).toContain('*1..3')
     })
 
     it('should handle edge type filtering in variable-length paths', async () => {
@@ -240,8 +249,10 @@ describe('KuzuStorageAdapter Query Syntax Fixes', () => {
         ['TYPE1', 'TYPE2']
       )
 
-      expect(filteredQuery.statement).toContain('WHERE r.type IN $edgeTypes')
-      expect(filteredQuery.parameters.edgeTypes).toEqual(['TYPE1', 'TYPE2'])
+      // In Kuzu 0.11.2, edge type filtering uses ALL() predicate with literal types
+      expect(filteredQuery.statement).toContain("WHERE ALL(rel IN r WHERE rel.type = 'TYPE1' OR rel.type = 'TYPE2')")
+      // Edge types are no longer parameters (embedded in query)
+      expect(filteredQuery.parameters.edgeTypes).toBeUndefined()
     })
   })
 

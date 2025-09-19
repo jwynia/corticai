@@ -1,11 +1,11 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-09-16
+**Last Groomed**: 2025-09-18
 **Major Components Complete**: Phase 1 Universal Context Engine (KuzuStorageAdapter, ContextInitializer)
-**Test Status**: Tests experiencing Kuzu query syntax errors ⚠️
-**Current Phase**: Phase 1 Completion - Fix Graph Operations
-**Latest Achievement**: ✅ Complete Phase 1 foundation with graph database structure
+**Test Status**: CRITICAL - Kuzu graph operations failing due to Cypher syntax errors 🔴
+**Current Phase**: Phase 1 Hot Fix - Fix Graph Query Syntax
+**Latest Achievement**: ✅ Parameterized queries security fix completed
 
 ---
 
@@ -105,9 +105,9 @@
 
 ---
 
-## ✅ LATEST COMPLETION (2025-09-16 Session)
+## ✅ LATEST COMPLETIONS
 
-### SQL Injection Security Fix - COMPLETED ✅
+### 2025-09-16: SQL Injection Security Fix - COMPLETED ✅
    - Implemented parameterized queries for KuzuStorageAdapter
    - Created KuzuSecureQueryBuilder with PreparedStatement API
    - Added comprehensive security tests (7/7 passing)
@@ -118,77 +118,152 @@
 
 ## 🚀 Ready for Implementation
 
-### 1. Fix Kuzu Test Suite Crashes
-**One-liner**: Resolve worker process crashes preventing Kuzu test execution
-**Complexity**: Large (1-2 days)
-**Priority**: HIGH 🟠
-**Files to investigate**:
-- `/app/src/storage/adapters/KuzuStorageAdapter.test.ts`
+### 1. 🔴 CRITICAL: Fix Kuzu Cypher Query Syntax Errors
+**One-liner**: Fix malformed Cypher queries causing all graph operations to fail
+**Complexity**: Small (1-2 hours)
+**Priority**: CRITICAL 🔴 - Blocking all development
+**Files to modify**:
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts` (lines with graph queries)
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: Tests are failing due to query syntax error: `Invalid input` at the end of MATCH pattern. The query `MATCH path = (start:Entity {id: 'isolated'})-[r*1..1]-(end:Entity)` has incorrect syntax.
+**Context**: Graph operations are failing with parser exceptions. The queries have malformed syntax:
+- `traverse()`: "Invalid input <MATCH path = (start:Entity {id: $startNodeId})-[r*1..$>"
+- `findConnected()`: "Invalid input <MATCH (start:Entity {id: $nodeId})-[*1..$>"
+- `shortestPath()`: "Invalid input <MATCH path = (from>"
+
+**Root Cause**: Query strings appear to be truncated or have incorrect variable boundaries.
 
 **Acceptance Criteria**:
-- [ ] Fix the Cypher query syntax in traverse() method
-- [ ] Fix any other query syntax issues in findConnected() and shortestPath()
-- [ ] Ensure all Kuzu tests pass without errors
-- [ ] Verify queries work with Kuzu's specific Cypher dialect
+- [ ] Fix variable depth syntax in traverse() method
+- [ ] Fix findConnected() query pattern
+- [ ] Fix shortestPath() query syntax
+- [ ] All Kuzu graph operation tests pass
+- [ ] No parser exceptions in test output
 
 **Implementation Guide**:
-1. Check Kuzu documentation for correct Cypher syntax
-2. The issue appears to be with the `(end:Entity)` part - should likely be `(end:Entity)` without the arrow
-3. Test each query method independently
-4. Ensure proper error handling for malformed queries
+1. In `traverse()`: Fix the depth parameter syntax - should be `[r*1..${depth}]` not `[r*1..$`
+2. In `findConnected()`: Fix the relationship pattern - add proper depth limit
+3. In `shortestPath()`: Complete the MATCH clause - appears to be cut off
+4. Use prepared statements where possible to avoid string concatenation issues
 
-**First Step**: Fix the traverse() query - change pattern ending from `-(end>` to `-(end)`
+**First Step**: Check how the depth parameter is being interpolated - likely missing closing brace or quote
+
+**Watch Out For**:
+- Kuzu may have different syntax than Neo4j Cypher
+- Variable depth patterns may need different formatting
+- Ensure parameters are properly escaped in prepared statements
 
 </details>
 
 ---
 
-### 2. Complete Real Kuzu Graph Operations
-**One-liner**: Replace mock implementations with actual Cypher queries for graph traversal
-**Complexity**: Medium (4-6 hours)
+### 2. Implement Real Kuzu Graph Operations
+**One-liner**: Replace mock implementations with working Cypher queries
+**Complexity**: Medium (3-4 hours)
+**Priority**: HIGH 🟠
 **Files to modify**:
 - `/app/src/storage/adapters/KuzuStorageAdapter.ts`
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: After fixing syntax errors, need to replace mock implementations with real Kuzu Cypher queries.
+**Context**: After fixing syntax, complete the graph operation implementations that currently return mock data.
 
 **Acceptance Criteria**:
-- [ ] Implement proper traverse() method using Kuzu's Cypher queries
-- [ ] Implement findConnected() to find nodes within N hops
-- [ ] Implement shortestPath() using Kuzu's path algorithms
-- [ ] Remove all TODO comments and mock returns
-- [ ] Add performance optimizations for large graphs
+- [ ] traverse() returns actual graph paths from queries
+- [ ] findConnected() finds nodes within specified depth
+- [ ] shortestPath() calculates real shortest paths
+- [ ] All return proper GraphPath/GraphNode structures
+- [ ] Handle disconnected nodes and missing paths gracefully
 
 **Implementation Guide**:
 ```typescript
-// 1. traverse() - Variable depth traversal
-MATCH path = (start:Entity {id: $startId})-[*1..5]-(end:Entity)
-WHERE /* apply pattern filters */
-RETURN path
+// 1. traverse() - Use prepared statements
+const stmt = await this.connection.prepare(
+  'MATCH path = (start:Entity {id: $startId})-[*1..?]-(end:Entity) RETURN path'
+);
+stmt.bindInt('$depth', depth);
 
-// 2. findConnected() - Find nodes within depth
-MATCH (start:Entity {id: $nodeId})-[*1..$depth]-(connected:Entity)
-RETURN DISTINCT connected
+// 2. findConnected() - Return node list
+const stmt = await this.connection.prepare(
+  'MATCH (start:Entity {id: $nodeId})-[*1..?]-(connected:Entity) RETURN DISTINCT connected'
+);
 
-// 3. shortestPath() - Shortest path between nodes
-MATCH path = shortestPath((from:Entity {id: $fromId})-[*]-(to:Entity {id: $toId}))
-RETURN path
+// 3. shortestPath() - Handle no path case
+try {
+  const result = await this.connection.query(
+    'MATCH path = shortestPath((from:Entity {id: $fromId})-[*]-(to:Entity {id: $toId})) RETURN path'
+  );
+  return result.length > 0 ? parsePath(result[0]) : null;
+} catch (e) {
+  return null; // No path exists
+}
 ```
 
-**Dependencies**: Task 1 (Fix syntax errors) must be complete first
+**Dependencies**: Task 1 (Fix syntax errors) must be complete
+
+**Watch Out For**: Kuzu may not support all Neo4j Cypher features
 
 </details>
 
 ---
 
-### 3. Create Continuity Cortex File Interceptor
+### 3. Add Query Performance Monitoring
+**One-liner**: Track and log query execution times for optimization
+**Complexity**: Small (1-2 hours)
+**Priority**: MEDIUM 🟡
+**Files to create/modify**:
+- `/app/src/utils/PerformanceMonitor.ts` (new)
+- `/app/src/storage/adapters/KuzuStorageAdapter.ts` (integrate monitoring)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Need visibility into query performance to identify bottlenecks.
+
+**Acceptance Criteria**:
+- [ ] Create PerformanceMonitor class with timing methods
+- [ ] Track query execution times in KuzuStorageAdapter
+- [ ] Log slow queries (>100ms) with warnings
+- [ ] Add performance metrics to debug output
+- [ ] Create performance report method
+
+**Implementation Guide**:
+```typescript
+class PerformanceMonitor {
+  private metrics = new Map<string, number[]>();
+
+  async measure<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    const start = performance.now();
+    try {
+      return await fn();
+    } finally {
+      const duration = performance.now() - start;
+      this.record(name, duration);
+    }
+  }
+
+  getStats(operation: string) {
+    const times = this.metrics.get(operation) || [];
+    return {
+      count: times.length,
+      avg: average(times),
+      p95: percentile(times, 95),
+      max: Math.max(...times)
+    };
+  }
+}
+```
+
+**First Step**: Create the PerformanceMonitor class with basic timing
+
+</details>
+
+---
+
+### 4. Create Continuity Cortex File Interceptor
 **One-liner**: Build Mastra agent that intercepts file operations to prevent duplicates
 **Complexity**: Large
 **Files to create**:
@@ -227,7 +302,7 @@ class ContinuityCortex extends MastraAgent {
 
 ---
 
-### 4. Implement Progressive Loading System (Phase 2)
+### 5. Implement Progressive Loading System (Phase 2)
 **One-liner**: Add depth-based context loading to optimize memory usage
 **Complexity**: Large
 **Files to create/modify**:
@@ -260,7 +335,7 @@ class ContinuityCortex extends MastraAgent {
 
 ---
 
-### 5. Implement Unified Storage Manager
+### 6. Implement Unified Storage Manager
 **One-liner**: Coordinate operations between Kuzu (graph) and DuckDB (attributes)
 **Complexity**: Large
 **Files to create**:
@@ -611,87 +686,94 @@ Enables different "lenses" or perspectives on the same context data, optimizing 
 ## 📊 Grooming Summary
 
 ### Statistics
-- **Total tasks reviewed**: 25+
-- **Critical issues**: 1 (Kuzu query syntax errors)
-- **Ready for immediate work**: 5 (Fix syntax, Complete graph ops, Cortex, Progressive loading, Storage Manager)
-- **Blocked but clear**: 3 (Lens System, Deduplication, TS extraction)
-- **Quick wins available**: 3 (Performance monitoring, Logging, Table validation)
-- **Decisions needed**: 2 (Storage location, Graph schema)
-- **Archived/completed**: Phase 1 foundation + Mastra upgrade
+- **Total tasks reviewed**: 30+
+- **Critical issues**: 1 (Kuzu Cypher syntax errors blocking everything)
+- **Ready for immediate work**: 6 clearly defined tasks
+- **Blocked but clear**: 3 (waiting on graph fixes)
+- **Quick wins available**: 2 (Performance monitoring, Query fixes)
+- **Completed recently**: SQL injection fix with parameterized queries
+- **Test status**: Graph operations failing, needs immediate attention
 
 ### Task Classification Results
-- **A: Claimed Complete**: Phase 1 foundation (but with issues)
-- **B: Ready to Execute**: 5 high-priority tasks with clear criteria
-- **C: Needs Grooming**: 0 (all tasks have implementation guides)
-- **D: Blocked**: 3 (waiting on prerequisites)
-- **E: Obsolete**: Several tasks from old backlogs superseded
+- **A: Claimed Complete**: Phase 1 KuzuStorageAdapter (but with critical bugs)
+- **B: Ready to Execute**: 6 tasks with clear implementation paths
+- **C: Needs Grooming**: 0 (all tasks well-defined)
+- **D: Blocked**: Most Phase 2 work blocked by graph issues
+- **E: Obsolete**: Research tasks from unified_backlog (already validated)
 
 ### Reality Check Findings
-- ⚠️ **Tests NOT passing** - Kuzu syntax errors need immediate fix
-- ✅ Kuzu installed and database structure created
-- ✅ ContextInitializer working with .context directory
-- ⚠️ Graph operations incomplete (mock implementations)
-- ✅ Foundation solid for Phase 2 after fixes
+- 🔴 **CRITICAL**: Graph operations completely broken - syntax errors
+- ✅ Kuzu database initializes successfully
+- ✅ Basic CRUD operations work with parameterized queries
+- ⚠️ Advanced graph methods (traverse, findConnected, shortestPath) all failing
+- ✅ Security improvements completed (parameterized queries)
+- ⚠️ Test suite crashing due to query failures
 
 ---
 
 ## 🚀 Top 3 Recommendations
 
-### 1. **URGENT: Fix Kuzu Query Syntax** (1-2 hours)
-**Why**: Tests are currently failing, blocking all development
-**Action**: Correct Cypher syntax in KuzuStorageAdapter
-**Risk**: Low - straightforward syntax fix
-**First Step**: Fix the traverse() query pattern ending
+### 1. **🔴 IMMEDIATE: Fix Kuzu Query Syntax** (1-2 hours)
+**Why**: Complete development blockage - no graph features work
+**Action**: Debug and fix malformed Cypher queries in graph methods
+**Risk**: Low - syntax/string interpolation issue
+**First Step**: Check how depth variables are being inserted into query strings
 
-### 2. **Complete Graph Operations** (4-6 hours)
-**Why**: Removes technical debt, enables Phase 2 features
-**Action**: Replace mock implementations with real Kuzu queries
-**Risk**: Medium - need to learn Kuzu's Cypher dialect
-**Dependencies**: Complete Task 1 first
+### 2. **Complete Graph Operations** (3-4 hours)
+**Why**: Core feature of Phase 1 currently non-functional
+**Action**: Implement real queries after fixing syntax
+**Risk**: Low - patterns are well-documented
+**Dependencies**: Must complete syntax fix first
 
-### 3. **Quick Win: Add Security Validation** (30 minutes)
-**Why**: Prevents SQL injection in DuckDB adapter
-**Action**: Add validateTableName() method
-**Risk**: Very low - simple validation
-**Value**: Immediate security improvement
+### 3. **Add Performance Monitoring** (1-2 hours)
+**Why**: Need visibility into query performance
+**Action**: Create monitoring wrapper for database operations
+**Risk**: Very low - observability only
+**Value**: Immediate insight into bottlenecks
 
 ---
 
 ## ⚠️ Blockers & Mitigations
 
 ### Immediate Blockers
-- **🔴 Test Failures**: Kuzu syntax errors blocking all development
-  - **Mitigation**: Fix syntax errors immediately (Task 1)
+- **🔴 Graph Query Syntax**: All graph operations failing with parser errors
+  - **Mitigation**: Debug string interpolation in query building (1-2 hours)
+  - **Evidence**: "Invalid input <MATCH path = (start:Entity {id: $startNodeId})-[r*1..$>"
+  - **Root Cause**: Likely missing closing braces in depth parameter interpolation
 
 ### Technical Blockers
-- **Kuzu Cypher Dialect**: Differences from standard Cypher not documented
-  - **Mitigation**: Create test queries, document findings
-- **Graph Performance**: Unknown performance with 10k+ nodes
-  - **Mitigation**: Add benchmarking early, optimize incrementally
+- **Test Suite Crashes**: Worker processes dying during Kuzu tests
+  - **Mitigation**: Fix queries first, may resolve crashes
+- **Missing Graph Documentation**: Kuzu's Cypher dialect differences unclear
+  - **Mitigation**: Test with simple queries first, document what works
 
-### Architectural Decisions Needed
-- **Storage Location**: .context vs app/data for databases
-  - **Recommendation**: Use .context for separation
-- **Graph Schema**: Node and edge type definitions
-  - **Recommendation**: Start simple, evolve based on usage
+### Process Blockers
+- **Phase 2 Blocked**: Can't start Continuity Cortex without working graphs
+  - **Impact**: 5+ Phase 2 tasks waiting
+  - **Mitigation**: Focus all effort on graph fixes first
 
 ---
 
 ## 📝 Notes for Implementer
 
-### Getting Started with Task 1
-1. Look at existing adapters (DuckDBStorageAdapter, JSONStorageAdapter) for patterns
-2. BaseStorageAdapter in `/app/src/storage/base/` defines the interface
-3. Start with basic CRUD operations, add graph operations later
-4. Tests should mirror DuckDBStorageAdapter.test.ts structure
+### Debugging the Syntax Issue (Task 1)
+1. Check `/app/src/storage/adapters/KuzuStorageAdapter.ts` methods:
+   - `traverse()` around line 470-500
+   - `findConnected()` around line 520-550
+   - `shortestPath()` around line 570-600
+2. Look for string template literals with `${depth}` or similar
+3. The error shows queries are truncated at variable insertion points
+4. May need to use prepared statements instead of string interpolation
 
-### Parallel Work Opportunity
-Tasks 1 and 3 can be done simultaneously by different developers or in parallel by one developer while waiting for builds/tests.
+### Quick Test Command
+```bash
+npm test -- KuzuStorageAdapter --reporter=verbose
+```
 
-### Dependencies to Watch
-- Once Task 1 is done, Task 2 can start immediately
-- Task 4 (Storage Manager) needs all three previous tasks
-- Task 6 (TS extraction) is the first "real" use case - good validation
+### Success Indicators
+- No "Parser exception" errors in output
+- Graph operation tests pass
+- Can traverse relationships in test data
 
  
 - DuckDBStorageAdapter: 887 lines (too many responsibilities)
@@ -1001,27 +1083,28 @@ Tasks 1 and 3 can be done simultaneously by different developers or in parallel 
 
 ## Sprint Recommendation
 
-### Sprint Goal: "Fix and Complete Graph Operations"
-**Duration**: 1 week
-**Capacity**: 15-20 hours
+### Sprint Goal: "Unblock Graph Operations and Start Phase 2"
+**Duration**: 3-4 days
+**Theme**: Fix critical issues, then advance to intelligence features
 
-#### Sprint Backlog
-1. **Day 1**: Fix Kuzu syntax errors (1-2 hours) 🔴
-2. **Day 1**: Add table validation for security (30 min) 🟢
-3. **Days 2-3**: Complete real graph operations (4-6 hours) 🟠
-4. **Day 4**: Add query performance monitoring (2 hours) 🟢
-5. **Day 5**: Implement logging strategy (2-3 hours) 🟢
+#### Sprint Backlog (Priority Order)
+1. **IMMEDIATE**: Fix Kuzu query syntax errors (1-2 hours) 🔴
+2. **Day 1**: Implement real graph operations (3-4 hours) 🟠
+3. **Day 1-2**: Add performance monitoring (1-2 hours) 🟢
+4. **Day 2-3**: Create Continuity Cortex foundation (4-6 hours) 🟠
+5. **Day 3-4**: Implement Progressive Loading (if time permits) 🟡
 
 #### Success Criteria
-- All tests passing (100%)
-- Graph operations using real Kuzu queries
-- Basic monitoring and logging in place
-- Ready to start Phase 2 (Continuity Cortex)
+- Graph operations working (traverse, findConnected, shortestPath)
+- All Kuzu tests passing
+- Performance monitoring in place
+- Continuity Cortex basic structure created
+- Ready for full Phase 2 development
 
 ## Metadata
-- **Last Groomed**: 2025-09-16
-- **Grooming Scope**: Full inventory of 25+ tasks across multiple sources
-- **Next Review**: After sprint completion (fixing graph operations)
-- **Critical Finding**: Phase 1 incomplete - graph operations need immediate attention
-- **Confidence**: MEDIUM - Clear path but execution needed
-- **Recommendation**: Focus on fixing before advancing to Phase 2
+- **Last Groomed**: 2025-09-18
+- **Grooming Scope**: Full inventory of 30+ tasks, deep dive on Kuzu issues
+- **Next Review**: After graph operations are fixed and working
+- **Critical Finding**: Cypher query syntax errors blocking all graph features
+- **Confidence**: HIGH - Issue identified, fix straightforward
+- **Recommendation**: Stop everything else, fix graph queries first
