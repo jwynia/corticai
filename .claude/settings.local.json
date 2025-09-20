@@ -32,7 +32,10 @@
       "Bash(npm view:*)",
       "Bash(chmod:*)",
       "Bash(/workspaces/corticai/scripts/sync-verify.sh:*)",
-      "Bash(/workspaces/corticai/scripts/groom-scan.sh:*)"
+      "Bash(/workspaces/corticai/scripts/groom-scan.sh:*)",
+      "Bash(timeout 30 npm test:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npm run test:run:*)"
     ],
     "deny": [],
     "ask": []
