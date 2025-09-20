@@ -19,6 +19,14 @@ Central navigation point for all project planning, prioritization, and task mana
 - [Implementation Phases](./implementation_phases.md) - Detailed phase dependencies and approach
 - [Milestones](./milestones.md) - Key delivery targets
 
+### Future Phases Planning
+- [Cosmos DB Integration Plan](./cosmos-db-integration-plan.md) - Cloud storage architecture strategy
+- **→ [Cosmos Storage Tasks](./backlog/cosmos-storage-tasks.md)** - Detailed task breakdown for cloud deployment
+
+### Validation & Meta-Planning
+- [CorticAI Validation Cases](./corticai-validation-cases.md) - How CorticAI proves its value by solving its own coordination problems
+- [Self-Hosting Transition Strategy](./self-hosting-transition-strategy.md) - Progressive transition from manual to automated context management
+
 ### Legacy Backlogs (Being Migrated)
 - [Unified Backlog](./unified_backlog.md) - Previous combined backlog
 - [Research Backlog](./research_backlog.md) - Research-specific tasks
@@ -45,6 +53,12 @@ Central navigation point for all project planning, prioritization, and task mana
 ### Key Decisions Pending
 - File watching library choice
 - Memory consolidation strategy
+
+### Future Architecture Decisions
+- **Cloud Storage Strategy**: Cosmos DB dual-role architecture planned for Phase 7
+  - **Context**: Local-first development with cloud-native deployment capability
+  - **Decision Point**: After Phase 5 completion, before production scaling needs
+  - **Detail Available**: [[cosmos-db-integration-plan]] and [[cosmos-storage-tasks]]
 
 ## Planning Principles
 

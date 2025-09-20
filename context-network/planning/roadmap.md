@@ -23,6 +23,7 @@ graph LR
     C --> E[Phase 5: Extensions]
     D --> E
     E --> F[Phase 6: Scale & Performance]
+    F --> G[Phase 7: Cloud Storage Architecture]
 
     style A fill:#90EE90
     style B fill:#FFE4B5
@@ -30,6 +31,7 @@ graph LR
     style D fill:#F0F0F0
     style E fill:#F0F0F0
     style F fill:#F0F0F0
+    style G fill:#E6E6FA
 ```
 
 ### Current Status
@@ -160,6 +162,35 @@ graph LR
   - Sub-second queries on 1M+ node graphs
   - Schema migrations without data loss
   - 99.9% uptime in production
+
+#### Phase 7: Cloud Storage Architecture
+- **Status:** Future Planning Complete
+- **Description:** Dual-role storage architecture with Azure Cosmos DB for cloud-native deployment
+- **Key Deliverables:**
+  - CosmosDBStorageAdapter with dual-role configuration
+  - Storage provider abstraction (LocalStorageProvider, CosmosStorageProvider)
+  - Bidirectional migration utilities between local and cloud storage
+  - Azure deployment infrastructure and optimization
+  - Environment-based storage provider selection
+- **Dependencies:**
+  - Phase 5: Extensions (foundation features complete)
+- **Enables:**
+  - Production cloud deployment without file system dependencies
+  - Seamless local-to-cloud development workflow
+  - CorticAI self-hosting validation
+- **Success Criteria:**
+  - Feature parity between local and cloud storage modes
+  - <2x performance difference between storage modes
+  - Cost-optimized Azure Cosmos DB RU consumption
+  - CorticAI manages its own planning context without orphaned nodes
+- **Validation Case:**
+  - **Meta-Test**: Use CorticAI to prevent the planning orphaning problem we just solved manually
+  - **Self-Hosting**: CorticAI maintains its own development context network
+  - **Navigation Intelligence**: Fresh agents discover existing cosmos planning work automatically
+- **Self-Hosting Transition Strategy:**
+  - **Phase 2-3**: CorticAI assists with context discovery (test against cosmos planning)
+  - **Phase 4-5**: CorticAI provides planning recommendations (prevent coordination failures)
+  - **Phase 7**: CorticAI fully manages its own planning context (self-hosting success)
 
 ### Integration Milestones
 

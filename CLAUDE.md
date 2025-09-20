@@ -86,6 +86,12 @@ You MUST stop and either consult the context network OR ask the human when:
    - "I'll assume they want..."
    - "This seems like it should..."
 
+5. **You're creating planning documents**
+   - Check: What is the parent planning context?
+   - Check: How will someone with fresh context discover this?
+   - Check: Are proper navigation links established?
+   - Check: Does this integrate into existing planning hierarchy?
+
 ### The Friction Rule
 **Friction is information.** When something feels hard:
 1. STOP immediately
@@ -94,6 +100,15 @@ You MUST stop and either consult the context network OR ask the human when:
 4. Ask if still unclear
 
 Never code around friction - investigate it.
+
+### The Navigation Rule
+**Every planning document must be discoverable through proper hierarchy.** When creating planning content:
+1. **NEVER create orphaned planning nodes** - they will be missed by fresh agents
+2. **ESTABLISH parent-child navigation** - make it obvious what detail exists at deeper levels
+3. **UPDATE parent documents** - include clear signals about when to examine child detail
+4. **VALIDATE discoverability** - can someone starting from planning/index.md find this?
+
+The Bootstrap Problem: We're building CorticAI to solve context navigation, but we must avoid the navigation problems we're trying to solve while building it.
 
 ## Mandatory Collaboration Triggers
 

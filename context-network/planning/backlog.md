@@ -266,10 +266,30 @@ Detailed technical tasks derived from the roadmap, organized by phase and priori
 - Advanced visualizations
 - Predictive features
 
+## Phase 7: Cloud Storage Architecture (Future)
+
+**Prerequisites**: Phase 5 completion, production deployment requirements
+**Scope**: Dual-role storage architecture with Azure Cosmos DB backend
+**Context**: Enable cloud-native deployment while preserving local-first development
+
+### Phase Overview
+- **Primary Storage Role**: Cosmos DB containers with flexible document schemas
+- **Semantic Storage Role**: Cosmos DB containers optimized for analytics and search
+- **Migration Strategy**: Seamless transition between local (Kuzu+DuckDB) and cloud (Cosmos+Cosmos)
+- **Validation Case**: Test CorticAI's ability to manage its own complex planning context
+
+**→ Detailed Implementation**: See [[cosmos-storage-tasks]] for complete task breakdown (17 tasks, 5 sequences)
+**→ Architecture Details**: See [[cosmos-db-integration-plan]] and [[dual-role-storage-architecture]]
+
+### Key Decision Points
+- **When to Start**: After Phase 5 extensions complete, before production scaling needs
+- **Validation Criteria**: CorticAI successfully prevents planning orphaning in its own context
+- **Success Metrics**: Local-cloud feature parity, <2x performance difference, cost-optimized RU consumption
+
 ### Won't Have (This Iteration)
-- Distributed storage
 - Multi-tenancy
 - Real-time collaboration
+- Cross-cloud provider support
 
 ## Relationships
 - **Parent Nodes:** [planning/roadmap.md]

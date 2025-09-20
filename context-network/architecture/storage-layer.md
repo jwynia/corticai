@@ -2,7 +2,21 @@
 
 ## Overview
 
-The storage layer provides a flexible, extensible abstraction for data persistence across the application. It follows a strategy pattern with pluggable storage backends while maintaining a consistent interface.
+The storage layer provides a flexible, extensible abstraction for data persistence across the application. It implements a **dual-role storage architecture** that separates storage concerns by functional requirements rather than implementation technology, enabling seamless switching between local and cloud storage backends.
+
+## Evolution to Dual-Role Architecture
+
+The storage layer has evolved from a single-interface approach to a **dual-role architecture** that recognizes two distinct storage patterns:
+
+- **Primary Storage Role**: Universal, flexible storage for any data structure with standardized schema patterns
+- **Semantic Storage Role**: Typed projections and semantically optimized views for analytics and search
+
+This architecture enables:
+- **Local Development**: File-based storage using Kuzu (Primary) + DuckDB (Semantic)
+- **Cloud Deployment**: Azure Cosmos DB serving both Primary and Semantic roles
+- **Provider Independence**: Same application code works with any storage provider combination
+
+See [[dual-role-storage-architecture]] for complete architectural details.
 
 ## Architecture Diagram
 
@@ -283,10 +297,10 @@ tests/storage/
 ## Future Enhancements
 
 ### Planned Adapters
-1. **DuckDBStorageAdapter**
-   - Columnar analytics storage
-   - Parquet file support
-   - Fast aggregations
+1. **CosmosDBStorageAdapter** (Priority)
+   - Azure Cosmos DB integration
+   - Dual-role support (Primary + Semantic)
+   - Cloud-native deployment capabilities
 
 2. **RedisStorageAdapter**
    - Distributed caching
@@ -297,6 +311,19 @@ tests/storage/
    - Browser-based persistence
    - Offline support
    - Large data handling
+
+### Storage Provider System
+1. **LocalStorageProvider**
+   - Combines Kuzu (Primary) + DuckDB (Semantic)
+   - Optimized for local development
+
+2. **CosmosStorageProvider**
+   - Uses Cosmos DB for both storage roles
+   - Cloud-optimized configuration
+
+3. **HybridStorageProvider**
+   - Mixed local/cloud configurations
+   - Development and testing scenarios
 
 ### Planned Features
 1. **Query Interface**
