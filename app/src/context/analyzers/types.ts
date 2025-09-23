@@ -1,47 +1,99 @@
 /**
- * Types for the Continuity Cortex Similarity Analysis System
+ * Type definitions for the Similarity Analysis system
+ *
+ * This module defines the interfaces and types used for analyzing
+ * file similarity across multiple layers: filename, structure, semantic, and content.
+ * Integrates with the FileOperationInterceptor foundation.
  */
 
+import { FileOperationEvent, FileMetadata } from '../interceptors/types.js';
+
 /**
- * File information for similarity analysis
+ * Information about a file for similarity analysis
  */
 export interface FileInfo {
-  /** Absolute path to the file */
+  /** Full path to the file */
   path: string;
-  /** File name with extension */
-  name: string;
-  /** File extension (e.g., '.ts', '.md') */
-  extension: string;
-  /** File content as string */
-  content: string;
-  /** File size in bytes */
-  size: number;
-  /** File creation timestamp */
-  createdAt?: Date;
-  /** File modification timestamp */
-  modifiedAt?: Date;
-  /** MIME type if known */
-  mimeType?: string;
+
+  /** File content (if available and readable) */
+  content?: string;
+
+  /** SHA-256 hash of content for caching */
+  contentHash?: string;
+
+  /** File metadata from interceptor */
+  metadata: FileMetadata;
+
+  /** File operation event that triggered analysis (if applicable) */
+  event?: FileOperationEvent;
 }
 
 /**
- * Result of similarity analysis between two files
+ * Similarity score for a single analysis layer
+ */
+export interface LayerSimilarityScore {
+  /** Numerical similarity score (0.0 = no similarity, 1.0 = identical) */
+  score: number;
+
+  /** Confidence in the similarity score (0.0 = low confidence, 1.0 = high confidence) */
+  confidence: number;
+
+  /** Detailed breakdown of what contributed to the score */
+  breakdown?: Record<string, number>;
+
+  /** Human-readable explanation of the similarity */
+  explanation?: string;
+}
+
+/**
+ * Combined similarity result from all analysis layers
  */
 export interface SimilarityResult {
-  /** Source file that was analyzed */
-  sourceFile: string;
-  /** Target file that was compared against */
-  targetFile: string;
-  /** Overall similarity score (0.0 to 1.0) */
+  /** Overall similarity score (weighted combination of all layers) */
   overallScore: number;
-  /** Individual layer scores */
-  layerScores: LayerScores;
-  /** Confidence in the similarity assessment (0.0 to 1.0) */
+
+  /** Overall confidence level */
+  overallConfidence: number;
+
+  /** Scores from individual analysis layers */
+  layers: {
+    filename: LayerSimilarityScore;
+    structure: LayerSimilarityScore;
+    semantic: LayerSimilarityScore;
+    content?: LayerSimilarityScore;
+  };
+
+  /** Recommended action based on similarity */
+  recommendation: SimilarityRecommendation;
+
+  /** Analysis metadata */
+  metadata: {
+    analysisTime: Date;
+    processingTimeMs: number;
+    algorithmsUsed: string[];
+    sourceFile: string;
+    targetFile: string;
+  };
+}
+
+/**
+ * Recommended action based on similarity analysis
+ */
+export interface SimilarityRecommendation {
+  /** Type of recommendation */
+  action: 'create' | 'merge' | 'update' | 'duplicate' | 'review';
+
+  /** Confidence in the recommendation (0.0 = low, 1.0 = high) */
   confidence: number;
-  /** Detailed analysis results */
-  details: SimilarityDetails;
-  /** Time taken for analysis in milliseconds */
-  analysisTime: number;
+
+  /** Human-readable reason for the recommendation */
+  reason: string;
+
+  /** Suggested next steps */
+  suggestedSteps?: string[];
+
+  /** Files involved in the recommendation */
+  involvedFiles: string[];
 }
 
 /**
@@ -94,47 +146,111 @@ export interface BatchSimilarityResult {
  * Configuration for similarity analysis
  */
 export interface SimilarityConfig {
-  /** Weights for combining layer scores */
+  /** Weights for combining different layer scores */
   layerWeights: {
     filename: number;
     structure: number;
     semantic: number;
-    content?: number;
+    content: number;
   };
-  /** Minimum similarity threshold for considering files similar */
-  similarityThreshold: number;
-  /** Minimum confidence threshold for recommendations */
-  confidenceThreshold: number;
+
+  /** Thresholds for determining similarity levels */
+  thresholds: {
+    identical: number;    // > this = considered identical
+    similar: number;      // > this = considered similar
+    different: number;    // <= this = considered different
+  };
+
+  /** Maximum content size to analyze (in bytes) */
+  maxContentSize: number;
+
+  /** Enable/disable specific analysis layers */
+  enabledLayers: {
+    filename: boolean;
+    structure: boolean;
+    semantic: boolean;
+    content: boolean;
+  };
+
+  /** Algorithm-specific configurations */
+  algorithms: {
+    filename: {
+      enableLevenshtein: boolean;
+      enableSoundex: boolean;
+      enableNgrams: boolean;
+    };
+    structure: {
+      enableLineCount: boolean;
+      enableFunctionSignatures: boolean;
+      enableImportAnalysis: boolean;
+    };
+    semantic: {
+      enableKeywordExtraction: boolean;
+      enableTopicModeling: boolean;
+      enableCommentAnalysis: boolean;
+    };
+    content: {
+      enableDiffAnalysis: boolean;
+      enableHashComparison: boolean;
+      enableSyntaxTreeComparison: boolean;
+    };
+  };
+
   /** Performance settings */
   performance: {
-    /** Maximum analysis time per file in milliseconds */
-    maxAnalysisTime: number;
-    /** Enable caching of analysis results */
+    maxAnalysisTimeMs: number;
     enableCache: boolean;
-    /** Cache TTL in milliseconds */
-    cacheTTL?: number;
-  };
-  /** File type specific settings */
-  fileTypeSettings?: {
-    [extension: string]: {
-      /** Custom weights for this file type */
-      weights?: Partial<SimilarityConfig['layerWeights']>;
-      /** Ignore certain analysis layers */
-      ignoreLayers?: Array<keyof LayerScores>;
-    };
+    cacheTTL: number;
   };
 }
 
 /**
  * Interface for individual analysis layers
  */
-export interface AnalysisLayer {
-  /** Name of the analysis layer */
-  name: string;
-  /** Analyze similarity between two files */
-  analyze(file1: FileInfo, file2: FileInfo): Promise<number>;
-  /** Get detailed analysis information */
-  getDetails?(): SimilarityDetails;
+export interface SimilarityLayer {
+  /**
+   * Analyze similarity between two files
+   */
+  analyze(file1: FileInfo, file2: FileInfo): Promise<LayerSimilarityScore>;
+
+  /**
+   * Get the name of this analysis layer
+   */
+  getName(): string;
+
+  /**
+   * Check if this layer can analyze the given file types
+   */
+  canAnalyze(file1: FileInfo, file2: FileInfo): boolean;
+}
+
+/**
+ * Main interface for the similarity analyzer
+ */
+export interface SimilarityAnalyzer {
+  /**
+   * Analyze similarity between two files using all enabled layers
+   */
+  analyzeSimilarity(file1: FileInfo, file2: FileInfo): Promise<SimilarityResult>;
+
+  /**
+   * Find similar files to a target file from a list of candidates
+   */
+  findSimilarFiles(
+    targetFile: FileInfo,
+    candidateFiles: FileInfo[],
+    minSimilarity?: number
+  ): Promise<SimilarityResult[]>;
+
+  /**
+   * Update the analyzer configuration
+   */
+  updateConfig(config: Partial<SimilarityConfig>): void;
+
+  /**
+   * Get the current configuration
+   */
+  getConfig(): SimilarityConfig;
 }
 
 /**
@@ -150,19 +266,83 @@ export interface CacheEntry {
 }
 
 /**
- * Default configuration values
+ * Default configuration for similarity analysis
  */
 export const DEFAULT_SIMILARITY_CONFIG: SimilarityConfig = {
   layerWeights: {
-    filename: 0.25,
-    structure: 0.35,
-    semantic: 0.40,
+    filename: 0.2,
+    structure: 0.3,
+    semantic: 0.3,
+    content: 0.2
   },
-  similarityThreshold: 0.70,
-  confidenceThreshold: 0.60,
+  thresholds: {
+    identical: 0.95,
+    similar: 0.7,
+    different: 0.3
+  },
+  maxContentSize: 1024 * 1024, // 1MB
+  enabledLayers: {
+    filename: true,
+    structure: true,
+    semantic: true,
+    content: true
+  },
+  algorithms: {
+    filename: {
+      enableLevenshtein: true,
+      enableSoundex: true,
+      enableNgrams: true
+    },
+    structure: {
+      enableLineCount: true,
+      enableFunctionSignatures: true,
+      enableImportAnalysis: true
+    },
+    semantic: {
+      enableKeywordExtraction: true,
+      enableTopicModeling: false, // Computationally expensive
+      enableCommentAnalysis: true
+    },
+    content: {
+      enableDiffAnalysis: true,
+      enableHashComparison: true,
+      enableSyntaxTreeComparison: false // Computationally expensive
+    }
+  },
   performance: {
-    maxAnalysisTime: 100,
+    maxAnalysisTimeMs: 5000, // 5 seconds
     enableCache: true,
-    cacheTTL: 300000, // 5 minutes
-  },
+    cacheTTL: 300000 // 5 minutes
+  }
 };
+
+/**
+ * Error types for similarity analysis
+ */
+export class SimilarityAnalysisError extends Error {
+  constructor(message: string, public readonly code: string, public readonly cause?: Error) {
+    super(message);
+    this.name = 'SimilarityAnalysisError';
+  }
+}
+
+export class SimilarityConfigError extends SimilarityAnalysisError {
+  constructor(message: string, cause?: Error) {
+    super(message, 'CONFIG_ERROR', cause);
+    this.name = 'SimilarityConfigError';
+  }
+}
+
+export class SimilarityLayerError extends SimilarityAnalysisError {
+  constructor(message: string, public readonly layerName: string, cause?: Error) {
+    super(message, 'LAYER_ERROR', cause);
+    this.name = 'SimilarityLayerError';
+  }
+}
+
+export class SimilarityAnalysisTimeoutError extends SimilarityAnalysisError {
+  constructor(message: string, public readonly timeoutMs: number, cause?: Error) {
+    super(message, 'TIMEOUT_ERROR', cause);
+    this.name = 'SimilarityAnalysisTimeoutError';
+  }
+}
