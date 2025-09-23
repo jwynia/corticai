@@ -140,7 +140,7 @@ export class SimilarityAnalyzer {
     const startTime = Date.now();
 
     // Check for identical files
-    if (file1.path === file2.path || file1.content === file2.content) {
+    if (file1.path === file2.path || (file1.content && file1.content === file2.content)) {
       return {
         sourceFile: file1.path,
         targetFile: file2.path,
@@ -159,7 +159,7 @@ export class SimilarityAnalyzer {
     }
 
     // Get weights for this file type
-    const weights = this.getWeights(file1.extension, file2.extension);
+    const weights = this.getWeights(file1.metadata.extension, file2.metadata.extension);
 
     // Run analysis layers
     const layerScores = {
@@ -252,12 +252,12 @@ export class SimilarityAnalyzer {
     let confidence = overallScore; // Start with overall score
 
     // Empty files have low confidence
-    if (file1.content.trim() === '' || file2.content.trim() === '') {
+    if ((file1.content && file1.content.trim() === '') || (file2.content && file2.content.trim() === '')) {
       confidence *= 0.3;
     }
 
     // Very small files have lower confidence
-    const avgSize = (file1.size + file2.size) / 2;
+    const avgSize = (file1.metadata.size + file2.metadata.size) / 2;
     if (avgSize < 50) {
       confidence *= 0.5;
     } else if (avgSize < 200) {
@@ -274,7 +274,7 @@ export class SimilarityAnalyzer {
     }
 
     // Different file extensions reduce confidence slightly
-    if (file1.extension !== file2.extension) {
+    if (file1.metadata.extension !== file2.metadata.extension) {
       confidence *= 0.9;
     }
 
@@ -361,20 +361,16 @@ export class SimilarityAnalyzer {
       throw new Error('Invalid file structure: missing or invalid path');
     }
 
-    if (!file.name || typeof file.name !== 'string') {
-      throw new Error('Invalid file structure: missing or invalid name');
+    if (!file.metadata || typeof file.metadata !== 'object') {
+      throw new Error('Invalid file structure: missing or invalid metadata');
     }
 
-    if (!file.extension || typeof file.extension !== 'string') {
-      throw new Error('Invalid file structure: missing or invalid extension');
+    if (!file.metadata.extension || typeof file.metadata.extension !== 'string') {
+      throw new Error('Invalid file structure: missing or invalid extension in metadata');
     }
 
-    if (file.content === undefined || file.content === null) {
-      throw new Error('Invalid file structure: missing content');
-    }
-
-    if (typeof file.size !== 'number') {
-      throw new Error('Invalid file structure: missing or invalid size');
+    if (typeof file.metadata.size !== 'number') {
+      throw new Error('Invalid file structure: missing or invalid size in metadata');
     }
   }
 

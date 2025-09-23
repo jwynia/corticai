@@ -26,8 +26,8 @@ import {
   SimilarityAnalysisTimeoutError
 } from '../../../src/context/analyzers/types.js';
 
-// Import the implementation (this will fail initially - that's expected in TDD)
-import { SimilarityAnalyzerImpl } from '../../../src/context/analyzers/SimilarityAnalyzer.js';
+// Import the implementation
+import { SimilarityAnalyzer as SimilarityAnalyzerImpl } from '../../../src/context/analyzers/SimilarityAnalyzer.js';
 
 // Mock individual analyzer layers
 import { FilenameAnalyzer } from '../../../src/context/analyzers/layers/FilenameAnalyzer.js';
