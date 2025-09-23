@@ -33,6 +33,12 @@ import {
 import { QueryConditionBuilder } from './QueryConditionBuilder'
 import { QueryValidators } from './QueryValidators'
 import { QueryHelpers } from './QueryHelpers'
+import {
+  ContextDepth,
+  validateDepth,
+  getDepthMetadata,
+  createDepthProjection
+} from '../types/context'
 
 /**
  * Fluent QueryBuilder class for type-safe query construction
@@ -45,6 +51,8 @@ export class QueryBuilder<T> {
   private readonly _grouping?: GroupBy<T>
   private readonly _aggregations: Aggregation<T>[]
   private readonly _having?: HavingCondition
+  private readonly _depth?: ContextDepth
+  private readonly _performanceHints?: import('./types').QueryPerformanceHints
 
   /**
    * Creates a new QueryBuilder instance
@@ -57,7 +65,9 @@ export class QueryBuilder<T> {
     pagination?: Pagination,
     grouping?: GroupBy<T>,
     aggregations: Aggregation<T>[] = [],
-    having?: HavingCondition
+    having?: HavingCondition,
+    depth?: ContextDepth,
+    performanceHints?: import('./types').QueryPerformanceHints
   ) {
     this._conditions = [...conditions]
     this._ordering = [...ordering]
@@ -66,6 +76,8 @@ export class QueryBuilder<T> {
     this._grouping = grouping ? { ...grouping } : undefined
     this._aggregations = [...aggregations]
     this._having = having ? { ...having } : undefined
+    this._depth = depth
+    this._performanceHints = performanceHints ? { ...performanceHints } : undefined
   }
 
   /**
@@ -73,6 +85,34 @@ export class QueryBuilder<T> {
    */
   static create<T>(): QueryBuilder<T> {
     return new QueryBuilder<T>()
+  }
+
+  /**
+   * Helper method to create a new instance with modified properties
+   * This preserves depth and performance hints across all operations
+   */
+  private createNew(overrides: Partial<{
+    conditions: Condition<T>[]
+    ordering: OrderBy<T>[]
+    projection?: Projection<T>
+    pagination?: Pagination
+    grouping?: GroupBy<T>
+    aggregations: Aggregation<T>[]
+    having?: HavingCondition
+    depth?: ContextDepth
+    performanceHints?: import('./types').QueryPerformanceHints
+  }> = {}): QueryBuilder<T> {
+    return new QueryBuilder<T>(
+      overrides.conditions ?? this._conditions,
+      overrides.ordering ?? this._ordering,
+      overrides.projection ?? this._projection,
+      overrides.pagination ?? this._pagination,
+      overrides.grouping ?? this._grouping,
+      overrides.aggregations ?? this._aggregations,
+      overrides.having ?? this._having,
+      overrides.depth ?? this._depth,
+      overrides.performanceHints ?? this._performanceHints
+    )
   }
 
   // ============================================================================
@@ -460,16 +500,10 @@ export class QueryBuilder<T> {
     }
     
     const newOrdering = [...this._ordering, ordering]
-    
-    return new QueryBuilder<T>(
-      this._conditions,
-      newOrdering,
-      this._projection,
-      this._pagination,
-      this._grouping,
-      this._aggregations,
-      this._having
-    )
+
+    return this.createNew({
+      ordering: newOrdering
+    })
   }
 
   /**
@@ -503,15 +537,9 @@ export class QueryBuilder<T> {
       offset: this._pagination?.offset ?? 0
     }
 
-    return new QueryBuilder<T>(
-      this._conditions,
-      this._ordering,
-      this._projection,
-      newPagination,
-      this._grouping,
-      this._aggregations,
-      this._having
-    )
+    return this.createNew({
+      pagination: newPagination
+    })
   }
 
   /**
@@ -562,15 +590,9 @@ export class QueryBuilder<T> {
       includeAll: false
     }
 
-    return new QueryBuilder<T>(
-      this._conditions,
-      this._ordering,
-      projection,
-      this._pagination,
-      this._grouping,
-      this._aggregations,
-      this._having
-    )
+    return this.createNew({
+      projection
+    })
   }
 
   // ============================================================================
@@ -589,15 +611,9 @@ export class QueryBuilder<T> {
       fields: [...fields]
     }
 
-    return new QueryBuilder<T>(
-      this._conditions,
-      this._ordering,
-      this._projection,
-      this._pagination,
-      grouping,
-      this._aggregations,
-      this._having
-    )
+    return this.createNew({
+      grouping
+    })
   }
 
   // ============================================================================
@@ -693,15 +709,51 @@ export class QueryBuilder<T> {
       value
     }
 
-    return new QueryBuilder<T>(
-      this._conditions,
-      this._ordering,
-      this._projection,
-      this._pagination,
-      this._grouping,
-      this._aggregations,
-      havingCondition
-    )
+    return this.createNew({
+      having: havingCondition
+    })
+  }
+
+  // ============================================================================
+  // DEPTH AND PERFORMANCE
+  // ============================================================================
+
+  /**
+   * Set the context depth for progressive loading
+   *
+   * @param depth - The context depth level to use for this query
+   * @returns New QueryBuilder instance with depth set
+   *
+   * @example
+   * ```typescript
+   * const query = QueryBuilder.create<User>()
+   *   .where('type', '=', 'document')
+   *   .withDepth(ContextDepth.SIGNATURE)
+   *   .build()
+   * // Only loads id, type, name fields for memory efficiency
+   * ```
+   */
+  withDepth(depth: ContextDepth): QueryBuilder<T> {
+    if (!validateDepth(depth)) {
+      throw new Error(`Invalid depth value: ${depth}`)
+    }
+
+    // Generate performance hints based on depth
+    const depthMetadata = getDepthMetadata(depth)
+    const projection = createDepthProjection(depth)
+
+    const performanceHints: import('./types').QueryPerformanceHints = {
+      expectedMemoryReduction: depth < 5, // HISTORICAL = 5 is full loading
+      estimatedMemoryFactor: depthMetadata.estimatedMemoryFactor,
+      optimizedFields: projection.includedFields,
+      cacheStrategy: depth <= 2 ? 'aggressive' : depth <= 3 ? 'moderate' : 'minimal',
+      expectedSpeedFactor: depth <= 2 ? 1.5 : depth <= 3 ? 1.2 : 1.0
+    }
+
+    return this.createNew({
+      depth,
+      performanceHints
+    })
   }
 
   // ============================================================================
@@ -719,7 +771,9 @@ export class QueryBuilder<T> {
       pagination: this._pagination ? { ...this._pagination } : undefined,
       grouping: this._grouping ? { ...this._grouping } : undefined,
       aggregations: this._aggregations.length > 0 ? [...this._aggregations] : undefined,
-      having: this._having ? { ...this._having } : undefined
+      having: this._having ? { ...this._having } : undefined,
+      depth: this._depth,
+      performanceHints: this._performanceHints ? { ...this._performanceHints } : undefined
     }
 
     // Validate the built query
@@ -765,16 +819,10 @@ export class QueryBuilder<T> {
    */
   private _addCondition(condition: Condition<T>): QueryBuilder<T> {
     const newConditions = [...this._conditions, condition]
-    
-    return new QueryBuilder<T>(
-      newConditions,
-      this._ordering,
-      this._projection,
-      this._pagination,
-      this._grouping,
-      this._aggregations,
-      this._having
-    )
+
+    return this.createNew({
+      conditions: newConditions
+    })
   }
 
   /**

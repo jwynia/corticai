@@ -32,6 +32,10 @@ export interface Query<T = any> {
   aggregations?: Aggregation<T>[]
   /** Optional having clause for filtering grouped results */
   having?: HavingCondition
+  /** Optional depth for progressive loading */
+  depth?: import('../types/context').ContextDepth
+  /** Performance hints based on depth and other factors */
+  performanceHints?: QueryPerformanceHints
 }
 
 /**
@@ -59,6 +63,22 @@ export interface QueryMetadata {
   totalCount?: number
   /** Query execution plan (for debugging) */
   plan?: QueryPlan
+}
+
+/**
+ * Performance hints for queries, especially depth-aware queries
+ */
+export interface QueryPerformanceHints {
+  /** Whether this query is expected to reduce memory usage */
+  expectedMemoryReduction: boolean
+  /** Estimated memory factor compared to full entity loading */
+  estimatedMemoryFactor: number
+  /** Fields that will be optimized/projected for this query */
+  optimizedFields: string[]
+  /** Recommended cache strategy for this query type */
+  cacheStrategy?: 'aggressive' | 'moderate' | 'minimal'
+  /** Expected query execution speed relative to full query */
+  expectedSpeedFactor?: number
 }
 
 /**
