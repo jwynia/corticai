@@ -39,10 +39,10 @@ describe('KuzuSecureQueryBuilder Syntax Fixes', () => {
       // Should parameterize the node ID
       expect(query.statement).toContain('$startNodeId')
 
-      // Edge types should be filtered using ALL() predicate
-      expect(query.statement).toContain("WHERE ALL(rel IN r WHERE rel.type = 'TYPE1' OR rel.type = 'TYPE2')")
+      // Edge type filtering is now done in post-processing, so no WHERE clause
+      expect(query.statement).not.toContain('WHERE')
 
-      // Should not have maxDepth or edgeTypes as parameters since they're now inline
+      // Should not have maxDepth or edgeTypes as parameters since they're now handled differently
       expect(query.parameters).not.toHaveProperty('maxDepth')
       expect(query.parameters).not.toHaveProperty('edgeTypes')
       expect(query.parameters.startNodeId).toBe('node1')

@@ -46,7 +46,7 @@ export class KuzuSecureQueryBuilder {
    */
   buildEntityDeleteQuery(entityId: string): SecureQuery {
     return {
-      statement: 'MATCH (e:Entity {id: $id}) DELETE e',
+      statement: 'MATCH (e:Entity {id: $id}) DETACH DELETE e',
       parameters: {
         id: entityId
       }
@@ -95,25 +95,25 @@ export class KuzuSecureQueryBuilder {
 
     // Kuzu 0.11.2 supports variable-length paths with literal depth values
     // Note: 'start' and 'end' might be reserved, so using 'source' and 'target'
-    let statement = `MATCH path = (source:Entity {id: $startNodeId})-[r:Relationship*1..${maxDepth}]-(target:Entity)`
+    // Use the provided relationshipPattern to respect direction
+    let statement = `MATCH path = (source:Entity {id: $startNodeId})${relationshipPattern}(target:Entity)`
     const parameters: QueryParameters = {
       startNodeId: startNodeId
     }
 
-    if (edgeTypes && edgeTypes.length > 0) {
-      // For edge type filtering with variable-length paths in Kuzu 0.11.2
-      // We can try using ALL() predicate for filtering relationship types
-      if (edgeTypes.length === 1) {
-        const escapedType = edgeTypes[0].replace(/'/g, "''")
-        statement += ` WHERE ALL(rel IN r WHERE rel.type = '${escapedType}')`
-      } else {
-        // For multiple types, use OR conditions within ALL
-        const conditions = edgeTypes.map(type => `rel.type = '${type.replace(/'/g, "''")}'`).join(' OR ')
-        statement += ` WHERE ALL(rel IN r WHERE ${conditions})`
-      }
-    }
+    // For now, implement variable-length traversal without edge type filtering
+    // Edge type filtering will be done in post-processing
+    // TODO: Implement proper edge type filtering for variable-length paths
 
-    statement += ` RETURN path, length(r) as pathLength LIMIT 100`
+    // Note: edgeTypes are handled in post-processing, not as query parameters
+
+    // For single-hop relationships, path length is always 1
+    // For variable-length paths, we would use length(r)
+    if (statement.includes('*')) {
+      statement += ` RETURN path, length(r) as pathLength LIMIT 100`
+    } else {
+      statement += ` RETURN path, 1 as pathLength LIMIT 100`
+    }
 
     return {
       statement,

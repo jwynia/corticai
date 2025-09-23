@@ -475,9 +475,8 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
     }
 
     try {
-      // Clear database
-      await this.connection.query('MATCH (e:Entity) DELETE e')
-      await this.connection.query('MATCH ()-[r:Relationship]->() DELETE r')
+      // Clear database - use DETACH DELETE to automatically handle connected edges
+      await this.connection.query('MATCH (e:Entity) DETACH DELETE e')
 
       // Clear memory cache
       const sizeBefore = this.data.size
@@ -693,7 +692,18 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
           for (const row of result.data) {
             const graphPath = this.convertToGraphPath(row.path, row.pathLength)
             if (graphPath) {
-              paths.push(graphPath)
+              // Apply edge type filtering if specified
+              if (pattern.edgeTypes && pattern.edgeTypes.length > 0) {
+                // Check if all edges in the path match the allowed types
+                const allEdgesMatch = graphPath.edges.every(edge =>
+                  pattern.edgeTypes!.includes(edge.type)
+                )
+                if (allEdgesMatch) {
+                  paths.push(graphPath)
+                }
+              } else {
+                paths.push(graphPath)
+              }
             }
           }
         }

@@ -22,6 +22,22 @@ You MUST NOT:
 
 ## Planning Process
 
+### Phase 0: Navigation Hierarchy Check 🧭
+
+**CRITICAL: Apply The Navigation Rule (from CLAUDE.md)**
+
+Before creating ANY planning documents:
+1. **Check Parent Context**: What existing planning hierarchy does this fit into?
+2. **Validate Discoverability**: Can someone starting from `planning/index.md` find this?
+3. **Establish Integration Path**: Where will this link into existing roadmap/backlog?
+4. **Prevent Orphaning**: Will this create orphaned planning nodes?
+
+**Navigation Checklist**:
+- [ ] Identified parent planning documents (roadmap, backlog, etc.)
+- [ ] Determined appropriate phase/milestone for this work
+- [ ] Checked for existing related planning work
+- [ ] Planned integration into existing hierarchy
+
 ### Phase 1: Problem Understanding 🔍
 
 1. **Define the Problem**
@@ -104,30 +120,47 @@ You MUST NOT:
    - **Testable**: Defined success criteria
    - **Estimated**: Rough effort estimate (S/M/L/XL)
 
-2. **Task Template**
+2. **Task Template (Groom-Ready Format)**
    ```markdown
-   ## Task: [Task Name]
-   
+   ## Task: [Specific, Actionable Title]
+
+   ### One-liner
+   [What this achieves in plain language - for groom summary]
+
+   ### Complexity
+   [Trivial/Small/Medium/Large - for groom classification]
+
+   ### Context
+   [Why this is needed - brief background]
+
    ### Scope
    - What this task includes
    - What this task excludes
-   
+   - Key files to modify: [List for groom details]
+
    ### Dependencies
    - Prerequisites: [What must be done first]
    - Blockers: [What could prevent completion]
-   
-   ### Success Criteria
-   - [ ] Criterion 1
-   - [ ] Criterion 2
-   
+   - Unblocks: [What this enables afterward]
+
+   ### Acceptance Criteria (Test-Ready)
+   - [ ] [Specific, testable criterion]
+   - [ ] [Another criterion]
+   - [ ] [Performance/security requirements]
+
+   ### Implementation Guide
+   1. [First concrete step]
+   2. [Second step]
+   3. [Validation step]
+
    ### Estimated Effort
-   - Size: [S/M/L/XL]
-   - Complexity: [Low/Medium/High]
-   
-   ### Implementation Notes
-   - Key considerations
-   - Suggested approach
-   - Potential gotchas
+   - Size: [Trivial/Small/Medium/Large]
+   - Complexity: [Technical risk level]
+
+   ### Grooming Notes
+   - Watch out for: [Pitfalls or edge cases]
+   - Related work: [Cross-references]
+   - Parent context: [Planning hierarchy reference]
    ```
 
 3. **Create Task List**
@@ -250,16 +283,23 @@ Before any implementation begins, ensure:
 - [ ] Design patterns are chosen
 
 ### Planning
-- [ ] Tasks are broken down
+- [ ] Tasks are broken down into groom-ready format
 - [ ] Dependencies are mapped
 - [ ] Risks are assessed
 - [ ] Order is determined
+- [ ] **Navigation hierarchy established**
 
 ### Preparation
 - [ ] Team has necessary skills
 - [ ] Tools are available
 - [ ] Environment is ready
 - [ ] Rollback plan exists
+
+### Groom Integration
+- [ ] Tasks formatted for `/groom` command processing
+- [ ] Acceptance criteria defined for each task
+- [ ] Complexity estimates provided (Trivial/Small/Medium/Large)
+- [ ] Parent planning context clearly established
 
 ## Output Structure
 
@@ -287,21 +327,67 @@ context-network/
         └── alternatives.md       # What we considered
 ```
 
+## Integration with Groom & Implement Commands
+
+### Planning → Grooming → Implementation Workflow
+
+**This command creates the foundation for the complete workflow:**
+
+1. **`/plan [feature]`** (This command):
+   - Creates proper navigation hierarchy
+   - Defines problems and architecture
+   - Breaks down into groom-ready tasks
+   - Establishes parent planning context
+
+2. **`/groom [feature]`** (Next step):
+   - Takes planned tasks and makes them implementation-ready
+   - Adds detailed acceptance criteria
+   - Sequences by dependencies
+   - Creates sprint-ready backlog
+
+3. **`/implement [task]`** (Final step):
+   - Test-driven implementation of groomed tasks
+   - Follows acceptance criteria precisely
+   - Updates planning documents with reality
+
+### Task Format for Grooming Success
+
+Tasks created by `/plan` must be ready for `/groom` processing:
+- **One-liner summary** for quick understanding
+- **Complexity estimate** for workload planning
+- **Clear acceptance criteria** for test-driven development
+- **Parent context links** for navigation hierarchy
+- **Implementation guidance** for getting started
+
 ## Success Criteria
 
 This planning session is successful when:
 
 1. **Complete Understanding**: The problem space is thoroughly explored
 2. **Clear Architecture**: Design decisions are documented and justified
-3. **Actionable Tasks**: Work is broken into independent, scoped units
-4. **Identified Risks**: Potential issues are documented with mitigations
-5. **No Premature Code**: Zero implementation has occurred
-6. **Team Alignment**: Plan can be understood by any team member
+3. **Groom-Ready Tasks**: Work is broken into groom-processable units
+4. **Navigation Hierarchy**: No orphaned planning nodes created
+5. **Integration Path**: Clear links to existing planning structure
+6. **Identified Risks**: Potential issues are documented with mitigations
+7. **No Premature Code**: Zero implementation has occurred
+8. **Workflow Ready**: Tasks ready for `/groom` command processing
 
 ## Remember
 
 > "Weeks of coding can save you hours of planning" - Unknown
 
 Take the time to understand deeply, design thoughtfully, and plan comprehensively. The goal is to create a plan so clear that implementation becomes straightforward and risk-free.
+
+### Critical Navigation Principles
+
+**NEVER create orphaned planning nodes.** Every planning document must:
+1. Have clear parent context in existing hierarchy
+2. Be discoverable through logical navigation paths
+3. Include proper cross-references and links
+4. Integrate into roadmap/backlog structure
+
+**The Bootstrap Problem**: We're building CorticAI to solve navigation problems, so we must not create the navigation problems we're solving while building it.
+
+**Validation Question**: Can someone starting from `context-network/planning/index.md` discover this planning work through logical navigation? If not, fix the hierarchy first.
 
 **Now, let's plan: $ARGUMENTS**
