@@ -61,6 +61,7 @@ interface QueryBuilder<T> {
   select(...fields: (keyof T)[]): QueryBuilder<T>
   groupBy(...fields: (keyof T)[]): QueryBuilder<T>
   having(condition: Condition<T>): QueryBuilder<T>
+  withDepth(depth: ContextDepth): QueryBuilder<T>  // IMPLEMENTED
   build(): Query<T>
 }
 ```
@@ -205,10 +206,12 @@ interface Query<T> {
   source: string
   conditions: Condition<T>[]
   ordering: OrderBy<T>[]
-  projection: Projection<T>
+  projection?: Projection<T>
   grouping?: GroupBy<T>
   pagination?: Pagination
   aggregations?: Aggregation<T>[]
+  depth?: ContextDepth                    // IMPLEMENTED
+  performanceHints?: QueryPerformanceHints // IMPLEMENTED
 }
 
 // Condition types
@@ -351,24 +354,85 @@ query.pipe(
 4. **Retry Logic**: Transient failure handling
 5. **Circuit Breaking**: Prevent cascading failures
 
+## Progressive Loading Integration
+
+### Overview
+The Progressive Loading System has been implemented as a core component of the Query Interface Layer, providing 5-level depth-based entity loading for memory optimization.
+
+**Status**: ✅ IMPLEMENTED (September 2024)
+
+### Key Capabilities
+- **Memory Reduction**: Up to 80% memory savings at SIGNATURE depth
+- **Depth Levels**: 5 levels from SIGNATURE to HISTORICAL
+- **QueryBuilder Integration**: `withDepth()` method for depth-aware queries
+- **Performance Hints**: Automatic optimization metadata generation
+- **Dual Entity Support**: Works with both structured and flat entities
+
+### Implementation Details
+
+#### Depth Levels
+```typescript
+enum ContextDepth {
+  SIGNATURE = 1,    // id, type, name (0.05x memory)
+  STRUCTURE = 2,    // + relationships, hierarchy (0.2x memory)
+  SEMANTIC = 3,     // + tags, categories, summary (0.4x memory)
+  DETAILED = 4,     // + content, properties (0.8x memory)
+  HISTORICAL = 5    // + versions, audit trail (1.5x memory)
+}
+```
+
+#### Query Integration
+```typescript
+const query = QueryBuilder.create<Entity>()
+  .where('type', '=', 'document')
+  .withDepth(ContextDepth.SIGNATURE)
+  .build()
+
+// Automatic performance hints
+console.log(query.performanceHints?.estimatedMemoryFactor) // 0.05
+```
+
+#### Entity Projection
+```typescript
+const projected = projectEntityToDepth(entity, ContextDepth.SEMANTIC)
+// Returns entity with only fields appropriate for semantic depth
+```
+
+### Integration Points with Storage Adapters
+
+**Current Status**: QueryBuilder depth support implemented
+**Next Phase**: Storage adapter integration
+
+#### Planned Adapter Integration
+```typescript
+interface DepthAwareAdapter<T> extends Storage<T> {
+  queryWithDepth(query: Query<T>): Promise<QueryResult<T>>
+  // Uses query.depth and query.performanceHints for optimization
+}
+```
+
+**See**: [ADR-005: Progressive Loading System](../../decisions/adr-005-progressive-loading-system.md)
+
 ## Migration Strategy
 
-### Phase 1: Core Implementation
+### Phase 1: Core Implementation ✅ COMPLETED
 - Basic QueryBuilder
 - Simple filtering and sorting
 - Memory executor only
+- **Progressive Loading System with depth support**
 
 ### Phase 2: Advanced Features
-- All executors
-- Query optimization
-- Result caching
+- All executors with depth awareness
+- Query optimization using performance hints
+- Depth-aware result caching
 
 ### Phase 3: DSL Support
 - Query parser
 - DSL to builder conversion
 - Query validation
+- DSL depth syntax
 
 ### Phase 4: Performance
-- Advanced optimizations
-- Streaming support
-- Distributed execution
+- Advanced depth-based optimizations
+- Streaming support with progressive loading
+- Distributed execution with depth hints

@@ -49,6 +49,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md) - Use Kuzu embedded graph database for relationship storage
 - [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md) - Use DuckDB for analytics and materialized views
 - [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md) - Implement working/semantic/episodic memory tiers
+- [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md) - Implement 5-level depth-based progressive entity loading
 
 #### Deprecated
 - *None yet*
@@ -64,6 +65,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 #### Architecture
 - [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
 - [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
+- [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md)
 
 #### Technology
 - [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
@@ -78,6 +80,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 #### Performance
 - [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md) - Analytics performance optimization
 - [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md) - Memory management and performance
+- [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md) - Memory-efficient entity loading
 
 ### ADRs by Chronology
 
@@ -86,6 +89,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - August 28: [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
 - August 28: [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md)
 - August 28: [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
+- September 24: [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md)
 
 ### ADRs by Component
 
@@ -93,6 +97,9 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
 - [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md)
 - [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
+
+#### Query Interface Layer
+- [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md)
 
 #### Workflow Engine
 - [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
