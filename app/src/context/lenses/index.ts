@@ -50,3 +50,21 @@ export {
   safeProcessResults,
   createQueryContext
 } from './ContextLens'
+
+// Registry and activation system
+export {
+  LensRegistry,
+  type LensConflict,
+  type ActivationHistoryEntry,
+  type LensRegistryEvent,
+  type LensRegistryEventListener
+} from './LensRegistry'
+
+export {
+  ActivationDetector,
+  type FilePatterns,
+  type ActionPatterns,
+  type ConfidenceScores,
+  type LensMatch,
+  type ContextAnalysis
+} from './ActivationDetector'

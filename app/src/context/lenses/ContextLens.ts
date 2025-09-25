@@ -228,9 +228,9 @@ export abstract class BaseLens implements ContextLens {
   }
 
   /**
-   * Get current lens configuration (readonly copy)
+   * Get current lens configuration
    */
-  getConfig(): Readonly<LensConfig> {
+  getConfig(): LensConfig {
     return { ...this.config }
   }
 
