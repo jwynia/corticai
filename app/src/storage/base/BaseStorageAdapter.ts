@@ -138,7 +138,7 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
   // ITERATOR METHODS
   // ============================================================================
 
-  async* keys(): AsyncIterator<string> {
+  async* keys(): AsyncIterable<string> {
     await this.ensureLoaded()
     
     // Create a snapshot of keys to avoid concurrent modification issues
@@ -153,7 +153,7 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
     }
   }
 
-  async* values(): AsyncIterator<T> {
+  async* values(): AsyncIterable<T> {
     await this.ensureLoaded()
     
     // Create a snapshot of values to avoid concurrent modification issues
@@ -168,7 +168,7 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
     }
   }
 
-  async* entries(): AsyncIterator<[string, T]> {
+  async* entries(): AsyncIterable<[string, T]> {
     await this.ensureLoaded()
     
     // Create a snapshot of entries to avoid concurrent modification issues

@@ -1,6 +1,12 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import { queryContextTool } from './query.tool.js';
+
+// Helper function to create RuntimeContext
+function createRuntimeContext(): RuntimeContext {
+  return new RuntimeContext();
+}
 
 /**
  * Storage configuration for analysis
@@ -21,7 +27,6 @@ const storageConfigSchema = z.object({
  */
 export const analyzeContextPatternsTool = createTool({
   id: 'analyze-context-patterns',
-  name: 'Analyze Context Patterns',
   description: 'Identify patterns and trends in stored context',
   inputSchema: z.object({
     timeRange: z.object({
@@ -72,6 +77,7 @@ export const analyzeContextPatternsTool = createTool({
         query: { conditions: queryConditions },
         storageConfig,
       },
+      runtimeContext: createRuntimeContext(),
     });
 
     // Analyze type distribution
@@ -154,7 +160,6 @@ export const analyzeContextPatternsTool = createTool({
  */
 export const analyzeContextRelationshipsTool = createTool({
   id: 'analyze-context-relationships',
-  name: 'Analyze Context Relationships',
   description: 'Map and analyze relationships between context entries',
   inputSchema: z.object({
     rootEntityId: z.string().optional().describe('Start analysis from a specific entity'),
@@ -210,6 +215,7 @@ export const analyzeContextRelationshipsTool = createTool({
           },
           storageConfig,
         },
+        runtimeContext: createRuntimeContext(),
       });
 
       if (entityQuery.results.length === 0) return;
@@ -245,6 +251,7 @@ export const analyzeContextRelationshipsTool = createTool({
           },
           storageConfig,
         },
+        runtimeContext: createRuntimeContext(),
       });
 
       for (const referencing of referencingQuery.results) {
@@ -270,6 +277,7 @@ export const analyzeContextRelationshipsTool = createTool({
           query: {},
           storageConfig,
         },
+        runtimeContext: createRuntimeContext(),
       });
 
       for (const entry of allEntries.results.slice(0, 100)) {
@@ -298,7 +306,7 @@ export const analyzeContextRelationshipsTool = createTool({
         clusterMap.set(edge.source, targetCluster);
       } else if (sourceCluster && targetCluster && sourceCluster !== targetCluster) {
         // Merge clusters
-        for (const node of targetCluster) {
+        for (const node of Array.from(targetCluster)) {
           sourceCluster.add(node);
           clusterMap.set(node, sourceCluster);
         }
@@ -307,7 +315,7 @@ export const analyzeContextRelationshipsTool = createTool({
 
     // Convert clusters to array
     const processedClusters = new Set<Set<string>>();
-    for (const cluster of clusterMap.values()) {
+    for (const cluster of Array.from(clusterMap.values())) {
       if (!processedClusters.has(cluster)) {
         processedClusters.add(cluster);
         const nodeArray = Array.from(cluster);
@@ -356,7 +364,6 @@ export const analyzeContextRelationshipsTool = createTool({
  */
 export const analyzeContextQualityTool = createTool({
   id: 'analyze-context-quality',
-  name: 'Analyze Context Quality',
   description: 'Assess the quality and completeness of stored context',
   inputSchema: z.object({
     storageConfig: storageConfigSchema.optional(),
@@ -379,6 +386,7 @@ export const analyzeContextQualityTool = createTool({
         query: {},
         storageConfig,
       },
+      runtimeContext: createRuntimeContext(),
     });
 
     const issues: Array<{

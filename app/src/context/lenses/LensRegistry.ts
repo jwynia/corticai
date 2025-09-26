@@ -452,9 +452,11 @@ export class LensRegistry {
 
     // Boost confidence for matching file patterns
     const config = lens.getConfig()
-    if (config.activationTriggers) {
+    if (config.activationRules) {
       const matchingTriggers = context.recentActions.filter(action =>
-        config.activationTriggers!.includes(action.type)
+        config.activationRules.some(rule =>
+          rule.type === 'recent_action' && rule.pattern === action.type
+        )
       ).length
       confidence += Math.min(matchingTriggers * TRIGGER_CONFIDENCE_MULTIPLIER, MAX_TRIGGER_CONFIDENCE_BOOST)
     }

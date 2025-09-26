@@ -59,21 +59,21 @@ export interface Storage<T = any> {
   
   /**
    * Iterate over all keys
-   * @returns AsyncIterator for all keys
+   * @returns AsyncIterable for all keys
    */
-  keys(): AsyncIterator<string>
-  
+  keys(): AsyncIterable<string>
+
   /**
    * Iterate over all values
-   * @returns AsyncIterator for all values
+   * @returns AsyncIterable for all values
    */
-  values(): AsyncIterator<T>
-  
+  values(): AsyncIterable<T>
+
   /**
    * Iterate over all entries
-   * @returns AsyncIterator for all [key, value] pairs
+   * @returns AsyncIterable for all [key, value] pairs
    */
-  entries(): AsyncIterator<[string, T]>
+  entries(): AsyncIterable<[string, T]>
 }
 
 // ============================================================================
@@ -254,6 +254,8 @@ export enum StorageErrorCode {
   KEY_NOT_FOUND = 'KEY_NOT_FOUND',
   DUPLICATE_KEY = 'DUPLICATE_KEY',
   WRITE_FAILED = 'WRITE_FAILED',
+  DELETE_FAILED = 'DELETE_FAILED',
+  QUERY_FAILED = 'QUERY_FAILED',
   
   // Resource errors
   STORAGE_FULL = 'STORAGE_FULL',

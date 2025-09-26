@@ -19,7 +19,12 @@ async function runTests() {
     name: 'file1.ts',
     extension: '.ts',
     content: 'const x = 42;',
-    size: 13,
+    metadata: {
+      size: 13,
+      extension: '.ts',
+      mimeType: 'text/typescript',
+      lastModified: new Date(),
+    },
   };
 
   const result1 = await analyzer.analyzeSimilarity(file1, file1);
@@ -34,7 +39,12 @@ async function runTests() {
     extension: '.tsx',
     content: `import React from 'react';
 export const Button = ({ label }) => <button>{label}</button>;`,
-    size: 100,
+    metadata: {
+      size: 100,
+      extension: '.tsx',
+      mimeType: 'text/typescript',
+      lastModified: new Date(),
+    },
   };
 
   const file2b: FileInfo = {
@@ -43,13 +53,18 @@ export const Button = ({ label }) => <button>{label}</button>;`,
     extension: '.tsx',
     content: `import React from 'react';
 export const Button = ({ text }) => <button>{text}</button>;`,
-    size: 98,
+    metadata: {
+      size: 98,
+      extension: '.tsx',
+      mimeType: 'text/typescript',
+      lastModified: new Date(),
+    },
   };
 
   const result2 = await analyzer.analyzeSimilarity(file2a, file2b);
-  console.log(`  Filename Score: ${result2.layerScores.filename}`);
-  console.log(`  Structure Score: ${result2.layerScores.structure}`);
-  console.log(`  Semantic Score: ${result2.layerScores.semantic}`);
+  console.log(`  Filename Score: ${result2.layers.filename.score}`);
+  console.log(`  Structure Score: ${result2.layers.structure.score}`);
+  console.log(`  Semantic Score: ${result2.layers.semantic.score}`);
   console.log(`  Overall Score: ${result2.overallScore}`);
   console.log(`  ✅ Test 2 ${result2.overallScore > 0.6 ? 'PASSED' : 'FAILED'} (expected > 0.6)\n`);
 
@@ -60,7 +75,12 @@ export const Button = ({ text }) => <button>{text}</button>;`,
     name: 'math.ts',
     extension: '.ts',
     content: 'export function add(a: number, b: number) { return a + b; }',
-    size: 60,
+    metadata: {
+      size: 60,
+      extension: '.ts',
+      mimeType: 'text/typescript',
+      lastModified: new Date(),
+    },
   };
 
   const file3b: FileInfo = {
@@ -68,7 +88,12 @@ export const Button = ({ text }) => <button>{text}</button>;`,
     name: 'logger.ts',
     extension: '.ts',
     content: 'export class Logger { log(msg: string) { console.log(msg); } }',
-    size: 63,
+    metadata: {
+      size: 63,
+      extension: '.ts',
+      mimeType: 'text/typescript',
+      lastModified: new Date(),
+    },
   };
 
   const result3 = await analyzer.analyzeSimilarity(file3a, file3b);
@@ -83,16 +108,21 @@ export const Button = ({ text }) => <button>{text}</button>;`,
     extension: '.tsx',
     content: `import React from 'react';
 export const Button = ({ label }) => <button>{label}</button>;`,
-    size: 100,
+    metadata: {
+      size: 100,
+      extension: '.tsx',
+      mimeType: 'text/typescript',
+      lastModified: new Date(),
+    },
   };
 
   const existingFiles = [file2a, file3a, file3b];
   const batchResult = await analyzer.analyzeBatch(newFile, existingFiles);
 
   console.log(`  Files analyzed: ${batchResult.similarities.length}`);
-  console.log(`  Best match: ${batchResult.bestMatch?.targetFile} (score: ${batchResult.bestMatch?.overallScore})`);
+  console.log(`  Best match: ${batchResult.bestMatch?.metadata.targetFile} (score: ${batchResult.bestMatch?.overallScore})`);
   console.log(`  Potential duplicates: ${batchResult.potentialDuplicates.length}`);
-  console.log(`  ✅ Test 4 ${batchResult.bestMatch?.targetFile === file2a.path ? 'PASSED' : 'FAILED'}\n`);
+  console.log(`  ✅ Test 4 ${batchResult.bestMatch?.metadata.targetFile === file2a.path ? 'PASSED' : 'FAILED'}\n`);
 
   // Test 5: Empty files
   console.log('Test 5: Empty files');
@@ -101,7 +131,12 @@ export const Button = ({ label }) => <button>{label}</button>;`,
     name: 'empty1.txt',
     extension: '.txt',
     content: '',
-    size: 0,
+    metadata: {
+      size: 0,
+      extension: '.txt',
+      mimeType: 'text/plain',
+      lastModified: new Date(),
+    },
   };
 
   const emptyFile2: FileInfo = {
@@ -109,13 +144,18 @@ export const Button = ({ label }) => <button>{label}</button>;`,
     name: 'empty2.txt',
     extension: '.txt',
     content: '',
-    size: 0,
+    metadata: {
+      size: 0,
+      extension: '.txt',
+      mimeType: 'text/plain',
+      lastModified: new Date(),
+    },
   };
 
   const result5 = await analyzer.analyzeSimilarity(emptyFile1, emptyFile2);
   console.log(`  Score: ${result5.overallScore} (expected: 1.0)`);
-  console.log(`  Confidence: ${result5.confidence} (expected < 0.5)`);
-  console.log(`  ✅ Test 5 ${result5.overallScore === 1.0 && result5.confidence < 0.5 ? 'PASSED' : 'FAILED'}\n`);
+  console.log(`  Confidence: ${result5.overallConfidence} (expected < 0.5)`);
+  console.log(`  ✅ Test 5 ${result5.overallScore === 1.0 && result5.overallConfidence < 0.5 ? 'PASSED' : 'FAILED'}\n`);
 
   // Test 6: Filename patterns
   console.log('Test 6: Filename patterns');
@@ -124,7 +164,12 @@ export const Button = ({ label }) => <button>{label}</button>;`,
     name: 'config.json',
     extension: '.json',
     content: '{"version": "1.0"}',
-    size: 18,
+    metadata: {
+      size: 18,
+      extension: '.json',
+      mimeType: 'application/json',
+      lastModified: new Date(),
+    },
   };
 
   const versionFile2: FileInfo = {
@@ -132,13 +177,18 @@ export const Button = ({ label }) => <button>{label}</button>;`,
     name: 'config.v2.json',
     extension: '.json',
     content: '{"version": "2.0"}',
-    size: 18,
+    metadata: {
+      size: 18,
+      extension: '.json',
+      mimeType: 'application/json',
+      lastModified: new Date(),
+    },
   };
 
   const result6 = await analyzer.analyzeSimilarity(versionFile1, versionFile2);
-  console.log(`  Filename Score: ${result6.layerScores.filename}`);
-  console.log(`  Details: ${JSON.stringify(result6.details.filenamePatterns)}`);
-  console.log(`  ✅ Test 6 ${result6.layerScores.filename > 0.7 ? 'PASSED' : 'FAILED'} (expected > 0.7)\n`);
+  console.log(`  Filename Score: ${result6.layers.filename.score}`);
+  console.log(`  Details: ${JSON.stringify(result6.layers.filename.breakdown)}`);
+  console.log(`  ✅ Test 6 ${result6.layers.filename.score > 0.7 ? 'PASSED' : 'FAILED'} (expected > 0.7)\n`);
 
   console.log('✅ All tests completed!');
 }

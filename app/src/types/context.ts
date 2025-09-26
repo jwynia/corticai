@@ -421,7 +421,11 @@ export function toDepthAwareEntity(entity: Entity): DepthAwareEntity {
     },
 
     structure: {
-      relationships: entity.relationships || [],
+      relationships: (entity.relationships || []).map(rel => ({
+        type: rel.type,
+        target: rel.target,
+        metadata: rel.metadata || {}
+      })),
       hierarchy: {
         parent: null,
         children: []

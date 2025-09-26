@@ -58,6 +58,12 @@ export interface ContextLens {
    * @param config New configuration to apply
    */
   configure(config: LensConfig): void
+
+  /**
+   * Get current lens configuration
+   * @returns Current lens configuration
+   */
+  getConfig(): LensConfig
 }
 
 /**

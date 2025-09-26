@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   storeContextTool,
   batchStoreContextTool,
@@ -19,6 +20,11 @@ const openRouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1"
 });
+
+// Helper function to create RuntimeContext
+function createRuntimeContext(): RuntimeContext {
+  return new RuntimeContext();
+}
 
 /**
  * ContextManager Agent
@@ -125,7 +131,7 @@ export class ContextManagerAgent extends Agent {
         },
         storageConfig,
       },
-      runtimeContext: {},
+      runtimeContext: createRuntimeContext(),
     });
 
     // Look for potential duplicates
@@ -162,7 +168,7 @@ export class ContextManagerAgent extends Agent {
         storageConfig,
         deduplicate: true,
       },
-      runtimeContext: {},
+      runtimeContext: createRuntimeContext(),
     });
 
     if (result.stored) {
@@ -173,7 +179,7 @@ export class ContextManagerAgent extends Agent {
 
       const qualityAnalysis = await analyzeContextQualityTool.execute({
         context: { storageConfig },
-        runtimeContext: {},
+        runtimeContext: createRuntimeContext(),
       });
 
       const suggestions = [];
@@ -218,7 +224,7 @@ export class ContextManagerAgent extends Agent {
 
     const qualityAnalysis = await analyzeContextQualityTool.execute({
       context: { storageConfig },
-      runtimeContext: {},
+      runtimeContext: createRuntimeContext(),
     });
 
     // Address high-severity issues
@@ -235,6 +241,7 @@ export class ContextManagerAgent extends Agent {
     // Analyze patterns
     const patternAnalysis = await analyzeContextPatternsTool.execute({
       context: { storageConfig },
+      runtimeContext: createRuntimeContext(),
     });
 
     // Identify orphaned entries and suggest relationships
@@ -258,6 +265,7 @@ export class ContextManagerAgent extends Agent {
         },
         storageConfig,
       },
+      runtimeContext: createRuntimeContext(),
     });
 
     if (oldEntries.results.length > 0) {
@@ -289,7 +297,7 @@ export class ContextManagerAgent extends Agent {
 
     const patternAnalysis = await analyzeContextPatternsTool.execute({
       context: { storageConfig },
-      runtimeContext: {},
+      runtimeContext: createRuntimeContext(),
     });
 
     // Get quality
@@ -299,7 +307,7 @@ export class ContextManagerAgent extends Agent {
 
     const qualityAnalysis = await analyzeContextQualityTool.execute({
       context: { storageConfig },
-      runtimeContext: {},
+      runtimeContext: createRuntimeContext(),
     });
 
     // Get relationships
@@ -308,8 +316,8 @@ export class ContextManagerAgent extends Agent {
     }
 
     const relationshipAnalysis = await analyzeContextRelationshipsTool.execute({
-      context: { storageConfig },
-      runtimeContext: {},
+      context: { storageConfig, maxDepth: 3 },
+      runtimeContext: createRuntimeContext(),
     });
 
     const summary = `
@@ -368,8 +376,8 @@ export class ContextManagerAgent extends Agent {
     const words1 = new Set(str1.split(/\s+/));
     const words2 = new Set(str2.split(/\s+/));
 
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
-    const union = new Set([...words1, ...words2]);
+    const intersection = new Set(Array.from(words1).filter(x => words2.has(x)));
+    const union = new Set([...Array.from(words1), ...Array.from(words2)]);
 
     return intersection.size / union.size;
   }
@@ -392,6 +400,7 @@ export class ContextManagerAgent extends Agent {
           },
           storageConfig,
         },
+        runtimeContext: createRuntimeContext(),
       });
 
       if (query.results.length > 0) {

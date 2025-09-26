@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import { storeContextTool, batchStoreContextTool } from '../tools/index.js';
 
 // Configure OpenRouter
@@ -9,6 +10,11 @@ const openRouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1"
 });
+
+// Helper function to create RuntimeContext
+function createRuntimeContext(): RuntimeContext {
+  return new RuntimeContext();
+}
 
 /**
  * Message types that the observer can process
@@ -170,12 +176,18 @@ export class ContextObserverAgent extends Agent {
 
     if (conversationExtractions.length > 0) {
       const storageConfig = (this as any).storageConfig;
+
+      if (!batchStoreContextTool.execute) {
+        throw new Error('batchStoreContextTool.execute is not available');
+      }
+
       const result = await batchStoreContextTool.execute({
         context: {
           entries: conversationExtractions,
           storageConfig,
           deduplicate: true,
         },
+        runtimeContext: createRuntimeContext(),
       });
       totalStored += result.stored;
     }
@@ -394,12 +406,17 @@ export class ContextObserverAgent extends Agent {
       while (this.extractionQueue.length > 0) {
         const batch = this.extractionQueue.splice(0, 10);
 
+        if (!batchStoreContextTool.execute) {
+          throw new Error('batchStoreContextTool.execute is not available');
+        }
+
         await batchStoreContextTool.execute({
           context: {
             entries: batch,
             storageConfig,
             deduplicate: true,
           },
+          runtimeContext: createRuntimeContext(),
         });
       }
     } finally {

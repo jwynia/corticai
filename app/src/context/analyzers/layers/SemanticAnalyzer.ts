@@ -18,6 +18,11 @@ export class SemanticAnalyzer implements AnalysisLayer {
       return 1.0;
     }
 
+    // Handle missing content
+    if (!file1.content || !file2.content) {
+      return 0.0;
+    }
+
     // Empty files
     if (file1.content.trim() === '' && file2.content.trim() === '') {
       return 1.0;
@@ -40,15 +45,15 @@ export class SemanticAnalyzer implements AnalysisLayer {
     this.lastDetails.sharedKeywords = shared.sort();
 
     // Extract and compare semantic patterns
-    const patterns1 = this.extractSemanticPatterns(file1.content, file1.extension);
-    const patterns2 = this.extractSemanticPatterns(file2.content, file2.extension);
+    const patterns1 = this.extractSemanticPatterns(file1.content!, file1.extension);
+    const patterns2 = this.extractSemanticPatterns(file2.content!, file2.extension);
 
     const patternSimilarity = jaccardSimilarity(patterns1, patterns2);
 
     // Extract and compare code-specific semantics if applicable
     let codeSimilarity = 0;
     if (this.isCodeFile(file1.extension) && this.isCodeFile(file2.extension)) {
-      codeSimilarity = this.analyzeCodeSemantics(file1.content, file2.content);
+      codeSimilarity = this.analyzeCodeSemantics(file1.content!, file2.content!);
     }
 
     // Weight the different aspects

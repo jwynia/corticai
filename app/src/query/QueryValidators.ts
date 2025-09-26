@@ -137,7 +137,6 @@ export class QueryValidators {
         }
         break
 
-      case 'inclusion':
       case 'set':
         if (!condition.field) {
           errors.push('Set/Inclusion condition must have a field')
@@ -185,7 +184,7 @@ export class QueryValidators {
         break
 
       default:
-        errors.push(`Unknown condition type: ${condition.type}`)
+        errors.push(`Unknown condition type: ${(condition as any).type}`)
     }
 
     return errors
@@ -416,7 +415,6 @@ export class QueryValidators {
         return 1
       case 'pattern':
         return 3 // Pattern matching is expensive
-      case 'inclusion':
       case 'set':
         return Math.max(1, Math.log2((condition as any).values?.length || 1))
       case 'null':

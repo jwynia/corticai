@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   queryContextTool,
   findRelatedContextTool,
@@ -14,6 +15,11 @@ const openRouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1"
 });
+
+// Helper function to create RuntimeContext
+function createRuntimeContext(): RuntimeContext {
+  return new RuntimeContext();
+}
 
 /**
  * QueryAssistant Agent
@@ -108,6 +114,7 @@ export class QueryAssistantAgent extends Agent {
             type: intent.contextType,
             storageConfig,
           },
+          runtimeContext: createRuntimeContext(),
         });
         results = searchResults.results;
         answer = this.formatSearchAnswer(searchResults, intent.searchTerm!);
@@ -128,6 +135,7 @@ export class QueryAssistantAgent extends Agent {
             depth: intent.depth || 2,
             storageConfig,
           },
+          runtimeContext: createRuntimeContext(),
         });
         results = relationshipResults.related;
         answer = this.formatRelationshipAnswer(relationshipResults, intent.entityId!);
@@ -151,6 +159,7 @@ export class QueryAssistantAgent extends Agent {
             },
             storageConfig,
           },
+          runtimeContext: createRuntimeContext(),
         });
         results = queryResults.results;
         answer = this.formatFilterAnswer(queryResults, intent);
@@ -168,6 +177,7 @@ export class QueryAssistantAgent extends Agent {
             maxDepth: intent.depth || 3,
             storageConfig,
           },
+          runtimeContext: createRuntimeContext(),
         });
 
         answer = this.formatAnalysisAnswer(analysisResults);
@@ -195,6 +205,7 @@ export class QueryAssistantAgent extends Agent {
             searchTerm: question,
             storageConfig,
           },
+          runtimeContext: createRuntimeContext(),
         });
         results = generalSearch.results;
         answer = `Found ${generalSearch.count} results related to your query.`;
@@ -228,6 +239,7 @@ export class QueryAssistantAgent extends Agent {
         searchTerm: topic,
         storageConfig,
       },
+      runtimeContext: createRuntimeContext(),
     });
 
     if (searchResults.results.length === 0) {
@@ -294,8 +306,9 @@ export class QueryAssistantAgent extends Agent {
     };
   }> {
     const storageConfig = (this as any).storageConfig;
+    let entityId = startPoint;
 
-    if (!startPoint) {
+    if (!entityId) {
       // Start with recent entries
       const recentQuery = await queryContextTool.execute({
         context: {
@@ -305,6 +318,7 @@ export class QueryAssistantAgent extends Agent {
           },
           storageConfig,
         },
+        runtimeContext: createRuntimeContext(),
       });
 
       if (recentQuery.results.length === 0) {
@@ -318,17 +332,18 @@ export class QueryAssistantAgent extends Agent {
         };
       }
 
-      startPoint = recentQuery.results[0].id;
+      entityId = recentQuery.results[0].id;
     }
 
     // Get the current context
     const currentQuery = await queryContextTool.execute({
       context: {
         query: {
-          conditions: [{ field: 'id', operator: '=', value: startPoint }],
+          conditions: [{ field: 'id', operator: '=', value: entityId }],
         },
         storageConfig,
       },
+      runtimeContext: createRuntimeContext(),
     });
 
     if (currentQuery.results.length === 0) {
@@ -347,10 +362,11 @@ export class QueryAssistantAgent extends Agent {
     // Find related context
     const relatedResults = await findRelatedContextTool.execute({
       context: {
-        entityId: startPoint,
+        entityId: entityId!,
         depth: 1,
         storageConfig,
       },
+      runtimeContext: createRuntimeContext(),
     });
 
     // Generate navigation suggestions
@@ -368,7 +384,7 @@ export class QueryAssistantAgent extends Agent {
       currentContext,
       navigation: {
         related: relatedResults.related.slice(0, 5),
-        breadcrumbs: [startPoint], // In a real implementation, maintain history
+        breadcrumbs: [entityId!], // In a real implementation, maintain history
         suggestions,
       },
     };

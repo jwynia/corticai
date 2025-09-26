@@ -103,8 +103,8 @@ export class SimilarityAnalyzer {
 
     // Find potential duplicates
     const potentialDuplicates = similarities.filter(
-      s => s.overallScore >= this.config.similarityThreshold &&
-           s.confidence >= this.config.confidenceThreshold
+      s => s.overallScore >= this.config.thresholds.similar &&
+           s.overallConfidence >= this.config.thresholds.similar
     );
 
     const totalAnalysisTime = Date.now() - startTime;
@@ -212,7 +212,8 @@ export class SimilarityAnalyzer {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(new SimilarityAnalysisTimeoutError(
-          `Analysis timed out after ${this.config.performance.maxAnalysisTimeMs}ms`
+          `Analysis timed out after ${this.config.performance.maxAnalysisTimeMs}ms`,
+          this.config.performance.maxAnalysisTimeMs
         ));
       }, this.config.performance.maxAnalysisTimeMs);
     });
@@ -328,16 +329,7 @@ export class SimilarityAnalyzer {
    * Get weights for file type combination
    */
   private getWeights(ext1: string, ext2: string): typeof DEFAULT_SIMILARITY_CONFIG.layerWeights {
-    // Check for file type specific settings
-    const settings1 = this.config.fileTypeSettings?.[ext1];
-    const settings2 = this.config.fileTypeSettings?.[ext2];
-
-    // If both have settings and are same type, use those weights
-    if (settings1?.weights && ext1 === ext2) {
-      return { ...this.config.layerWeights, ...settings1.weights };
-    }
-
-    // Otherwise use default weights
+    // Use default weights for now - file type specific settings not implemented yet
     return this.config.layerWeights;
   }
 
@@ -473,23 +465,23 @@ export class SimilarityAnalyzer {
    */
   private validateFile(file: any): void {
     if (!file) {
-      throw new SimilarityAnalysisError('Invalid file input: file is null or undefined');
+      throw new SimilarityAnalysisError('Invalid file input: file is null or undefined', 'INVALID_FILE');
     }
 
     if (!file.path || typeof file.path !== 'string') {
-      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid path');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid path', 'INVALID_FILE');
     }
 
     if (!file.metadata || typeof file.metadata !== 'object') {
-      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid metadata');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid metadata', 'INVALID_FILE');
     }
 
     if (!file.metadata.extension || typeof file.metadata.extension !== 'string') {
-      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid extension in metadata');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid extension in metadata', 'INVALID_FILE');
     }
 
     if (typeof file.metadata.size !== 'number') {
-      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid size in metadata');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid size in metadata', 'INVALID_FILE');
     }
   }
 

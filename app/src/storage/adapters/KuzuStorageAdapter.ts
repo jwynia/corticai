@@ -855,7 +855,7 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
       const escapedEntityId = this.escapeString(entityId)
       const query = `MATCH (e:Entity {id: '${escapedEntityId}'}) RETURN e.id LIMIT 1`
       const result = await this.connection.query(query)
-      const rows = await result.getAll()
+      const rows = Array.isArray(result) ? result : await result.getAll()
       return rows && rows.length > 0
     } catch (error) {
       if (this.config.debug) {

@@ -1,9 +1,15 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import { DuckDBStorageAdapter } from '../../storage/adapters/DuckDBStorageAdapter.js';
 import { JSONStorageAdapter } from '../../storage/adapters/JSONStorageAdapter.js';
 import { MemoryStorageAdapter } from '../../storage/adapters/MemoryStorageAdapter.js';
 import { StorageConfig, Storage } from '../../storage/interfaces/Storage.js';
+
+// Helper function to create RuntimeContext
+function createRuntimeContext(): RuntimeContext {
+  return new RuntimeContext();
+}
 
 /**
  * Context entry schema for validation
@@ -84,7 +90,6 @@ async function initializeStorage(config: z.infer<typeof storageConfigSchema>): P
  */
 export const storeContextTool = createTool({
   id: 'store-context',
-  name: 'Store Context',
   description: 'Store context entries with metadata and automatic deduplication',
   inputSchema: z.object({
     entry: contextEntrySchema,
@@ -119,7 +124,12 @@ export const storeContextTool = createTool({
     if (deduplicate) {
       // Simple duplicate check based on content similarity
       // In a real implementation, this would be more sophisticated
-      const keys = storage.keys ? await Array.fromAsync(storage.keys()) : [];
+      const keys: string[] = [];
+      if (storage.keys) {
+        for await (const key of storage.keys()) {
+          keys.push(key);
+        }
+      }
       for (const key of keys) {
         const existing = await storage.get(key);
         if (existing &&
@@ -151,7 +161,6 @@ export const storeContextTool = createTool({
  */
 export const batchStoreContextTool = createTool({
   id: 'batch-store-context',
-  name: 'Batch Store Context',
   description: 'Store multiple context entries efficiently',
   inputSchema: z.object({
     entries: z.array(contextEntrySchema),
@@ -178,6 +187,7 @@ export const batchStoreContextTool = createTool({
     for (const entry of entries) {
       const result = await storeContextTool.execute({
         context: { entry, storageConfig, deduplicate },
+        runtimeContext: createRuntimeContext(),
       });
 
       results.push(result);
@@ -198,7 +208,6 @@ export const batchStoreContextTool = createTool({
  */
 export const deleteContextTool = createTool({
   id: 'delete-context',
-  name: 'Delete Context',
   description: 'Delete context entries by ID',
   inputSchema: z.object({
     id: z.string(),
@@ -222,7 +231,6 @@ export const deleteContextTool = createTool({
  */
 export const clearContextTool = createTool({
   id: 'clear-context',
-  name: 'Clear Context',
   description: 'Remove all context entries',
   inputSchema: z.object({
     storageConfig: storageConfigSchema.optional(),

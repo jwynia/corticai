@@ -69,7 +69,7 @@ export abstract class BaseLens implements ContextLens {
       validateLensConfig(this.config)
     } catch (error) {
       throw new LensError(
-        `Invalid initial configuration: ${error.message}`,
+        `Invalid initial configuration: ${error instanceof Error ? error.message : String(error)}`,
         this.id,
         'constructor'
       )
@@ -91,7 +91,7 @@ export abstract class BaseLens implements ContextLens {
       return results.map(result => this.processResult(result, context))
     } catch (error) {
       throw new LensError(
-        `Error processing results: ${error.message}`,
+        `Error processing results: ${error instanceof Error ? error.message : String(error)}`,
         this.id,
         'processResults'
       )
@@ -220,7 +220,7 @@ export abstract class BaseLens implements ContextLens {
       this.config = { ...config }
     } catch (error) {
       throw new LensError(
-        `Invalid configuration: ${error.message}`,
+        `Invalid configuration: ${error instanceof Error ? error.message : String(error)}`,
         this.id,
         'configure'
       )

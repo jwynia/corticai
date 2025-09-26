@@ -11,7 +11,7 @@ import { weatherAgent } from './agents/weather-agent';
  * Includes weather workflow and agent with in-memory LibSQL storage
  */
 export const mastra: Mastra = new Mastra({
-  vnext_workflows: { weatherWorkflow },
+  workflows: { weatherWorkflow },
   agents: { weatherAgent },
   storage: new LibSQLStore({
     // stores telemetry, evals, ... into memory storage, if it needs to persist, change to file:../mastra.db

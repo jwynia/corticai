@@ -432,37 +432,37 @@ export class ContinuityCortex implements IContinuityCortex {
 
     // Convert similarity results to format expected by decision engine
     const formattedSimilarities = similarities.similarities.map(sim => ({
-      sourceFile: sim.sourceFile,
-      targetFile: sim.targetFile,
+      sourceFile: sim.metadata.sourceFile,
+      targetFile: sim.metadata.targetFile,
       overallScore: sim.overallScore,
-      overallConfidence: sim.confidence || 0.8, // Use confidence from similarity result
+      overallConfidence: sim.overallConfidence, // Use confidence from similarity result
       layers: {
         filename: {
-          score: sim.layerScores.filename,
-          confidence: 0.8
+          score: sim.layers.filename.score,
+          confidence: sim.layers.filename.confidence
         },
         structure: {
-          score: sim.layerScores.structure,
-          confidence: 0.8
+          score: sim.layers.structure.score,
+          confidence: sim.layers.structure.confidence
         },
         semantic: {
-          score: sim.layerScores.semantic,
-          confidence: 0.8
+          score: sim.layers.semantic.score,
+          confidence: sim.layers.semantic.confidence
         }
       },
       metadata: {
-        analysisTime: new Date(),
-        processingTimeMs: sim.analysisTime,
-        algorithmsUsed: ['filename', 'structure', 'semantic'],
-        sourceFile: sim.sourceFile,
-        targetFile: sim.targetFile
+        analysisTime: sim.metadata.analysisTime,
+        processingTimeMs: sim.metadata.processingTimeMs,
+        algorithmsUsed: sim.metadata.algorithmsUsed,
+        sourceFile: sim.metadata.sourceFile,
+        targetFile: sim.metadata.targetFile
       }
     }));
 
     // Generate decision recommendation
     const recommendation = await this.decisionEngine.generateRecommendation(
       fileInfo,
-      formattedSimilarities
+      similarities.similarities
     );
 
     // Update metrics
@@ -560,6 +560,8 @@ export class ContinuityCortex implements IContinuityCortex {
 
           files.push({
             path: fullPath,
+            name: path.basename(fullPath),
+            extension: path.extname(fullPath),
             content,
             contentHash,
             metadata: {
@@ -590,6 +592,8 @@ export class ContinuityCortex implements IContinuityCortex {
     try {
       return {
         path: event.path,
+        name: path.basename(event.path),
+        extension: path.extname(event.path),
         content: event.content,
         contentHash: event.contentHash,
         metadata: event.metadata,

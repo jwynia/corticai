@@ -13,6 +13,11 @@ export class StructureAnalyzer implements AnalysisLayer {
     // Reset details
     this.lastDetails = { commonStructures: [] };
 
+    // Handle missing content
+    if (!file1.content || !file2.content) {
+      return 0.0;
+    }
+
     // Empty files have identical structure
     if (file1.content.trim() === '' && file2.content.trim() === '') {
       return 1.0;
@@ -26,16 +31,16 @@ export class StructureAnalyzer implements AnalysisLayer {
     // Analyze based on file type
     if (['.ts', '.tsx', '.js', '.jsx'].includes(file1.extension) ||
         ['.ts', '.tsx', '.js', '.jsx'].includes(file2.extension)) {
-      score = this.analyzeCodeStructure(file1.content, file2.content, file1.extension, file2.extension);
+      score = this.analyzeCodeStructure(file1.content!, file2.content!, file1.extension, file2.extension);
     } else if (['.md', '.mdx'].includes(file1.extension) ||
                ['.md', '.mdx'].includes(file2.extension)) {
-      score = this.analyzeMarkdownStructure(file1.content, file2.content);
+      score = this.analyzeMarkdownStructure(file1.content!, file2.content!);
     } else if (['.json', '.jsonc'].includes(file1.extension) ||
                ['.json', '.jsonc'].includes(file2.extension)) {
-      score = this.analyzeJsonStructure(file1.content, file2.content);
+      score = this.analyzeJsonStructure(file1.content!, file2.content!);
     } else if (['.yml', '.yaml'].includes(file1.extension) ||
                ['.yml', '.yaml'].includes(file2.extension)) {
-      score = this.analyzeYamlStructure(file1.content, file2.content);
+      score = this.analyzeYamlStructure(file1.content!, file2.content!);
     } else {
       score = this.analyzeGenericStructure(file1.content, file2.content);
     }

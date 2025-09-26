@@ -344,7 +344,7 @@ export class QueryHelpers {
     return (
       agg1.length === agg2.length &&
       agg1.every((a, idx) => (
-        a.function === agg2[idx].function &&
+        a.type === agg2[idx].type &&
         a.field === agg2[idx].field &&
         a.alias === agg2[idx].alias
       ))
@@ -358,7 +358,7 @@ export class QueryHelpers {
     if (!having1 && !having2) return true
     if (!having1 || !having2) return false
     return (
-      having1.aggregation === having2.aggregation &&
+      having1.field === having2.field &&
       having1.operator === having2.operator &&
       having1.value === having2.value
     )
@@ -389,7 +389,7 @@ export class QueryHelpers {
 
     // Having
     if (query.having) {
-      parts.push(`HAVING ${query.having.aggregation} ${query.having.operator} ${query.having.value}`)
+      parts.push(`HAVING ${query.having.field} ${query.having.operator} ${query.having.value}`)
     }
 
     // Pagination

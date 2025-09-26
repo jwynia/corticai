@@ -115,27 +115,31 @@ export class DuckDBConnectionManager {
    */
   async withTableCreationMutex<T>(operation: () => Promise<T>): Promise<T> {
     const mutexKey = this.getTableMutexKey()
-    
+
     // Get or create a mutex for this database+table combination
     const existingMutex = DuckDBConnectionManager.tableCreationMutexes.get(mutexKey)
-    
+
     if (existingMutex) {
       // Wait for the existing operation to complete before proceeding
       await existingMutex
     }
-    
-    // Create a new mutex for our operation
-    const currentMutex = operation().finally(() => {
+
+    // Execute the operation and store the result
+    const operationPromise = operation()
+
+    // Create a cleanup promise for the mutex
+    const mutexPromise = operationPromise.finally(() => {
       // Clean up the mutex when our operation completes
-      if (DuckDBConnectionManager.tableCreationMutexes.get(mutexKey) === currentMutex) {
+      if (DuckDBConnectionManager.tableCreationMutexes.get(mutexKey) === mutexPromise) {
         DuckDBConnectionManager.tableCreationMutexes.delete(mutexKey)
       }
     }) as Promise<void>
-    
+
     // Store the mutex so other operations can wait for it
-    DuckDBConnectionManager.tableCreationMutexes.set(mutexKey, currentMutex)
-    
-    return currentMutex
+    DuckDBConnectionManager.tableCreationMutexes.set(mutexKey, mutexPromise)
+
+    // Return the actual operation result
+    return operationPromise
   }
 
   /**

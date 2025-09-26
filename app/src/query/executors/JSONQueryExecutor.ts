@@ -335,7 +335,7 @@ export class JSONQueryExecutor<T> {
     
     for (let attempt = 1; attempt <= this.MAX_RETRY_ATTEMPTS; attempt++) {
       try {
-        return await fs.readFile(filePath, { encoding: this.config.encoding })
+        return await fs.readFile(filePath, { encoding: this.config.encoding || 'utf8' })
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
         

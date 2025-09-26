@@ -11,6 +11,7 @@ import { promises as fs, constants as fsConstants } from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { fileTypeFromFile } from 'file-type';
+// @ts-ignore: No type definitions available for mime-types
 import { lookup as mimeTypeLookup } from 'mime-types';
 
 import {
@@ -99,7 +100,7 @@ export class FileOperationInterceptorImpl implements FileOperationInterceptor {
       }
 
       // Handle watcher errors
-      this.watcher.on('error', (error: Error) => {
+      this.watcher.on('error', (error: unknown) => {
         console.error('File watcher error:', error);
       });
 

@@ -88,9 +88,10 @@ export class JSONStorageAdapter<T = any> extends BaseStorageAdapter<T> implement
    * Override set method to handle JSON-specific value preprocessing
    */
   async set(key: string, value: T): Promise<void> {
-    // Import here to use the existing validation
-    const { StorageValidator } = await import('../helpers/StorageValidator')
-    StorageValidator.validateKey(key)
+    // Validate key manually to avoid assertion function issues
+    if (typeof key !== 'string' || key === '') {
+      throw new Error('Key must be a non-empty string')
+    }
     
     // Custom JSON-friendly value validation and conversion
     const processedValue = this.preprocessValue(value)
@@ -109,12 +110,13 @@ export class JSONStorageAdapter<T = any> extends BaseStorageAdapter<T> implement
    * Override setMany method to handle JSON-specific value preprocessing
    */
   async setMany(entries: Map<string, T>): Promise<void> {
-    const { StorageValidator } = await import('../helpers/StorageValidator')
-    
     // Validate keys and preprocess values
     const processedEntries = new Map<string, T>()
     for (const [key, value] of entries) {
-      StorageValidator.validateKey(key)
+      // Validate key manually to avoid assertion function issues
+      if (typeof key !== 'string' || key === '') {
+        throw new Error('Key must be a non-empty string')
+      }
       processedEntries.set(key, this.preprocessValue(value))
     }
     

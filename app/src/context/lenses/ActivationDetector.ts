@@ -570,13 +570,12 @@ export class ActivationDetector {
 
   private isTestingAction(action: DeveloperAction): boolean {
     return action.type === 'test_run' ||
-           (action.type === 'file_open' && action.file && this.isTestFile(action.file))
+           (action.type === 'file_open' && action.file ? this.isTestFile(action.file) : false)
   }
 
   private isDocumentationAction(action: DeveloperAction): boolean {
     return action.type === 'file_edit' &&
-           action.file &&
-           this.isDocumentationFile(action.file)
+           action.file ? this.isDocumentationFile(action.file) : false
   }
 
   private calculateActionScore(action: DeveloperAction, timeDiff: number): number {
