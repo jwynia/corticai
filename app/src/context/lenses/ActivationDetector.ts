@@ -389,18 +389,24 @@ export class ActivationDetector {
       }
     }
 
-    // Base scores from file patterns
-    if (filePatterns.testFiles) scores.testing += 0.4
-    if (filePatterns.documentationFiles) scores.documentation += 0.4
-    if (filePatterns.configFiles) scores.configuration += 0.3
-    if (filePatterns.sourceFiles) scores.development += 0.3
+    // Base scores from file patterns (more generous)
+    if (filePatterns.testFiles) scores.testing += 0.5
+    if (filePatterns.documentationFiles) scores.documentation += 0.5
+    if (filePatterns.configFiles) scores.configuration += 0.4
+    if (filePatterns.sourceFiles) scores.development += 0.4
 
-    // Boost scores from action patterns
-    scores.debugging += actionPatterns.debuggingIntensity * 0.6
-    scores.testing += actionPatterns.testingIntensity * 0.5
-    scores.documentation += actionPatterns.documentationIntensity * 0.5
-    if (actionPatterns.buildActivity) scores.development += 0.2
-    if (actionPatterns.configurationActivity) scores.configuration += 0.3
+    // Boost scores from action patterns (more generous)
+    scores.debugging += actionPatterns.debuggingIntensity * 0.85 // was 0.6, now 0.85
+    scores.testing += actionPatterns.testingIntensity * 0.6   // was 0.5, now 0.6
+    scores.documentation += actionPatterns.documentationIntensity * 0.6 // was 0.5, now 0.6
+    if (actionPatterns.buildActivity) scores.development += 0.3 // was 0.2, now 0.3
+    if (actionPatterns.configurationActivity) scores.configuration += 0.4 // was 0.3, now 0.4
+
+    // Add development activity bonuses
+    const developmentActions = context.recentActions.filter(a =>
+      ['file_save', 'file_edit', 'file_create', 'code_completion'].includes(a.type)
+    ).length
+    if (developmentActions > 0) scores.development += 0.2
 
     // Project alignment factors
     scores.projectAlignment.testing = context.projectContext.structure.hasTests &&
@@ -620,7 +626,9 @@ export class ActivationDetector {
           if (this.matchesPattern(file, pattern)) {
             filePatternMatches++
             score += 0.2
-            reasons.push(`${pattern} pattern matched`)
+            // Generate user-friendly pattern description
+            const patternDescription = this.getPatternDescription(pattern)
+            reasons.push(`${patternDescription} pattern matched`)
           }
         }
       }
@@ -661,6 +669,26 @@ export class ActivationDetector {
         contextAlignment
       }
     }
+  }
+
+  /**
+   * Get user-friendly description for file patterns
+   */
+  private getPatternDescription(pattern: string): string {
+    if (pattern.includes('.test.') || pattern.includes('.spec.')) {
+      return 'test file'
+    }
+    if (pattern.includes('.md') || pattern.includes('README')) {
+      return 'documentation file'
+    }
+    if (pattern.includes('.config.') || pattern.includes('.json') || pattern.includes('.yml')) {
+      return 'configuration file'
+    }
+    if (pattern.includes('.component.') || pattern.includes('.tsx') || pattern.includes('.jsx')) {
+      return 'component file'
+    }
+    // Default to the original pattern
+    return pattern
   }
 
   private matchesPattern(file: string, pattern: string): boolean {

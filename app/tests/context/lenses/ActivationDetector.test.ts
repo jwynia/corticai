@@ -192,11 +192,15 @@ describe('ActivationDetector', () => {
 
   describe('Action Pattern Recognition', () => {
     it('should detect debugging activity patterns', () => {
+      const now = new Date()
+      const twoMinutesAgo = new Date(now.getTime() - 120000).toISOString()
+      const oneMinuteAgo = new Date(now.getTime() - 60000).toISOString()
+
       const context = createMockActivationContext({
         recentActions: [
-          createMockDeveloperAction('debugger_start', { timestamp: '2025-09-25T10:00:00.000Z' }),
-          createMockDeveloperAction('error_occurrence', { timestamp: '2025-09-25T10:01:00.000Z' }),
-          createMockDeveloperAction('test_run', { timestamp: '2025-09-25T10:02:00.000Z' })
+          createMockDeveloperAction('debugger_start', { timestamp: twoMinutesAgo }),
+          createMockDeveloperAction('error_occurrence', { timestamp: oneMinuteAgo }),
+          createMockDeveloperAction('test_run', { timestamp: now.toISOString() })
         ]
       })
 
