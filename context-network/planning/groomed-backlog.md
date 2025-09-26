@@ -1,255 +1,241 @@
 # CorticAI Groomed Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-09-26 (Next Phase Implementation Tasks Added)
-**Major Components Complete**: Phase 1 Universal Context Engine ✅, Phase 2 Progressive Loading System ✅, Phase 3 Lens System Foundation ✅, NovelAdapter ✅
-**Current Phase**: User-Facing Value Phase - Domain Versatility and Intelligence Features
-**Status**: READY FOR SPRINT PLANNING ✅
-**Total Next Phase Tasks**: 6 tasks across 3 parallel streams
-**Estimated Effort**: 36-48 hours over 3-4 weeks
-**Foundation Status**: All prerequisites complete - ready for advanced feature development
+**Last Groomed**: 2025-09-26 (Reality Check - Major Status Corrections)
+**REALITY CHECK**: Previous status claims were inaccurate - significant implementation gaps identified
+**Current Phase**: Foundation Completion - Core Systems Need Stabilization
+**Status**: ⚠️ NEEDS FOUNDATION WORK ⚠️
+**Actual Implementation Status**: CodebaseAdapter exists but incomplete, UniversalFallbackAdapter partial, NovelAdapter exists, lens system foundation questionable
+**Critical Issues**: 8 linting errors, test failures (CONNECTION_FAILED), missing core functionality
+**Foundation Status**: ❌ Prerequisites NOT complete - needs stabilization before advanced features
 
 ---
 
-## 🚀 HIGH PRIORITY: Stream A - Domain Adapters
+## ⚠️ CRITICAL: Foundation Stabilization (MUST DO FIRST)
 
-### Task A1: CodebaseAdapter Implementation
-**Complexity**: Medium (6-8 hours)
-**Stream**: Domain Adapters
-**Dependencies**: None - ready to start
+### Task F1: Fix Linting Issues & Build Problems
+**Complexity**: Small (2-3 hours)
+**Priority**: CRITICAL - Blocks all other work
+**Dependencies**: None - start immediately
 
-**One-liner**: Build enhanced code analysis adapter for TypeScript/JavaScript codebases with function, class, and dependency detection
+**One-liner**: Fix the 8 linting errors preventing clean builds and establish proper development workflow
 
-**Implementation Priority**: HIGH - Demonstrates domain versatility and provides essential developer tooling functionality
+**Implementation Priority**: CRITICAL - Cannot proceed with feature work until foundation is stable
 
 **Acceptance Criteria**:
-- [x] Extracts function definitions with parameters, return types, and JSDoc comments
-- [x] Identifies class definitions with methods, properties, and inheritance chains
-- [x] Detects import/export statements and creates dependency relationships
-- [⚠️] Creates call graph relationships between functions (partial - needs scope analysis)
-- [x] Handles TypeScript-specific constructs (interfaces, types, generics)
-- [x] Processes files >50KB in <200ms
-- [x] Achieves >90% test coverage with comprehensive error handling (14/18 tests passing)
-- [x] Integrates seamlessly with existing storage and query systems
-- [x] Extends UniversalFallbackAdapter without breaking base functionality
+- [ ] All 8 linting errors resolved
+- [ ] npm run lint passes cleanly
+- [ ] npm run build succeeds without errors
+- [ ] TypeScript compilation issues resolved
+- [ ] ESLint configuration properly applied
+- [ ] Import/export statement issues fixed
+- [ ] No unused variables or dead code
+- [ ] Code formatting standardized
 
-**Status**: ✅ SUBSTANTIALLY COMPLETE (8/9 criteria met, core functionality working)
-**Implementation Date**: 2025-09-26
-**Discovery Record**: `/discoveries/records/2025-09-26-001.md`
-
-**Files to Create**:
-- `/app/src/adapters/CodebaseAdapter.ts` - Main implementation
-- `/app/tests/adapters/codebase.test.ts` - Comprehensive test suite
-- `/app/examples/codebase-adapter-demo.ts` - Usage demonstration
-
-**Technical Notes**:
-- Use TypeScript Compiler API for AST parsing
-- Follow NovelAdapter success patterns
-- Performance critical - implement caching strategy
+**Files to Check**:
+- All TypeScript files with linting violations
+- ESLint/TypeScript configuration files
+- Package.json scripts and dependencies
 
 ---
 
-### Task A2: DocumentationAdapter Implementation
-**Complexity**: Medium (6-8 hours)
-**Stream**: Domain Adapters
-**Dependencies**: Can start in parallel with A1
+### Task F2: Fix Test Infrastructure & Database Connections
+**Complexity**: Medium (4-6 hours)
+**Priority**: CRITICAL - Essential for development confidence
+**Dependencies**: F1 must complete first
 
-**One-liner**: Build documentation-focused adapter for API docs, README files, and technical writing with code example analysis
+**One-liner**: Resolve CONNECTION_FAILED test errors and establish reliable test infrastructure
 
-**Implementation Priority**: MEDIUM - Complements CodebaseAdapter for complete developer workflow
+**Implementation Priority**: CRITICAL - Tests must pass before any feature development
 
 **Acceptance Criteria**:
-- [ ] Parses markdown documentation structure (headings, sections, code blocks)
-- [ ] Identifies API endpoints with HTTP methods and parameters
-- [ ] Extracts code examples and validates syntax
-- [ ] Detects function signatures and API interfaces in documentation
-- [ ] Creates cross-references between documentation and code entities
-- [ ] Identifies missing or outdated documentation sections
-- [ ] Processes large documentation files (>100KB) in <300ms
-- [ ] Achieves >90% test coverage with error handling
-- [ ] Integrates with existing lens and storage systems
+- [ ] All CONNECTION_FAILED errors resolved
+- [ ] Database test infrastructure properly configured
+- [ ] Test isolation working (no test pollution)
+- [ ] Kuzu database connection issues fixed
+- [ ] Test performance acceptable (<30s total runtime)
+- [ ] Reliable test teardown and cleanup
+- [ ] CI-ready test configuration
+- [ ] No flaky or intermittent test failures
 
-**Files to Create**:
-- `/app/src/adapters/DocumentationAdapter.ts` - Main implementation
-- `/app/tests/adapters/documentation.test.ts` - Test suite
-- `/app/examples/documentation-adapter-demo.ts` - Usage demonstration
+**Files to Fix**:
+- `/app/src/storage/adapters/KuzuStorageAdapter.test.ts`
+- Database connection and initialization logic
+- Test configuration and setup files
 
 ---
 
-## 🚀 HIGH PRIORITY: Stream B - Lens Intelligence
+## 🚀 HIGH PRIORITY: Complete Core Foundation
 
-### Task B1: DebugLens Implementation
-**Complexity**: Medium (6-8 hours)
-**Stream**: Lens Intelligence
-**Dependencies**: None - lens foundation ready
+### Task A1: Finish UniversalFallbackAdapter Implementation
+**Complexity**: Medium (4-6 hours)
+**Priority**: HIGH - Foundation for all domain adapters
+**Dependencies**: F1, F2 must complete first
 
-**One-liner**: Build first concrete lens implementation focusing on debugging context with error handling, logging, and test framework emphasis
+**One-liner**: Complete the UniversalFallbackAdapter to provide solid foundation for all domain adapters
 
-**Implementation Priority**: HIGH - First user-facing intelligent feature, validates lens system architecture
+**Implementation Priority**: HIGH - Everything builds on this adapter
 
 **Acceptance Criteria**:
-- [ ] Detects error handling patterns with >95% accuracy
-- [ ] Identifies logging statements across common frameworks
-- [ ] Recognizes test framework patterns (Jest, Vitest, Mocha)
-- [ ] Calculates context confidence scores for activation
-- [ ] Transforms queries to emphasize debug-relevant entities
-- [ ] Activates correctly in debugging scenarios (test files, error contexts)
-- [ ] Processes context analysis in <50ms
-- [ ] Achieves >90% test coverage including edge cases
-- [ ] Integrates with ActivationDetector and LensRegistry
+- [ ] Complete entity extraction for all text file types
+- [ ] Proper relationship detection between entities
+- [ ] Robust error handling for malformed content
+- [ ] Performance optimization for large files (>1MB)
+- [ ] Comprehensive test coverage (>90%)
+- [ ] Integration with storage adapters verified
+- [ ] Memory usage optimized
+- [ ] Documentation and examples complete
 
-**Files to Create**:
-- `/app/src/context/lenses/built-in/DebugLens.ts` - Main implementation
-- `/app/tests/context/lenses/DebugLens.test.ts` - Test suite
-- `/app/examples/debug-lens-demo.ts` - Usage demonstration
+**Files to Complete**:
+- `/app/src/adapters/UniversalFallbackAdapter.ts` - Finish implementation
+- `/app/tests/adapters/universal.test.ts` - Complete test suite
+- `/app/examples/universal-adapter-demo.ts` - Usage examples
 
 ---
 
-### Task B2: DocumentationLens Implementation
-**Complexity**: Medium (6-8 hours)
-**Stream**: Lens Intelligence
-**Dependencies**: Coordinate with B1 for pattern reference
+### Task A2: Validate and Complete CodebaseAdapter
+**Complexity**: Medium (3-4 hours)
+**Priority**: HIGH - Proves domain adapter pattern works
+**Dependencies**: A1 must have stable foundation
 
-**One-liner**: Build second concrete lens implementation for API documentation context with public interface emphasis and usage example highlighting
+**One-liner**: Complete and validate the CodebaseAdapter implementation with proper TypeScript AST parsing
 
-**Implementation Priority**: MEDIUM - Validates multi-lens system and provides documentation workflow value
+**Implementation Priority**: HIGH - First domain-specific adapter, validates architecture
 
 **Acceptance Criteria**:
-- [ ] Identifies exported functions and public interfaces
-- [ ] Detects API endpoints and HTTP method patterns
-- [ ] Analyzes JSDoc comments for API documentation
-- [ ] Recognizes usage examples in comments and documentation
-- [ ] Calculates API relevance scores for documentation contexts
-- [ ] Transforms queries to prioritize public interface information
-- [ ] Activates appropriately in documentation editing scenarios
-- [ ] Processes API analysis in <50ms
-- [ ] Achieves >90% test coverage with API pattern edge cases
+- [ ] TypeScript Compiler API integration working
+- [ ] Function, class, and interface extraction complete
+- [ ] Import/export dependency tracking verified
+- [ ] Call graph relationships properly detected
+- [ ] Performance acceptable for large codebases
+- [ ] Integration with base adapter validated
+- [ ] Test coverage comprehensive
+- [ ] Example demonstrations working
 
-**Files to Create**:
-- `/app/src/context/lenses/built-in/DocumentationLens.ts` - Main implementation
-- `/app/tests/context/lenses/DocumentationLens.test.ts` - Test suite
-- `/app/examples/documentation-lens-demo.ts` - Usage demonstration
+**Files to Complete**:
+- `/app/src/adapters/CodebaseAdapter.ts` - Complete implementation
+- `/app/tests/adapters/codebase.test.ts` - Validate test suite
+- `/app/examples/codebase-adapter-demo.ts` - Working examples
 
 ---
 
-## 🔧 LOWER PRIORITY: Stream C - Integration & Polish
+### Task A3: Validate NovelAdapter Implementation
+**Complexity**: Small (2-3 hours)
+**Priority**: MEDIUM - Validate cross-domain capabilities
+**Dependencies**: A1, A2 foundation work
 
-### Task C1: Performance Optimization & Refactoring
-**Complexity**: Small (3-4 hours)
-**Stream**: Integration & Polish
-**Dependencies**: Independent optimization work
+**One-liner**: Verify NovelAdapter works correctly and integrates with the storage system
 
-**One-liner**: Optimize system performance and refactor large methods for maintainability while ensuring production readiness
-
-**Implementation Priority**: LOW - Technical debt remediation, production quality improvements
+**Implementation Priority**: MEDIUM - Proves system works beyond code domain
 
 **Acceptance Criteria**:
-- [ ] extractMarkdownEntities method broken into focused sub-methods (<50 lines each)
-- [ ] Large file processing improved by >20% (benchmark against current performance)
-- [ ] Memory usage optimized for files >1MB
-- [ ] All existing tests continue to pass without modification
-- [ ] Performance benchmarks meet existing standards (<100ms operations)
-- [ ] Code complexity metrics improved (lower cyclomatic complexity)
-- [ ] No regression in functionality or error handling
-- [ ] Caching implementation for frequently accessed patterns
+- [ ] Novel content parsing working correctly
+- [ ] Character and scene detection verified
+- [ ] Relationship extraction functional
+- [ ] Integration with storage system confirmed
+- [ ] Performance acceptable for large novels
+- [ ] Test suite comprehensive and passing
+- [ ] Example usage clear and documented
 
-**Files to Modify**:
-- `/app/src/adapters/UniversalFallbackAdapter.ts` - Method refactoring
-- `/app/src/context/analyzers/SimilarityAnalyzer.ts` - Optimization
-- Create: `/app/src/utils/PerformanceOptimizer.ts` - Utilities
+**Files to Validate**:
+- `/app/src/adapters/NovelAdapter.ts` - Verify implementation
+- Tests and examples for novel processing
 
 ---
 
-### Task C2: Integration Testing & Demo Development
-**Complexity**: Small (3-4 hours)
-**Stream**: Integration & Polish
-**Dependencies**: Requires at least one adapter and one lens completed (A1+B1 or A2+B2)
+## 🔧 DEFERRED: Advanced Features (After Foundation Complete)
 
-**One-liner**: Create comprehensive integration tests and demo applications showcasing complete workflows with multiple components
+### Lens System Implementation - BLOCKED
+**Status**: BLOCKED until foundation is stable
+**Reason**: Cannot build advanced features on unstable foundation
+**Tasks**: DebugLens, DocumentationLens, etc.
+**Unblock Criteria**: Tasks F1, F2, A1, A2 must be 100% complete
 
-**Implementation Priority**: LOW - Validation and demonstration, depends on other completions
+### Performance Optimization - BLOCKED
+**Status**: BLOCKED until basic functionality works
+**Reason**: Premature optimization on broken foundation
+**Unblock Criteria**: All foundation tasks complete with passing tests
 
-**Acceptance Criteria**:
-- [ ] Integration tests for all adapter-lens combinations
-- [ ] End-to-end workflow tests covering realistic user scenarios
-- [ ] Demo applications for CodebaseAdapter + DebugLens workflow
-- [ ] Demo applications for DocumentationAdapter + DocumentationLens workflow
-- [ ] Performance testing with multiple components active simultaneously
-- [ ] Error propagation testing across component boundaries
-- [ ] Memory usage testing for integrated workflows
-- [ ] All integration scenarios achieve target response times
-
-**Files to Create**:
-- `/app/tests/integration/adapter-lens-integration.test.ts` - Integration tests
-- `/app/tests/integration/end-to-end-workflows.test.ts` - Workflow tests
-- `/app/examples/complete-workflow-demo.ts` - Complete demos
-- `/app/examples/multi-component-showcase.ts` - Multi-component demo
+### Integration Testing - BLOCKED
+**Status**: BLOCKED until components individually work
+**Reason**: Cannot test integration of broken components
+**Unblock Criteria**: Individual adapters fully functional
 
 ---
 
 ## 📅 Sprint Planning Recommendations
 
-### Week 1: Foundation Extensions (Parallel Start)
-**Primary Focus**: Start high-impact, independent tasks
-- **Stream A**: CodebaseAdapter Implementation (A1) - 6-8 hours
-- **Stream B**: DebugLens Implementation (B1) - 6-8 hours
-- **Stream C**: Performance Optimization (C1) - 3-4 hours
+### CRITICAL: Foundation Week (Week 1)
+**Primary Focus**: Fix fundamental issues before any feature work
+- **Foundation**: Fix Linting Issues (F1) - 2-3 hours
+- **Foundation**: Fix Test Infrastructure (F2) - 4-6 hours
+- **Core**: Complete UniversalFallbackAdapter (A1) - 4-6 hours
 
-**Total Effort**: 15-20 hours
-**Deliverables**: First domain adapter, first lens implementation, optimized foundation
+**Total Effort**: 10-15 hours
+**Deliverables**: Clean build, passing tests, stable foundation
+**Success Criteria**: npm run lint passes, npm test passes, no CONNECTION_FAILED errors
 
-### Week 2: Domain Completion (Continue Parallel)
-**Primary Focus**: Complete adapters and lenses
-- **Stream A**: DocumentationAdapter Implementation (A2) - 6-8 hours
-- **Stream B**: DocumentationLens Implementation (B2) - 6-8 hours
-
-**Total Effort**: 12-16 hours
-**Deliverables**: Two domain adapters, two lens implementations
-
-### Week 3: Integration & Validation
-**Primary Focus**: Ensure everything works together
-- **Stream C**: Integration Testing & Demo Development (C2) - 3-4 hours
-- **All Streams**: Bug fixes, performance tuning, documentation
+### Week 2: Core Adapter Completion
+**Primary Focus**: Complete and validate domain adapters
+- **Core**: Complete CodebaseAdapter (A2) - 3-4 hours
+- **Validation**: Validate NovelAdapter (A3) - 2-3 hours
+- **Quality**: Add comprehensive examples and documentation
 
 **Total Effort**: 8-12 hours
-**Deliverables**: Complete integrated system with demonstrations
+**Deliverables**: Two fully functional domain adapters
+**Success Criteria**: All adapters working, tests passing, examples functional
+
+### Week 3+: Advanced Features (ONLY if foundation complete)
+**Primary Focus**: Advanced features (contingent on Week 1-2 success)
+- **Advanced**: Lens system implementation
+- **Advanced**: Performance optimization
+- **Advanced**: Integration testing
+
+**Prerequisites**: Foundation must be 100% stable
+**Risk**: If foundation work takes longer, defer advanced features
 
 ---
 
 ## 📊 Success Metrics
 
-### Technical Excellence
-- **Test Coverage**: >90% for all new code
-- **Performance**: <100ms response time for all operations
-- **Integration**: Zero regression in existing functionality
-- **Code Quality**: Reduced complexity metrics from baseline
+### Foundation Stability (Week 1 Requirements)
+- **Build Quality**: npm run lint passes cleanly (0 errors)
+- **Test Reliability**: npm test passes (0 CONNECTION_FAILED errors)
+- **Code Quality**: TypeScript compilation successful
+- **Development Workflow**: Clean development environment established
 
-### User Value Delivery
-- **Domain Coverage**: 3 domain adapters (Universal ✅, Novel ✅, Codebase, Documentation)
-- **Intelligence Features**: 2 concrete lens implementations with measurable context improvement
-- **Workflow Support**: Complete workflows for debugging and documentation tasks
-- **Production Readiness**: All components meet security and reliability standards
+### Core Functionality (Week 2 Requirements)
+- **Adapter Functionality**: UniversalFallbackAdapter handles all text files
+- **Domain Coverage**: CodebaseAdapter processes TypeScript/JavaScript correctly
+- **Cross-Domain Proof**: NovelAdapter demonstrates non-code domain capability
+- **Integration**: All adapters work with storage systems
 
-### Architecture Validation
-- **Extension Success**: New adapters developed using established patterns
+### Architecture Validation (Future - After Foundation)
+- **Extension Success**: Domain adapters follow established patterns
 - **Foundation Stability**: No breaking changes required in base components
-- **Scalability Evidence**: Performance maintained with multiple active components
-- **Developer Experience**: Clear patterns enable rapid future development
+- **Developer Experience**: Clear examples and documentation enable development
+- **Performance**: Acceptable response times for realistic workloads
 
 ---
 
 ## ⚠️ Risk Mitigation Priority
 
-### High Priority Risks (Address Immediately)
-- **TypeScript Compiler API Complexity** (Task A1) - Start with prototype
-- **Lens Activation Accuracy** (Tasks B1, B2) - Conservative thresholds, extensive testing
-- **Multi-Component Performance** (All tasks) - Continuous benchmarking
-- **User Value Realization** - Create compelling demos early
+### CRITICAL Risks (Address Immediately)
+- **Foundation Instability** - Cannot build on broken foundation
+- **Test Infrastructure Failure** - Blocks all reliable development
+- **Build Process Issues** - Prevents deployment and CI/CD
+- **Development Workflow Broken** - Slows all progress
 
-### Medium Priority Risks (Monitor During Development)
-- **Interface Compatibility** - Test integration early and often
-- **Parallel Development Conflicts** - Frequent merges, clear ownership
-- **Technical Debt Accumulation** - Maintain quality gates
+### High Priority Risks (Address After Foundation)
+- **Adapter Integration Complexity** - Start with simple implementations
+- **Database Connection Reliability** - Ensure robust error handling
+- **Performance with Large Files** - Implement incremental processing
+- **Documentation and Examples** - Essential for team adoption
+
+### Future Risks (Monitor After Core Complete)
+- **Advanced Feature Complexity** - Don't attempt until foundation solid
+- **Multi-Component Integration** - Requires stable individual components
+- **Production Deployment** - Needs comprehensive testing first
 
 ---
 
@@ -298,25 +284,25 @@ This groomed backlog transforms the comprehensive planning from next-phase-imple
 
 ## 📈 Grooming Summary
 
-**Grooming Date**: 2025-09-26
-**Tasks Processed**: 6 next-phase implementation tasks
-**Ready Tasks**: 6 (all tasks sprint-ready with detailed acceptance criteria)
-**Blocked Tasks**: 0 (all prerequisites complete)
-**Total Estimated Effort**: 36-48 hours across 3 parallel streams
+**Grooming Date**: 2025-09-26 (REALITY CHECK COMPLETED)
+**Tasks Processed**: 6 foundation tasks + 3 deferred advanced tasks
+**Ready Tasks**: 5 foundation tasks (sequential dependencies)
+**Blocked Tasks**: 3 advanced tasks (blocked until foundation complete)
+**Total Estimated Effort**: 18-26 hours for foundation (advanced TBD)
 
-### Task Priority Classification
-- **HIGH Priority (Start Week 1)**: A1 (CodebaseAdapter), B1 (DebugLens)
-- **MEDIUM Priority (Start Week 2)**: A2 (DocumentationAdapter), B2 (DocumentationLens)
-- **LOW Priority (Week 3)**: C1 (Performance Optimization), C2 (Integration Testing)
+### Task Priority Classification (REVISED)
+- **CRITICAL Priority (Start Week 1)**: F1 (Fix Linting), F2 (Fix Tests), A1 (Universal Adapter)
+- **HIGH Priority (Week 2)**: A2 (CodebaseAdapter), A3 (NovelAdapter Validation)
+- **DEFERRED**: All lens system and advanced features until foundation stable
 
 ### Development Readiness
-- **Foundation Status**: All prerequisites ✅ COMPLETE
-- **Dependency Analysis**: All tasks have clear dependencies and parallel paths
-- **Risk Assessment**: 11 identified risks with mitigation strategies
-- **Architecture Validation**: All new components follow established patterns
+- **Foundation Status**: ❌ CRITICAL ISSUES IDENTIFIED
+- **Dependency Analysis**: Foundation work must be sequential, not parallel
+- **Risk Assessment**: 7 critical risks require immediate attention
+- **Architecture Status**: Cannot validate until basic functionality works
 
-### Confidence Level: **HIGH (95%)**
-- Solid foundation with proven extension patterns (NovelAdapter success)
-- Comprehensive planning with detailed task breakdown
-- Clear user value proposition and measurable outcomes
-- Realistic timeline estimates based on previous work
+### Confidence Level: **MEDIUM (60%)**
+- Foundation issues discovered require immediate attention
+- Previous claims about completion status were inaccurate
+- Realistic timeline now reflects actual implementation state
+- Must stabilize foundation before attempting advanced features

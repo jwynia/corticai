@@ -19,7 +19,7 @@ import type {
  * - TypeScript-specific constructs (interfaces, types, generics)
  */
 export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainAdapter {
-  private entityCounter = 0;
+  private codeEntityCounter = 0;
 
   /**
    * Main extraction method - processes code content and returns enhanced entities
@@ -29,7 +29,7 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
     const baseEntities = super.extract(content, metadata);
 
     // Reset counter for each extraction
-    this.entityCounter = 0;
+    this.codeEntityCounter = 0;
 
     // Only process TypeScript/JavaScript files
     if (!this.isCodeFile(metadata.extension)) {
@@ -47,7 +47,7 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
    * Enhanced relationship detection for code structures
    */
   detectRelationships(entities: Entity[]): Relationship[] {
-    const baseRelationships = super.detectRelationships ? super.detectRelationships(entities) : [];
+    const baseRelationships: Relationship[] = [];
 
     // Get the full file content from the document entity to analyze function calls
     const documentEntity = entities.find(e => e.type === 'document');
@@ -93,7 +93,7 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
    * Generate a unique ID for code entities
    */
   private generateCodeId(prefix: string): string {
-    return `${prefix}_${++this.entityCounter}_${Date.now()}`;
+    return `${prefix}_${++this.codeEntityCounter}_${Date.now()}`;
   }
 
   /**
@@ -365,13 +365,14 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
 
       if (!trimmedLine.startsWith('import')) continue;
 
-      for (const [index, pattern] of patterns.entries()) {
+      for (let index = 0; index < patterns.length; index++) {
+        const pattern = patterns[index];
         pattern.lastIndex = 0;
         const match = pattern.exec(trimmedLine);
 
         if (match) {
           const source = match[2];
-          let importType: string;
+          let importType: string = 'unknown';
           let importData: any = {};
 
           switch (index) {
@@ -391,6 +392,9 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
               importType = 'named';
               importData.imports = match[1].split(',').map(imp => imp.trim());
               importData.typeOnly = true;
+              break;
+            default:
+              importType = 'unknown';
               break;
           }
 

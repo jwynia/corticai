@@ -112,6 +112,10 @@ export class ContextManagerAgent extends Agent {
     };
 
     // Check for existing similar entries
+    if (!queryContextTool.execute) {
+      throw new Error('queryContextTool.execute is not available');
+    }
+
     const similarQuery = await queryContextTool.execute({
       context: {
         query: {
@@ -121,6 +125,7 @@ export class ContextManagerAgent extends Agent {
         },
         storageConfig,
       },
+      runtimeContext: {},
     });
 
     // Look for potential duplicates
@@ -147,18 +152,28 @@ export class ContextManagerAgent extends Agent {
     }
 
     // Store the entry
+    if (!storeContextTool.execute) {
+      throw new Error('storeContextTool.execute is not available');
+    }
+
     const result = await storeContextTool.execute({
       context: {
         entry,
         storageConfig,
         deduplicate: true,
       },
+      runtimeContext: {},
     });
 
     if (result.stored) {
       // Analyze quality after storage
+      if (!analyzeContextQualityTool.execute) {
+        throw new Error('analyzeContextQualityTool.execute is not available');
+      }
+
       const qualityAnalysis = await analyzeContextQualityTool.execute({
         context: { storageConfig },
+        runtimeContext: {},
       });
 
       const suggestions = [];
@@ -197,8 +212,13 @@ export class ContextManagerAgent extends Agent {
     let improvements = 0;
 
     // Analyze quality
+    if (!analyzeContextQualityTool.execute) {
+      throw new Error('analyzeContextQualityTool.execute is not available');
+    }
+
     const qualityAnalysis = await analyzeContextQualityTool.execute({
       context: { storageConfig },
+      runtimeContext: {},
     });
 
     // Address high-severity issues
@@ -263,18 +283,33 @@ export class ContextManagerAgent extends Agent {
     const storageConfig = (this as any).storageConfig;
 
     // Get patterns
+    if (!analyzeContextPatternsTool.execute) {
+      throw new Error('analyzeContextPatternsTool.execute is not available');
+    }
+
     const patternAnalysis = await analyzeContextPatternsTool.execute({
       context: { storageConfig },
+      runtimeContext: {},
     });
 
     // Get quality
+    if (!analyzeContextQualityTool.execute) {
+      throw new Error('analyzeContextQualityTool.execute is not available');
+    }
+
     const qualityAnalysis = await analyzeContextQualityTool.execute({
       context: { storageConfig },
+      runtimeContext: {},
     });
 
     // Get relationships
+    if (!analyzeContextRelationshipsTool.execute) {
+      throw new Error('analyzeContextRelationshipsTool.execute is not available');
+    }
+
     const relationshipAnalysis = await analyzeContextRelationshipsTool.execute({
       context: { storageConfig },
+      runtimeContext: {},
     });
 
     const summary = `
@@ -300,15 +335,20 @@ export class ContextManagerAgent extends Agent {
 
   // Helper methods
 
-  private inferContextType(data: any): string {
+  private inferContextType(data: any): "pattern" | "code" | "decision" | "discussion" | "documentation" | "todo" | "relationship" {
     if (typeof data === 'string') {
       if (data.includes('TODO') || data.includes('FIXME')) return 'todo';
       if (data.includes('function') || data.includes('class')) return 'code';
       if (data.includes('decided') || data.includes('decision')) return 'decision';
+      if (data.includes('relationship') || data.includes('relation')) return 'relationship';
+      if (data.includes('pattern')) return 'pattern';
+      if (data.includes('discuss')) return 'discussion';
       return 'documentation';
     }
 
-    if (data.type) return data.type;
+    if (data.type && ['pattern', 'code', 'decision', 'discussion', 'documentation', 'todo', 'relationship'].includes(data.type)) {
+      return data.type;
+    }
 
     if (data.code || data.implementation) return 'code';
     if (data.decision || data.rationale) return 'decision';

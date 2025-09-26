@@ -438,7 +438,7 @@ export class UniversalFallbackAdapter implements DomainAdapter {
       }
     }
     
-    for (const items of listGroups.values()) {
+    for (const items of Array.from(listGroups.values())) {
       for (let i = 1; i < items.length; i++) {
         if (!items[i].relationships) {
           items[i].relationships = [];

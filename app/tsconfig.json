@@ -8,7 +8,9 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "downlevelIteration": true
   },
   "include": [
     "src/**/*"
