@@ -19,12 +19,12 @@ Sync report identified that major implementations (Progressive Loading, Lens Sys
 - Should create proper location indexes
 
 ## Acceptance Criteria
-- [ ] Create `discoveries/locations/progressive-loading.md`
-- [ ] Create `discoveries/locations/lens-system.md`
-- [ ] Create `discoveries/locations/novel-adapter.md`
-- [ ] Update location indexes with new discoveries
-- [ ] Cross-link related concept documents
-- [ ] Follow discovery record format from CLAUDE.md
+- [x] Create `discoveries/locations/progressive-loading.md` ✅ COMPLETE
+- [x] Create `discoveries/locations/lens-system.md` ✅ COMPLETE
+- [x] Create `discoveries/locations/novel-adapter.md` ✅ COMPLETE
+- [x] Update location indexes with new discoveries ✅ COMPLETE (index.md created)
+- [x] Cross-link related concept documents ✅ COMPLETE (See also sections included)
+- [x] Follow discovery record format from CLAUDE.md ✅ COMPLETE (Location index format used)
 
 ## Implementation Notes
 Each discovery record should include:
