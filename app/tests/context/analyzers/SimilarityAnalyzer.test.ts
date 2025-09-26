@@ -56,6 +56,8 @@ describe('SimilarityAnalyzer', () => {
     options?: Partial<FileInfo>
   ): FileInfo => ({
     path: filePath,
+    name: path.basename(filePath),
+    extension: path.extname(filePath),
     content,
     contentHash: content ? 'mock-hash-' + content.length : undefined,
     metadata: {
@@ -99,21 +101,21 @@ describe('SimilarityAnalyzer', () => {
     mockSemanticAnalyzer = vi.fn();
 
     (FilenameAnalyzer as any).mockImplementation(() => ({
+      name: 'filename',
       analyze: mockFilenameAnalyzer,
-      getName: () => 'filename',
-      canAnalyze: () => true
+      getDetails: vi.fn(() => ({ filenamePatterns: ['mock-pattern'] }))
     }));
 
     (StructureAnalyzer as any).mockImplementation(() => ({
+      name: 'structure',
       analyze: mockStructureAnalyzer,
-      getName: () => 'structure',
-      canAnalyze: () => true
+      getDetails: vi.fn(() => ({ commonStructures: ['mock-structure'] }))
     }));
 
     (SemanticAnalyzer as any).mockImplementation(() => ({
+      name: 'semantic',
       analyze: mockSemanticAnalyzer,
-      getName: () => 'semantic',
-      canAnalyze: () => true
+      getDetails: vi.fn(() => ({ sharedKeywords: ['mock-keyword'] }))
     }));
 
     // Create analyzer instance
@@ -210,10 +212,10 @@ describe('SimilarityAnalyzer', () => {
 
   describe('Similarity Analysis', () => {
     beforeEach(() => {
-      // Setup default mock responses
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.8));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.7));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.6));
+      // Setup default mock responses - layers should return numbers, not LayerSimilarityScore objects
+      mockFilenameAnalyzer.mockResolvedValue(0.8);
+      mockStructureAnalyzer.mockResolvedValue(0.7);
+      mockSemanticAnalyzer.mockResolvedValue(0.6);
     });
 
     it('should analyze similarity between two files', async () => {
@@ -296,9 +298,9 @@ describe('SimilarityAnalyzer', () => {
       });
 
       // Mock specific scores to test weighting
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.5));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.0));
+      mockFilenameAnalyzer.mockResolvedValue(1.0);
+      mockStructureAnalyzer.mockResolvedValue(0.5);
+      mockSemanticAnalyzer.mockResolvedValue(0.0);
 
       const file1 = createFileInfo(path.join(tempDir, 'test1.ts'), 'content1');
       const file2 = createFileInfo(path.join(tempDir, 'test2.ts'), 'content2');
@@ -312,9 +314,9 @@ describe('SimilarityAnalyzer', () => {
 
     it('should generate appropriate recommendations', async () => {
       // Arrange - High similarity should suggest merge/update
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.95));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.9));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.85));
+      mockFilenameAnalyzer.mockResolvedValue(0.95);
+      mockStructureAnalyzer.mockResolvedValue(0.9);
+      mockSemanticAnalyzer.mockResolvedValue(0.85);
 
       const file1 = createFileInfo(path.join(tempDir, 'test1.ts'), 'content1');
       const file2 = createFileInfo(path.join(tempDir, 'test2.ts'), 'content2');
@@ -333,9 +335,9 @@ describe('SimilarityAnalyzer', () => {
 
     it('should handle layer analysis errors gracefully', async () => {
       // Arrange
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.8));
+      mockFilenameAnalyzer.mockResolvedValue(0.8);
       mockStructureAnalyzer.mockRejectedValue(new Error('Structure analysis failed'));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.6));
+      mockSemanticAnalyzer.mockResolvedValue(0.6);
 
       const file1 = createFileInfo(path.join(tempDir, 'test1.ts'), 'content1');
       const file2 = createFileInfo(path.join(tempDir, 'test2.ts'), 'content2');
@@ -359,7 +361,7 @@ describe('SimilarityAnalyzer', () => {
 
       // Mock a slow analyzer
       mockFilenameAnalyzer.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(createMockLayerScore(0.8)), 200))
+        () => new Promise(resolve => setTimeout(() => resolve(0.8), 200))
       );
 
       const file1 = createFileInfo(path.join(tempDir, 'test1.ts'), 'content1');
@@ -374,9 +376,9 @@ describe('SimilarityAnalyzer', () => {
   describe('Batch Analysis', () => {
     beforeEach(() => {
       // Setup default mock responses
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.5));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.6));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.7));
+      mockFilenameAnalyzer.mockResolvedValue(0.5);
+      mockStructureAnalyzer.mockResolvedValue(0.6);
+      mockSemanticAnalyzer.mockResolvedValue(0.7);
     });
 
     it('should find similar files from candidates', async () => {
@@ -415,12 +417,12 @@ describe('SimilarityAnalyzer', () => {
       ];
 
       // Mock different similarity scores
-      mockFilenameAnalyzer.mockResolvedValueOnce(createMockLayerScore(0.9))
-                          .mockResolvedValueOnce(createMockLayerScore(0.2));
-      mockStructureAnalyzer.mockResolvedValueOnce(createMockLayerScore(0.8))
-                           .mockResolvedValueOnce(createMockLayerScore(0.1));
-      mockSemanticAnalyzer.mockResolvedValueOnce(createMockLayerScore(0.7))
-                          .mockResolvedValueOnce(createMockLayerScore(0.0));
+      mockFilenameAnalyzer.mockResolvedValueOnce(0.9)
+                          .mockResolvedValueOnce(0.2);
+      mockStructureAnalyzer.mockResolvedValueOnce(0.8)
+                           .mockResolvedValueOnce(0.1);
+      mockSemanticAnalyzer.mockResolvedValueOnce(0.7)
+                          .mockResolvedValueOnce(0.0);
 
       // Act
       const results = await analyzer.findSimilarFiles(targetFile, candidates, 0.5);
@@ -449,9 +451,9 @@ describe('SimilarityAnalyzer', () => {
   describe('Performance Requirements', () => {
     beforeEach(() => {
       // Setup fast mock responses
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.8));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.7));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.6));
+      mockFilenameAnalyzer.mockResolvedValue(0.8);
+      mockStructureAnalyzer.mockResolvedValue(0.7);
+      mockSemanticAnalyzer.mockResolvedValue(0.6);
     });
 
     it('should complete analysis within time limits', async () => {
@@ -525,9 +527,9 @@ describe('SimilarityAnalyzer', () => {
       const file1 = createFileInfo(path.join(tempDir, 'test1.ts')); // No content
       const file2 = createFileInfo(path.join(tempDir, 'test2.ts'), 'some content');
 
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.8));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.0)); // Can't analyze structure without content
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.0)); // Can't analyze semantics without content
+      mockFilenameAnalyzer.mockResolvedValue(0.8);
+      mockStructureAnalyzer.mockResolvedValue(0.0); // Can't analyze structure without content
+      mockSemanticAnalyzer.mockResolvedValue(0.0); // Can't analyze semantics without content
 
       // Act
       const result = await analyzer.analyzeSimilarity(file1, file2);
@@ -542,8 +544,8 @@ describe('SimilarityAnalyzer', () => {
       // Arrange
       const layerError = new Error('Layer-specific error');
       mockFilenameAnalyzer.mockRejectedValue(layerError);
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.7));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.6));
+      mockStructureAnalyzer.mockResolvedValue(0.7);
+      mockSemanticAnalyzer.mockResolvedValue(0.6);
 
       const file1 = createFileInfo(path.join(tempDir, 'test1.ts'), 'content1');
       const file2 = createFileInfo(path.join(tempDir, 'test2.ts'), 'content2');
@@ -567,9 +569,9 @@ describe('SimilarityAnalyzer', () => {
       const file2 = createFileInfo(path.join(tempDir, 'identical2.ts'), content);
 
       // Mock perfect scores for identical files
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
+      mockFilenameAnalyzer.mockResolvedValue(1.0);
+      mockStructureAnalyzer.mockResolvedValue(1.0);
+      mockSemanticAnalyzer.mockResolvedValue(1.0);
 
       // Act
       const result = await analyzer.analyzeSimilarity(file1, file2);
@@ -585,9 +587,9 @@ describe('SimilarityAnalyzer', () => {
       const file2 = createFileInfo(path.join(tempDir, 'image.png'), 'Binary image data');
 
       // Mock very low scores for different files
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(0.1));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(0.0));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(0.0));
+      mockFilenameAnalyzer.mockResolvedValue(0.1);
+      mockStructureAnalyzer.mockResolvedValue(0.0);
+      mockSemanticAnalyzer.mockResolvedValue(0.0);
 
       // Act
       const result = await analyzer.analyzeSimilarity(file1, file2);
@@ -602,9 +604,9 @@ describe('SimilarityAnalyzer', () => {
       const file = createFileInfo(path.join(tempDir, 'self.ts'), 'self content');
 
       // Mock perfect scores for self-comparison
-      mockFilenameAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
-      mockStructureAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
-      mockSemanticAnalyzer.mockResolvedValue(createMockLayerScore(1.0));
+      mockFilenameAnalyzer.mockResolvedValue(1.0);
+      mockStructureAnalyzer.mockResolvedValue(1.0);
+      mockSemanticAnalyzer.mockResolvedValue(1.0);
 
       // Act
       const result = await analyzer.analyzeSimilarity(file, file);

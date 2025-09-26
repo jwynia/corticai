@@ -1,100 +1,90 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-09-25 (Reality Check Update)
-**Major Components Complete**: Phase 1 Universal Context Engine ✅, Phase 2 Progressive Loading System ✅, Phase 3 Core Lens Interface Foundation ✅
-**Current Phase**: Phase 3 Lens System - Core foundation complete, implementation tasks ready
-**Latest Achievement**: ✅ CORE LENS INTERFACE FOUNDATION with comprehensive types, config validation, and test coverage (38 tests passing)
-**Strategic Readiness**: Foundation + Progressive Loading + Lens interfaces complete, ready for lens implementations
+**Last Groomed**: 2025-09-25 (Post-Implementation Reality Check)
+**Major Components Complete**: Phase 1 Universal Context Engine ✅, Phase 2 Progressive Loading System ✅, Phase 3 Lens System Foundation ✅
+**Current State**: CRITICAL ISSUE - Lens system implementation has fundamental integration problems
+**Test Reality**: ActivationDetector 7/28 tests failing, SimilarityAnalyzer 20/22 tests failing, Architecture misalignment
+**Priority**: Fix core lens integration issues, align implementation with specifications
+**Technical Debt**: Incomplete lens layer integration, broken similarity analysis, configuration management
 
 ---
 
-## 🚀 Ready for Implementation
+## 🚨 CRITICAL ISSUES (Must Fix First)
+
+### 1. 🔥 URGENT: Fix Lens System Integration Failures
+**One-liner**: Fix fundamental architecture misalignment causing 27+ test failures
+**Complexity**: Medium
+**Priority**: CRITICAL 🔥 - Blocks all lens system functionality
+**Files to fix**:
+- `/app/src/context/lenses/ActivationDetector.ts` (7/28 tests failing)
+- `/app/src/context/analyzers/SimilarityAnalyzer.ts` (20/22 tests failing)
+- Layer integration and configuration management
 
 <details>
-<summary>Full Implementation Details</summary>
+<summary>Critical Issues Found</summary>
 
-**Context**: Phase 2 of the Universal Context Engine vision - prevents duplicate file creation and amnesia loops through intelligent file operation interception.
+**Failing Tests Indicate**:
+- **ActivationDetector**: 7/28 tests failing - pattern detection broken
+- **SimilarityAnalyzer**: 20/22 tests failing - layer architecture broken
+- **Architecture Issues**: Missing layer implementations, configuration errors
+- **Integration Problems**: Components not properly connected
 
-**Acceptance Criteria**:
-- [x] Intercepts write operations before execution (FileOperationInterceptor ✅)
-- [ ] Finds similar existing files using multiple strategies
-- [ ] Suggests merge or update instead of create when appropriate
-- [ ] Tracks file operation patterns to detect amnesia loops
-- [ ] Detects repeated creation of same file types/content
-- [ ] Integrates with Mastra workflow system
-- [ ] Provides contextual recommendations
+**Root Causes**:
+1. **Missing Layer Implementations**: `this.layers.filename.getDetails is not a function`
+2. **Configuration Management**: Invalid weights/thresholds not properly validated
+3. **Method Signatures**: `findSimilarFiles` method missing from interface
+4. **Error Handling**: Custom error types not properly thrown
 
-**Next Implementation Steps**:
+**Immediate Actions Required**:
+1. Fix layer interface implementation in SimilarityAnalyzer
+2. Implement missing `getDetails()` methods in analysis layers
+3. Fix configuration validation and error throwing
+4. Implement missing `findSimilarFiles` batch analysis method
+5. Fix ActivationDetector pattern matching logic
 
-**1. Task 1.2: SimilarityAnalyzer (8-10 hours)**
-```typescript
-class SimilarityAnalyzer {
-  async analyzeSimilarity(file1: FileInfo, file2: FileInfo): Promise<SimilarityResult> {
-    // Multi-layer analysis: filename, structure, semantic, content
-    const filename = await this.filenameLayer.analyze(file1, file2);
-    const structure = await this.structureLayer.analyze(file1, file2);
-    const semantic = await this.semanticLayer.analyze(file1, file2);
-
-    return this.combineScores({ filename, structure, semantic });
-  }
-}
-```
-
-**Files to create**:
-- `/app/src/context/analyzers/SimilarityAnalyzer.ts`
-- `/app/src/context/analyzers/layers/FilenameAnalyzer.ts`
-- `/app/src/context/analyzers/layers/StructureAnalyzer.ts`
-- `/app/src/context/analyzers/layers/SemanticAnalyzer.ts`
-
-**2. Task 1.3: DecisionEngine (4-5 hours)**
-```typescript
-class FileDecisionEngine {
-  async generateRecommendation(
-    newFile: FileInfo,
-    similarities: SimilarityResult[]
-  ): Promise<FileRecommendation> {
-    // Rule-based decision making with configurable thresholds
-    return this.applyDecisionRules(newFile, similarities);
-  }
-}
-```
-
-**3. Task 2.1: Agent Integration (6-8 hours)**
-```typescript
-class ContinuityCortexAgent extends Agent {
-  constructor() {
-    super({
-      name: 'ContinuityCortex',
-      instructions: CORTEX_INSTRUCTIONS,
-      model: openRouter.chat('anthropic/claude-3.5-haiku'),
-      tools: { analyzeSimilarity, makeDecision, checkAmnesiaLoop }
-    });
-  }
-}
-```
-
-**4. Task 2.2: Storage Integration (4-5 hours)**
-```typescript
-// Integrate with KuzuStorageAdapter for relationship tracking
-await storage.addNode({ id: file.path, type: 'File', properties: file.metadata });
-await storage.addEdge({
-  from: file1.path,
-  to: file2.path,
-  type: 'SIMILAR_TO',
-  properties: { similarity: score, algorithm: 'multi-layer' }
-});
-```
-
-**Watch Out For**:
-- File system permissions and access patterns
-- Performance impact of content analysis
-- False positives in similarity detection
-- Integration with existing Mastra workflows
+**Dependencies**: Core lens foundation exists but integration layer broken
 
 </details>
 
 ---
+
+### 2. 🔧 HIGH PRIORITY: SimilarityAnalyzer Architecture Fix
+**One-liner**: Fix broken layer architecture and missing method implementations
+**Complexity**: Medium
+**Priority**: HIGH 🔧 - Core intelligence component failing
+**Files to fix**:
+- `/app/src/context/analyzers/SimilarityAnalyzer.ts` (architecture overhaul needed)
+- Analysis layer implementations (FilenameAnalyzer, StructureAnalyzer, etc.)
+
+<details>
+<summary>Implementation Fix Requirements</summary>
+
+**Critical Missing Implementations**:
+1. **Layer getDetails() Methods**: All analysis layers missing `getDetails()` implementation
+2. **Batch Analysis**: `findSimilarFiles()` method completely missing
+3. **Configuration Validation**: Error throwing not working for invalid configs
+4. **Timeout Handling**: Analysis timeout not properly implemented
+5. **Error Types**: Custom error classes not being thrown correctly
+
+**Architecture Problems**:
+- Layer interface contract not properly implemented
+- Configuration system not enforcing validation rules
+- Method signatures don't match test expectations
+- Error handling not following established patterns
+
+**Fix Strategy**:
+1. Implement missing `getDetails()` methods in all analysis layers
+2. Add `findSimilarFiles()` batch analysis method to SimilarityAnalyzer
+3. Fix configuration validation to actually throw errors for invalid inputs
+4. Implement proper timeout handling with SimilarityAnalysisTimeoutError
+5. Align error types and throwing behavior with test expectations
+
+</details>
+
+---
+
+## 🚀 Ready After Critical Fixes
 
 ### 1. ✅ COMPLETED: Progressive Loading System
 **One-liner**: Add depth-based context loading to optimize memory usage
@@ -133,14 +123,14 @@ await storage.addEdge({
 
 ---
 
-### 3. 🚀 HIGH PRIORITY: Lens Registry System
-**One-liner**: Build the central lens management and activation system
+### 3. ✅ IMPLEMENTED BUT BROKEN: Lens Registry System
+**One-liner**: Fix existing LensRegistry and ActivationDetector implementations
 **Complexity**: Medium
-**Priority**: CRITICAL 🔧 - Core orchestration for lens system
-**Files to create**:
-- `/app/src/context/lenses/LensRegistry.ts` (new)
-- `/app/src/context/lenses/ActivationDetector.ts` (new)
-- `/app/src/context/lenses/index.ts` (extend existing)
+**Priority**: HIGH 🔧 - Components exist but integration failing
+**Status**: NEEDS ARCHITECTURE ALIGNMENT - files exist but tests failing
+**Files to fix**:
+- `/app/src/context/lenses/LensRegistry.ts` ✅ EXISTS (15KB implemented)
+- `/app/src/context/lenses/ActivationDetector.ts` ✅ EXISTS (21KB implemented, 7/28 tests failing)
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -664,35 +654,34 @@ const ROUTING_RULES = {
 
 ---
 
-## ⏳ Ready Soon (Blocked)
+## ⏳ Ready Soon (After Critical Fixes)
 
-### Build Enhanced Domain Adapters
-**One-liner**: Create PlaceDomainAdapter and CodeDomainAdapter with rich domain understanding
-**Complexity**: Large (15-20 hours)
-**Blocker**: Needs Progressive Loading and Lens System first
-**Prep work possible**: Design domain-specific entity types and relationship patterns
+### Build First Concrete Lens Implementation
+**One-liner**: Implement DebugLens as first working lens after fixes complete
+**Complexity**: Medium (6-8 hours)
+**Blocker**: Must fix SimilarityAnalyzer and ActivationDetector first
+**Prep work possible**: Design debug patterns and activation criteria
 
 <details>
 <summary>Quick Overview</summary>
 
 **Key Features**:
-- PlaceDomainAdapter (proof of concept from use case)
-- CodeDomainAdapter with AST understanding
-- DocumentDomainAdapter with semantic analysis
-- Natural language query translation
-- Adapter composition for multi-domain projects
+- Debug pattern detection (error handling, logging, exceptions)
+- Context emphasis for debugging scenarios
+- Integration with fixed ActivationDetector
+- Proof of concept for lens system value
 
-**Dependencies**: Progressive Loading System and Lens System must be complete first
+**Dependencies**: Critical fixes to SimilarityAnalyzer and ActivationDetector must complete first
 
 </details>
 
 ---
 
-### Build Spatial and Temporal Extensions
-**One-liner**: Add spatial indexing and temporal query capabilities
+### Enhanced Domain Adapters (Future Phase)
+**One-liner**: Create enhanced domain adapters after lens system stabilizes
 **Complexity**: Large (15-20 hours)
-**Blocker**: Needs Domain Adapters framework first
-**Prep work possible**: Research RTree spatial indexing and timezone handling strategies
+**Blocker**: Needs stable lens system first
+**Status**: DEFERRED - Focus on core lens fixes first
 
 ---
 
@@ -800,72 +789,82 @@ const ROUTING_RULES = {
 
 ## 🚀 Top 3 Recommendations
 
-### 1. **🎯 IMPLEMENT: Lens Registry System** (4-6 hours)
-**Why**: Core orchestration for lens system - builds on completed foundation interfaces
-**Action**: Implement LensRegistry with activation detection and lens coordination
-**Risk**: Medium - state management complexity, but well-defined requirements
-**Value**: Enables lens activation, management, and basic conflict detection
-**First Step**: Create LensRegistry class with Map-based storage for lens instances
+### 1. **🔥 URGENT: Fix SimilarityAnalyzer Layer Architecture** (4-6 hours)
+**Why**: 20/22 tests failing - core intelligence component completely broken
+**Action**: Fix layer implementations, add missing methods, fix configuration validation
+**Risk**: Medium - architecture problems but clear error patterns
+**Value**: Unblocks entire similarity analysis system needed for lens activation
+**First Step**: Fix missing `getDetails()` methods in all analysis layers
 
-### 2. **🟢 QUICK WIN: DebugLens Implementation** (6-8 hours)
-**Why**: First concrete lens demonstrating system value, proves Phase 3 concept
-**Action**: Implement DebugLens with debug pattern detection and query transformation
-**Risk**: Medium - pattern detection complexity, but clear use case
-**Value**: Immediate user value through debug-focused context presentation
-**First Step**: Define debug patterns (error handling, logging, exception patterns)
+### 2. **🔧 HIGH: Fix ActivationDetector Pattern Matching** (3-4 hours)
+**Why**: 7/28 tests failing - lens activation system not working correctly
+**Action**: Fix pattern detection logic and confidence scoring
+**Risk**: Low - implementation exists, needs debugging and tuning
+**Value**: Enables proper lens activation based on context patterns
+**First Step**: Debug failed pattern detection tests and fix scoring logic
 
-### 3. **🟢 QUICK WIN: DocumentationLens Implementation** (6-8 hours)
-**Why**: Second lens proving system versatility and composition capability
-**Action**: Implement DocumentationLens for API documentation focus
-**Risk**: Medium - API pattern detection, but good existing patterns
-**Value**: Proves lens system versatility and composition with DebugLens
-**First Step**: Define API patterns (public interfaces, exports, documentation)
+### 3. **🟢 VALIDATE: Run Complete Test Suite After Fixes** (1-2 hours)
+**Why**: Need to verify fixes resolve architectural integration issues
+**Action**: Run full test suite, validate all lens components working together
+**Risk**: Low - verification step to ensure fixes are complete
+**Value**: Confirms lens system is ready for concrete lens implementations
+**First Step**: Run tests after each component fix, validate integration
 
 ---
 
 ## 📝 Sprint Recommendation
 
-### Sprint Goal: "Implement Core Phase 3 Lens System"
-**Duration**: 2-3 weeks
-**Theme**: Build lens registry and first working lens implementations on existing foundation
+### Sprint Goal: "Fix Core Lens System Architecture"
+**Duration**: 1 week (URGENT)
+**Theme**: Fix fundamental architecture problems blocking lens system progress
 
-#### Week 1: Core Registry and First Lens
-1. **Days 1-2**: Lens Registry System (Task 3) 🔧 - Core orchestration
-2. **Days 3-5**: DebugLens Implementation (Task 4) 🟠 - First concrete lens
+#### Days 1-2: Critical Architecture Fixes
+1. **SimilarityAnalyzer Layer Fix** 🔥 - Fix 20/22 failing tests
+   - Implement missing `getDetails()` methods in all analysis layers
+   - Add missing `findSimilarFiles()` batch analysis method
+   - Fix configuration validation error throwing
+   - Implement proper timeout and error handling
 
-#### Week 2: Second Lens and Composition
-1. **Days 1-3**: DocumentationLens Implementation (Task 5) 🟠 - Second lens
-2. **Days 4-5**: Begin Lens Composition Engine (Task 6) 🟡 - Multi-lens functionality
+#### Days 3-4: Activation System Repair
+2. **ActivationDetector Pattern Fix** 🔧 - Fix 7/28 failing tests
+   - Debug pattern detection logic failures
+   - Fix confidence scoring calculations
+   - Align lens matching with expected behavior
+   - Test activation criteria properly
 
-#### Week 3: Integration and Testing
-1. **Days 1-2**: Complete Lens Composition Engine
-2. **Days 3-5**: QueryBuilder Integration (Task 7) 🟡 - User-facing functionality
+#### Day 5: Validation and Integration
+3. **Full Integration Testing** 🟢 - Validate fixes
+   - Run complete test suite after each fix
+   - Verify lens system architecture alignment
+   - Document fixed issues and validated functionality
+   - Prepare for concrete lens implementation
 
 #### Success Criteria
-- **Week 1**: Registry operational with DebugLens working
-- **Week 2**: Two lenses working with basic composition
-- **Week 3**: Complete lens system integrated with QueryBuilder
+- **Days 1-2**: SimilarityAnalyzer tests passing (target: 22/22)
+- **Days 3-4**: ActivationDetector tests passing (target: 28/28)
+- **Day 5**: All lens foundation tests passing, architecture validated
 
-### Key Success Metrics
+### Key Success Metrics (Revised for Current Reality)
 - Progressive loading ✅ COMPLETED (80% memory reduction validated)
-- Lens system switches perspectives in < 100ms
-- TypeScript dependency graph shows clear circular dependency detection
-- SimilarityAnalyzer achieves 100% test coverage
-- All new features maintain 100% test pass rate
-- Documentation and examples ready for demonstration
+- **CRITICAL**: Fix 27+ failing lens tests (20 SimilarityAnalyzer + 7 ActivationDetector)
+- **TARGET**: Achieve 100% test pass rate for lens foundation components
+- Architecture alignment between implementation and specification
+- Layer integration working properly with all expected methods
+- Configuration validation properly throwing errors for invalid inputs
 
 ## Metadata
-- **Last Groomed**: 2025-09-25 (Reality Check Update - Foundation Complete)
-- **Grooming Scope**: Updated backlog based on actual implementation status - Phase 3 foundation is COMPLETE
-- **Next Review**: After lens registry and first lens implementation
-- **Key Finding**: Phase 3 Core Lens Interface Foundation is COMPLETED ✅ - ready for implementation tasks
-- **Confidence**: VERY HIGH - Foundation complete with 38 tests passing, implementation path clear
-- **Strategic Focus**: Execute lens registry system (Task 3) then concrete lens implementations
-- **Success Measure**: Registry operational within 1 week, working lenses within 2 weeks
+- **Last Groomed**: 2025-09-25 (Post-Implementation Reality Check - Critical Issues Found)
+- **Grooming Scope**: REALITY CHECK - Foundation exists but has fundamental integration problems
+- **Next Review**: After critical architecture fixes complete
+- **Key Finding**: Phase 3 implementation EXISTS but has serious integration failures
+- **Confidence**: MEDIUM - Code exists (40KB+) but architecture misaligned, 27+ tests failing
+- **Strategic Focus**: FIX CRITICAL ISSUES FIRST - SimilarityAnalyzer and ActivationDetector
+- **Success Measure**: All tests passing within 1 week, then proceed with concrete lens implementations
 
-### Task Status Summary
-- **Total tasks reviewed**: 8 implementation tasks
-- **Ready for immediate work**: 5 tasks (Registry + 2 Lenses + 2 Quick Wins)
-- **Blocked tasks**: 2 advanced tasks (composition engine, QueryBuilder integration)
-- **Foundation complete**: ✅ Core interfaces, types, config validation, test coverage
-- **Implementation readiness**: EXCELLENT - clear path from registry to working lenses
+### Task Status Summary (Reality Check)
+- **Total tasks reviewed**: Architecture problems found in existing implementation
+- **Critical issues found**: 27+ failing tests across core lens components
+- **Ready for immediate work**: 2 urgent fixes (SimilarityAnalyzer + ActivationDetector)
+- **Blocked tasks**: ALL concrete lens work blocked until architecture fixes complete
+- **Foundation status**: ✅ Code exists (40KB+) but ❌ Integration broken
+- **Implementation readiness**: LOW - Must fix architecture before proceeding

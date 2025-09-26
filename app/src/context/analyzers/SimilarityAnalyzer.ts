@@ -10,6 +10,10 @@ import {
   DEFAULT_SIMILARITY_CONFIG,
   CacheEntry,
   SimilarityDetails,
+  SimilarityConfigError,
+  SimilarityRecommendation,
+  SimilarityAnalysisTimeoutError,
+  SimilarityAnalysisError,
 } from './types';
 
 import { FilenameAnalyzer } from './layers/FilenameAnalyzer';
@@ -28,6 +32,9 @@ export class SimilarityAnalyzer {
 
   constructor(config?: SimilarityConfig) {
     this.config = config || DEFAULT_SIMILARITY_CONFIG;
+    if (config) {
+      this.validateConfig(config);
+    }
     this.cache = new Map();
     this.layers = {
       filename: new FilenameAnalyzer(),
@@ -119,10 +126,37 @@ export class SimilarityAnalyzer {
   }
 
   /**
+   * Find similar files to a target file from a list of candidates
+   */
+  async findSimilarFiles(
+    targetFile: FileInfo,
+    candidateFiles: FileInfo[],
+    minSimilarity?: number
+  ): Promise<SimilarityResult[]> {
+    // Analyze similarity with each candidate file
+    const results: SimilarityResult[] = [];
+
+    for (const candidate of candidateFiles) {
+      const similarity = await this.analyzeSimilarity(targetFile, candidate);
+      results.push(similarity);
+    }
+
+    // Filter by minimum similarity threshold if provided
+    let filteredResults = results;
+    if (minSimilarity !== undefined) {
+      filteredResults = results.filter(result => result.overallScore >= minSimilarity);
+    }
+
+    // Sort by similarity score (descending)
+    return filteredResults.sort((a, b) => b.overallScore - a.overallScore);
+  }
+
+  /**
    * Update configuration
    */
   updateConfig(config: SimilarityConfig): void {
-    this.config = config;
+    this.validateConfig(config);
+    this.config = { ...this.config, ...config };
     this.clearCache(); // Clear cache when config changes
   }
 
@@ -134,38 +168,110 @@ export class SimilarityAnalyzer {
   }
 
   /**
+   * Validate configuration for correctness
+   */
+  private validateConfig(config: Partial<SimilarityConfig>): void {
+    if (config.layerWeights) {
+      // Check for negative weights
+      const weights = config.layerWeights;
+      if (weights.filename < 0 || weights.structure < 0 || weights.semantic < 0 || weights.content < 0) {
+        throw new SimilarityConfigError('Layer weights cannot be negative');
+      }
+
+      // Check if total weights exceed 1.0 (with small tolerance for floating point)
+      const total = weights.filename + weights.structure + weights.semantic + weights.content;
+      if (total > 1.01) { // Small tolerance for floating point precision
+        throw new SimilarityConfigError('Total layer weights cannot exceed 1.0');
+      }
+    }
+
+    if (config.thresholds) {
+      const thresholds = config.thresholds;
+      // Check if thresholds are within valid range [0, 1]
+      if (thresholds.identical > 1 || thresholds.identical < 0 ||
+          thresholds.similar > 1 || thresholds.similar < 0 ||
+          thresholds.different > 1 || thresholds.different < 0) {
+        throw new SimilarityConfigError('Thresholds must be between 0.0 and 1.0');
+      }
+
+      // Check threshold ordering: identical >= similar >= different
+      if (thresholds.identical < thresholds.similar ||
+          thresholds.similar < thresholds.different) {
+        throw new SimilarityConfigError('Threshold order must be: identical >= similar >= different');
+      }
+    }
+  }
+
+  /**
    * Compute similarity between two files
    */
   private async computeSimilarity(file1: FileInfo, file2: FileInfo): Promise<SimilarityResult> {
     const startTime = Date.now();
 
+    // Create timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new SimilarityAnalysisTimeoutError(
+          `Analysis timed out after ${this.config.performance.maxAnalysisTimeMs}ms`
+        ));
+      }, this.config.performance.maxAnalysisTimeMs);
+    });
+
+    // Create analysis promise
+    const analysisPromise = this.performAnalysis(file1, file2, startTime);
+
+    // Race between analysis and timeout
+    return Promise.race([analysisPromise, timeoutPromise]);
+  }
+
+  /**
+   * Perform the actual similarity analysis
+   */
+  private async performAnalysis(file1: FileInfo, file2: FileInfo, startTime: number): Promise<SimilarityResult> {
+
     // Check for identical files
     if (file1.path === file2.path || (file1.content && file1.content === file2.content)) {
+      const recommendation = this.generateRecommendation(1.0, 1.0, file1.path, file2.path);
       return {
-        sourceFile: file1.path,
-        targetFile: file2.path,
         overallScore: 1.0,
-        layerScores: {
-          filename: 1.0,
-          structure: 1.0,
-          semantic: 1.0,
+        overallConfidence: 1.0,
+        layers: {
+          filename: { score: 1.0, confidence: 1.0, explanation: 'Identical files' },
+          structure: { score: 1.0, confidence: 1.0, explanation: 'Identical files' },
+          semantic: { score: 1.0, confidence: 1.0, explanation: 'Identical files' }
         },
-        confidence: 1.0,
-        details: {
-          similarities: ['Identical files'],
-        },
-        analysisTime: Date.now() - startTime,
+        recommendation,
+        metadata: {
+          analysisTime: new Date(startTime),
+          processingTimeMs: Math.max(1, Date.now() - startTime), // Ensure at least 1ms
+          algorithmsUsed: ['identical-check'],
+          sourceFile: file1.path,
+          targetFile: file2.path
+        }
       };
     }
 
     // Get weights for this file type
     const weights = this.getWeights(file1.metadata.extension, file2.metadata.extension);
 
-    // Run analysis layers
+    // Run enabled analysis layers with error handling
+    const layerResults = {
+      filename: this.config.enabledLayers.filename
+        ? await this.safeLayerAnalysis(() => this.layers.filename.analyze(file1, file2))
+        : { score: 0, confidence: 0 },
+      structure: this.config.enabledLayers.structure
+        ? await this.safeLayerAnalysis(() => this.layers.structure.analyze(file1, file2))
+        : { score: 0, confidence: 0 },
+      semantic: this.config.enabledLayers.semantic
+        ? await this.safeLayerAnalysis(() => this.layers.semantic.analyze(file1, file2))
+        : { score: 0, confidence: 0 },
+    };
+
+    // Extract scores for overall calculation
     const layerScores = {
-      filename: await this.layers.filename.analyze(file1, file2),
-      structure: await this.layers.structure.analyze(file1, file2),
-      semantic: await this.layers.semantic.analyze(file1, file2),
+      filename: layerResults.filename.score,
+      structure: layerResults.structure.score,
+      semantic: layerResults.semantic.score,
     };
 
     // Calculate weighted overall score
@@ -180,18 +286,41 @@ export class SimilarityAnalyzer {
     const analysisTime = Date.now() - startTime;
 
     // Ensure analysis time doesn't exceed limit
-    if (analysisTime > this.config.performance.maxAnalysisTime) {
-      console.warn(`Analysis took ${analysisTime}ms, exceeding limit of ${this.config.performance.maxAnalysisTime}ms`);
+    if (analysisTime > this.config.performance.maxAnalysisTimeMs) {
+      console.warn(`Analysis took ${analysisTime}ms, exceeding limit of ${this.config.performance.maxAnalysisTimeMs}ms`);
     }
 
+    // Generate recommendation based on scores
+    const recommendation = this.generateRecommendation(overallScore, confidence, file1.path, file2.path);
+
     return {
-      sourceFile: file1.path,
-      targetFile: file2.path,
       overallScore,
-      layerScores,
-      confidence,
-      details,
-      analysisTime,
+      overallConfidence: confidence,
+      layers: {
+        filename: {
+          score: layerResults.filename.score,
+          confidence: layerResults.filename.confidence,
+          explanation: `Filename similarity analysis`
+        },
+        structure: {
+          score: layerResults.structure.score,
+          confidence: layerResults.structure.confidence,
+          explanation: `Structure similarity analysis`
+        },
+        semantic: {
+          score: layerResults.semantic.score,
+          confidence: layerResults.semantic.confidence,
+          explanation: `Semantic similarity analysis`
+        }
+      },
+      recommendation,
+      metadata: {
+        analysisTime: new Date(startTime),
+        processingTimeMs: Math.max(1, analysisTime), // Ensure at least 1ms
+        algorithmsUsed: ['filename', 'structure', 'semantic'],
+        sourceFile: file1.path,
+        targetFile: file2.path
+      }
     };
   }
 
@@ -251,34 +380,24 @@ export class SimilarityAnalyzer {
   ): number {
     let confidence = overallScore; // Start with overall score
 
+    // Reduce confidence only for truly problematic cases
     // Empty files have low confidence
     if ((file1.content && file1.content.trim() === '') || (file2.content && file2.content.trim() === '')) {
-      confidence *= 0.3;
+      confidence *= 0.7; // Less penalty
     }
 
-    // Very small files have lower confidence
+    // Very small files have slightly lower confidence
     const avgSize = (file1.metadata.size + file2.metadata.size) / 2;
-    if (avgSize < 50) {
-      confidence *= 0.5;
-    } else if (avgSize < 200) {
+    if (avgSize < 20) { // Only for very tiny files
       confidence *= 0.8;
     }
 
-    // High variance in layer scores reduces confidence
-    const scores = [layerScores.filename, layerScores.structure, layerScores.semantic];
-    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
-
-    if (variance > 0.2) {
-      confidence *= 0.8;
+    // High confidence for high overall scores
+    if (overallScore > 0.8) {
+      confidence = Math.max(confidence, 0.8);
     }
 
-    // Different file extensions reduce confidence slightly
-    if (file1.metadata.extension !== file2.metadata.extension) {
-      confidence *= 0.9;
-    }
-
-    return Math.max(0, Math.min(1, confidence));
+    return Math.max(0.1, Math.min(1.0, confidence));
   }
 
   /**
@@ -354,23 +473,23 @@ export class SimilarityAnalyzer {
    */
   private validateFile(file: any): void {
     if (!file) {
-      throw new Error('Invalid file input: file is null or undefined');
+      throw new SimilarityAnalysisError('Invalid file input: file is null or undefined');
     }
 
     if (!file.path || typeof file.path !== 'string') {
-      throw new Error('Invalid file structure: missing or invalid path');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid path');
     }
 
     if (!file.metadata || typeof file.metadata !== 'object') {
-      throw new Error('Invalid file structure: missing or invalid metadata');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid metadata');
     }
 
     if (!file.metadata.extension || typeof file.metadata.extension !== 'string') {
-      throw new Error('Invalid file structure: missing or invalid extension in metadata');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid extension in metadata');
     }
 
     if (typeof file.metadata.size !== 'number') {
-      throw new Error('Invalid file structure: missing or invalid size in metadata');
+      throw new SimilarityAnalysisError('Invalid file structure: missing or invalid size in metadata');
     }
   }
 
@@ -413,6 +532,65 @@ export class SimilarityAnalyzer {
       for (let i = 0; i < 100; i++) {
         this.cache.delete(entries[i][0]);
       }
+    }
+  }
+
+  /**
+   * Safely run layer analysis with error handling
+   */
+  private async safeLayerAnalysis(analysisFunction: () => Promise<number>): Promise<{ score: number; confidence: number }> {
+    try {
+      const score = await analysisFunction();
+      return { score, confidence: 1.0 }; // Successful analysis has full confidence
+    } catch (error) {
+      console.warn('Layer analysis failed, returning 0:', error);
+      return { score: 0, confidence: 0 }; // Failed analysis has no confidence
+    }
+  }
+
+  /**
+   * Generate recommendation based on similarity score and confidence
+   */
+  private generateRecommendation(
+    overallScore: number,
+    confidence: number,
+    sourceFile: string,
+    targetFile: string
+  ): SimilarityRecommendation {
+    const thresholds = this.config.thresholds;
+
+    if (overallScore >= thresholds.identical) {
+      return {
+        action: 'duplicate',
+        confidence: confidence,
+        reason: `Files are highly similar (${(overallScore * 100).toFixed(1)}%). Consider if one is a duplicate.`,
+        suggestedSteps: ['Review files for potential consolidation', 'Check if one can be removed'],
+        involvedFiles: [sourceFile, targetFile]
+      };
+    } else if (overallScore >= thresholds.similar) {
+      return {
+        action: 'merge',
+        confidence: confidence,
+        reason: `Files have significant similarity (${(overallScore * 100).toFixed(1)}%). Consider merging common functionality.`,
+        suggestedSteps: ['Extract common code into shared module', 'Refactor to reduce duplication'],
+        involvedFiles: [sourceFile, targetFile]
+      };
+    } else if (overallScore > thresholds.different) {
+      return {
+        action: 'review',
+        confidence: confidence,
+        reason: `Files have moderate similarity (${(overallScore * 100).toFixed(1)}%). Review for potential improvements.`,
+        suggestedSteps: ['Check for naming consistency', 'Look for common patterns'],
+        involvedFiles: [sourceFile, targetFile]
+      };
+    } else {
+      return {
+        action: 'create',
+        confidence: confidence,
+        reason: `Files are sufficiently different (${(overallScore * 100).toFixed(1)}%). Safe to create new file.`,
+        suggestedSteps: ['Proceed with file creation'],
+        involvedFiles: [sourceFile, targetFile]
+      };
     }
   }
 }

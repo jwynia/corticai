@@ -15,6 +15,12 @@ export interface FileInfo {
   /** Full path to the file */
   path: string;
 
+  /** File name without directory path */
+  name: string;
+
+  /** File extension (with dot, e.g., '.ts', '.js') */
+  extension: string;
+
   /** File content (if available and readable) */
   content?: string;
 
@@ -205,23 +211,17 @@ export interface SimilarityConfig {
 }
 
 /**
- * Interface for individual analysis layers
+ * Interface for individual analysis layers (filename, structure, semantic, content)
  */
-export interface SimilarityLayer {
-  /**
-   * Analyze similarity between two files
-   */
-  analyze(file1: FileInfo, file2: FileInfo): Promise<LayerSimilarityScore>;
+export interface AnalysisLayer {
+  /** Name of the layer */
+  readonly name: string;
 
-  /**
-   * Get the name of this analysis layer
-   */
-  getName(): string;
+  /** Analyze similarity between two files */
+  analyze(file1: FileInfo, file2: FileInfo): Promise<number>;
 
-  /**
-   * Check if this layer can analyze the given file types
-   */
-  canAnalyze(file1: FileInfo, file2: FileInfo): boolean;
+  /** Get detailed analysis information from the last analysis */
+  getDetails(): SimilarityDetails;
 }
 
 /**
