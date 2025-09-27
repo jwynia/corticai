@@ -37,6 +37,7 @@ import { FileInfo, BatchSimilarityResult } from '../analyzers/types.js';
 
 import { FileDecisionEngine } from '../engines/FileDecisionEngine.js';
 import { Recommendation } from '../engines/types.js';
+import { Logger } from '../../utils/Logger';
 
 /**
  * Main implementation of Continuity Cortex orchestrator
@@ -49,6 +50,7 @@ export class ContinuityCortex implements IContinuityCortex {
   private interceptor: FileOperationInterceptorImpl;
   private analyzer: SimilarityAnalyzer;
   private decisionEngine: FileDecisionEngine;
+  private logger: Logger;
 
   // State management
   private isRunning: boolean = false;
@@ -64,6 +66,7 @@ export class ContinuityCortex implements IContinuityCortex {
   private currentlyMonitored: string[] = [];
 
   constructor(config?: Partial<CortexConfig>) {
+    this.logger = Logger.createConsoleLogger('ContinuityCortex');
     this.configManager = new CortexConfigManager(config);
 
     // Initialize components with appropriate configurations
@@ -313,7 +316,9 @@ export class ContinuityCortex implements IContinuityCortex {
       // Remove all paths from monitoring and stop interceptor
       if (this.isRunning) {
         this.interceptor.stop().catch(error => {
-          console.error('Error stopping interceptor:', error);
+          this.logger.error('Error stopping interceptor', {
+            error: error instanceof Error ? error.message : String(error)
+          });
         });
       }
       this.currentlyMonitored = [];
@@ -860,7 +865,9 @@ export class ContinuityCortex implements IContinuityCortex {
         listener.onFileOperation?.(event);
       } catch (error) {
         // Don't let listener errors break the system
-        console.error('Error in file operation listener:', error);
+        this.logger.error('Error in file operation listener', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }
@@ -870,7 +877,9 @@ export class ContinuityCortex implements IContinuityCortex {
       try {
         listener.onAnalysisStart?.(file);
       } catch (error) {
-        console.error('Error in analysis start listener:', error);
+        this.logger.error('Error in analysis start listener', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }
@@ -880,7 +889,9 @@ export class ContinuityCortex implements IContinuityCortex {
       try {
         listener.onAnalysisComplete?.(result);
       } catch (error) {
-        console.error('Error in analysis complete listener:', error);
+        this.logger.error('Error in analysis complete listener', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }
@@ -890,7 +901,9 @@ export class ContinuityCortex implements IContinuityCortex {
       try {
         listener.onRecommendation?.(recommendation);
       } catch (error) {
-        console.error('Error in recommendation listener:', error);
+        this.logger.error('Error in recommendation listener', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }
@@ -900,7 +913,9 @@ export class ContinuityCortex implements IContinuityCortex {
       try {
         listener.onError?.(error);
       } catch (error) {
-        console.error('Error in error listener:', error);
+        this.logger.error('Error in error listener', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }
@@ -911,7 +926,9 @@ export class ContinuityCortex implements IContinuityCortex {
       try {
         listener.onStatusChange?.(status);
       } catch (error) {
-        console.error('Error in status change listener:', error);
+        this.logger.error('Error in status change listener', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   }

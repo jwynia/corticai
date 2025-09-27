@@ -15,6 +15,10 @@ import {
   StorageErrorCode 
 } from '../interfaces/Storage'
 import { StorageValidator } from '../helpers/StorageValidator'
+import { Logger } from '../../utils/Logger'
+
+// Module-level logger for base adapter functionality
+const logger = Logger.createConsoleLogger('BaseStorageAdapter')
 
 /**
  * Abstract base class for storage adapters
@@ -341,7 +345,7 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
   protected log(message: string): void {
     const adapterName = this.constructor.name.replace('Adapter', '')
     const prefix = `[${adapterName}${this.config.id ? `:${this.config.id}` : ''}]`
-    console.log(`${prefix} ${message}`)
+    logger.info(`${prefix} ${message}`)
   }
 
   /**
@@ -350,7 +354,7 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
   protected logWarn(message: string): void {
     const adapterName = this.constructor.name.replace('Adapter', '')
     const prefix = `[${adapterName}${this.config.id ? `:${this.config.id}` : ''}]`
-    console.warn(`${prefix} ${message}`)
+    logger.warn(`${prefix} ${message}`)
   }
 
   /**
@@ -359,7 +363,7 @@ export abstract class BaseStorageAdapter<T = any> implements BatchStorage<T> {
   protected logError(message: string, error?: Error): void {
     const adapterName = this.constructor.name.replace('Adapter', '')
     const prefix = `[${adapterName}${this.config.id ? `:${this.config.id}` : ''}]`
-    console.error(`${prefix} ${message}`, error)
+    logger.error(`${prefix} ${message}`, error)
   }
 
   // ============================================================================

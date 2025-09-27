@@ -20,10 +20,12 @@ import { FilenameAnalyzer } from './layers/FilenameAnalyzer';
 import { StructureAnalyzer } from './layers/StructureAnalyzer';
 import { SemanticAnalyzer } from './layers/SemanticAnalyzer';
 import { generateCacheKey } from './utils';
+import { Logger } from '../../utils/Logger';
 
 export class SimilarityAnalyzer {
   private config: SimilarityConfig;
   private cache: Map<string, CacheEntry>;
+  private logger: Logger;
   private layers: {
     filename: FilenameAnalyzer;
     structure: StructureAnalyzer;
@@ -31,6 +33,7 @@ export class SimilarityAnalyzer {
   };
 
   constructor(config?: SimilarityConfig) {
+    this.logger = Logger.createConsoleLogger('SimilarityAnalyzer');
     this.config = config || DEFAULT_SIMILARITY_CONFIG;
     if (config) {
       this.validateConfig(config);
@@ -288,7 +291,7 @@ export class SimilarityAnalyzer {
 
     // Ensure analysis time doesn't exceed limit
     if (analysisTime > this.config.performance.maxAnalysisTimeMs) {
-      console.warn(`Analysis took ${analysisTime}ms, exceeding limit of ${this.config.performance.maxAnalysisTimeMs}ms`);
+      this.logger.warn(`Analysis took ${analysisTime}ms, exceeding limit of ${this.config.performance.maxAnalysisTimeMs}ms`);
     }
 
     // Generate recommendation based on scores
@@ -535,7 +538,9 @@ export class SimilarityAnalyzer {
       const score = await analysisFunction();
       return { score, confidence: 1.0 }; // Successful analysis has full confidence
     } catch (error) {
-      console.warn('Layer analysis failed, returning 0:', error);
+      this.logger.warn('Layer analysis failed, returning 0', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return { score: 0, confidence: 0 }; // Failed analysis has no confidence
     }
   }

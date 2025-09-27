@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { fileURLToPath } from 'url';
+import { Logger } from '../utils/Logger';
 
 /**
  * Configuration schema for the Universal Context Engine
@@ -50,10 +51,12 @@ export interface ContextConfig {
  * ```typescript
  * const initializer = new ContextInitializer();
  * const config = await initializer.initialize('/path/to/project');
- * console.log('Context initialized with config:', config);
+ * this.logger.info('Context initialized with config:', config);
  * ```
  */
 export class ContextInitializer {
+  private logger = Logger.createConsoleLogger('ContextInitializer');
+
   /**
    * The name of the context directory
    */

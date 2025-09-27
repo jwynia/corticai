@@ -13,6 +13,7 @@ import * as crypto from 'crypto';
 import { fileTypeFromFile } from 'file-type';
 // @ts-ignore: No type definitions available for mime-types
 import { lookup as mimeTypeLookup } from 'mime-types';
+import { Logger } from '../../utils/Logger';
 
 import {
   FileOperationInterceptor,
@@ -43,8 +44,10 @@ export class FileOperationInterceptorImpl implements FileOperationInterceptor {
   private handlers: Set<FileOperationHandler> = new Set();
   private debounceTimers = new Map<string, NodeJS.Timeout>();
   private isStarted = false;
+  private logger: Logger;
 
   constructor(initialConfig?: Partial<InterceptorConfig>) {
+    this.logger = Logger.createConsoleLogger('FileOperationInterceptor');
     this.config = { ...DEFAULT_INTERCEPTOR_CONFIG };
     if (initialConfig) {
       this.updateConfig(initialConfig);
@@ -101,7 +104,9 @@ export class FileOperationInterceptorImpl implements FileOperationInterceptor {
 
       // Handle watcher errors
       this.watcher.on('error', (error: unknown) => {
-        console.error('File watcher error:', error);
+        this.logger.error('File watcher error', {
+          error: error instanceof Error ? error.message : String(error)
+        });
       });
 
       // Wait for watcher to be ready before considering started
@@ -248,7 +253,10 @@ export class FileOperationInterceptorImpl implements FileOperationInterceptor {
       try {
         await this.processFileEvent(operation, filePath, stats);
       } catch (error) {
-        console.error(`Error processing file event for ${filePath}:`, error);
+        this.logger.error(`Error processing file event for ${filePath}`, {
+          error: error instanceof Error ? error.message : String(error),
+          filePath
+        });
       } finally {
         this.debounceTimers.delete(filePath);
       }
@@ -446,7 +454,9 @@ export class FileOperationInterceptorImpl implements FileOperationInterceptor {
       try {
         await handler(event);
       } catch (error) {
-        console.error('Error in file operation handler:', error);
+        this.logger.error('Error in file operation handler', {
+          error: error instanceof Error ? error.message : String(error)
+        });
         // Continue with other handlers even if one fails
       }
     });

@@ -18,6 +18,7 @@ import type {
   QueryContext
 } from './types'
 import { ActivationDetector } from './ActivationDetector'
+import { Logger } from '../../utils/Logger'
 
 // Constants for magic numbers
 const RECENT_ACTION_THRESHOLD = 5 * 60 * 1000 // 5 minutes in milliseconds
@@ -81,6 +82,7 @@ export class LensRegistry {
   private manualOverride: string | null = null
   private autoResolveConflicts = false
   private eventListeners = new Map<string, LensRegistryEventListener[]>()
+  private logger = Logger.createConsoleLogger('LensRegistry')
 
   // Performance optimization
   private activationCache = new Map<string, ContextLens[]>()
@@ -502,7 +504,7 @@ export class LensRegistry {
         listener(event)
       } catch (error) {
         // Structured error logging with context
-        console.error('LensRegistry: Event listener error', {
+        this.logger.error('Event listener error', {
           eventType: event.type,
           error: error instanceof Error ? error.message : String(error),
           timestamp: new Date().toISOString(),

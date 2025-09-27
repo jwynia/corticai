@@ -8,6 +8,7 @@
 
 import { DuckDBInstance, DuckDBConnection } from '@duckdb/node-api'
 import { DuckDBStorageConfig, StorageError, StorageErrorCode } from '../interfaces/Storage'
+import { Logger } from '../../utils/Logger'
 
 /**
  * Connection Manager for DuckDB Storage Adapters
@@ -23,6 +24,7 @@ export class DuckDBConnectionManager {
   private connection: DuckDBConnection | null = null
   private readonly config: DuckDBStorageConfig
   private readonly debug: boolean
+  private logger: Logger
   
   // Global connection cache shared across all adapters
   private static connectionCache = new Map<string, DuckDBInstance>()
@@ -32,6 +34,7 @@ export class DuckDBConnectionManager {
   private static tableCreationMutexes = new Map<string, Promise<void>>()
   
   constructor(config: DuckDBStorageConfig, debug = false) {
+    this.logger = Logger.createConsoleLogger('DuckDBConnectionManager');
     this.config = config
     this.debug = debug
   }
@@ -69,7 +72,7 @@ export class DuckDBConnectionManager {
       DuckDBConnectionManager.connectionCache.set(cacheKey, this.database)
       
       if (this.debug) {
-        console.log(`[DuckDBConnectionManager] Connected to database: ${this.config.database}`)
+        this.logger.info(`[DuckDBConnectionManager] Connected to database: ${this.config.database}`)
       }
       
       return this.database
@@ -93,7 +96,7 @@ export class DuckDBConnectionManager {
     // If database is null, try to reconnect instead of throwing error
     if (this.database === null) {
       if (this.debug) {
-        console.log('[DuckDBConnectionManager] Database connection was closed, attempting to reconnect')
+        this.logger.info('[DuckDBConnectionManager] Database connection was closed, attempting to reconnect')
       }
     }
     
@@ -165,7 +168,7 @@ export class DuckDBConnectionManager {
         await connection.run(createTableSQL)
         
         if (this.debug) {
-          console.log(`[DuckDBConnectionManager] Created/verified table: ${tableName}`)
+          this.logger.info(`[DuckDBConnectionManager] Created/verified table: ${tableName}`)
         }
         
       } catch (error) {

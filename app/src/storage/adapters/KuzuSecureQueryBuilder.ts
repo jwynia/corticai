@@ -6,6 +6,7 @@
  */
 
 import { Connection, PreparedStatement } from 'kuzu'
+import { Logger } from '../../utils/Logger'
 
 // Constants for validation limits
 const MAX_STRING_PARAMETER_LENGTH = 1000000 // 1MB limit for string parameters
@@ -22,8 +23,10 @@ export interface SecureQuery {
 
 export class KuzuSecureQueryBuilder {
   private connection: Connection
+  public logger: Logger
 
   constructor(connection: Connection) {
+    this.logger = Logger.createConsoleLogger('KuzuSecureQueryBuilder');
     this.connection = connection
   }
 
@@ -262,8 +265,8 @@ export async function executeSecureQueryWithMonitoring(
     }
 
     if (debugMode) {
-      console.log(`[SecureQuery] Executing: ${secureQuery.statement}`)
-      console.log(`[SecureQuery] Parameters: ${Object.keys(secureQuery.parameters).length} params`)
+      queryBuilder.logger.info(`[SecureQuery] Executing: ${secureQuery.statement}`)
+      queryBuilder.logger.info(`[SecureQuery] Parameters: ${Object.keys(secureQuery.parameters).length} params`)
     }
 
     const result = await queryBuilder.executeSecureQuery(secureQueryToExecute)

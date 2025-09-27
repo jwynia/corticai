@@ -18,6 +18,10 @@
  */
 
 import { createCorticaiMCPServer } from './server.js';
+import { Logger } from '../../utils/Logger';
+
+const logger = Logger.createConsoleLogger('stdio');
+
 
 // Parse environment variables
 const storageType = (process.env.CONTEXT_STORAGE || 'memory') as 'memory' | 'json' | 'duckdb';
@@ -54,12 +58,12 @@ const server = createCorticaiMCPServer({
 
 // Start the stdio server
 server.startStdio().catch((error) => {
-  console.error('Error running CorticAI Context MCP server:', error);
+  logger.error('Error running CorticAI Context MCP server:', error);
   process.exit(1);
 });
 
 // Log startup information to stderr (stdio uses stdout for protocol)
-console.error(`CorticAI Context MCP Server started
+logger.error(`CorticAI Context MCP Server started
   Storage: ${storageType}
   ${storageType === 'duckdb' ? `Database: ${databasePath}` : ''}
   ${storageType === 'json' ? `JSON File: ${jsonPath}` : ''}

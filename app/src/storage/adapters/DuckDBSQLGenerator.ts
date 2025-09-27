@@ -9,6 +9,7 @@
 import { DuckDBConnection, DuckDBPreparedStatement } from '@duckdb/node-api'
 import { StorageError, StorageErrorCode } from '../interfaces/Storage'
 import { DuckDBTypeMapper } from './DuckDBTypeMapper'
+import { Logger } from '../../utils/Logger'
 
 /**
  * SQL Generator for DuckDB Storage Operations
@@ -21,6 +22,8 @@ import { DuckDBTypeMapper } from './DuckDBTypeMapper'
  * - Query execution utilities
  */
 export class DuckDBSQLGenerator {
+  private static logger = Logger.createConsoleLogger('DuckDBSQLGenerator');
+
   
   /**
    * Generate SQL for creating a storage table
@@ -135,9 +138,9 @@ export class DuckDBSQLGenerator {
   ): Promise<R[]> {
     try {
       if (debug) {
-        console.log(`[DuckDBSQLGenerator] Executing query: ${sql}`)
+        DuckDBSQLGenerator.logger.info(`[DuckDBSQLGenerator] Executing query: ${sql}`)
         if (params.length > 0) {
-          console.log(`[DuckDBSQLGenerator] Parameters:`, params)
+          DuckDBSQLGenerator.logger.info(`[DuckDBSQLGenerator] Parameters:`, { params })
         }
       }
       
@@ -188,9 +191,9 @@ export class DuckDBSQLGenerator {
   ): Promise<void> {
     try {
       if (debug) {
-        console.log(`[DuckDBSQLGenerator] Executing non-query: ${sql}`)
+        DuckDBSQLGenerator.logger.info(`[DuckDBSQLGenerator] Executing non-query: ${sql}`)
         if (params.length > 0) {
-          console.log(`[DuckDBSQLGenerator] Parameters:`, params)
+          DuckDBSQLGenerator.logger.info(`[DuckDBSQLGenerator] Parameters:`, { params })
         }
       }
       
@@ -230,7 +233,7 @@ export class DuckDBSQLGenerator {
   ): Promise<R[]> {
     try {
       if (debug) {
-        console.log(`[DuckDBSQLGenerator] Querying Parquet file: ${filePath}`)
+        DuckDBSQLGenerator.logger.info(`[DuckDBSQLGenerator] Querying Parquet file: ${filePath}`)
       }
       
       // Replace the first parameter with the file path for read_parquet

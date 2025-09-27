@@ -20,6 +20,10 @@ import type {
   QueryContext
 } from './types'
 import { validateLensConfig, LensConfigValidationError } from './config'
+import { Logger } from '../../utils/Logger'
+
+// Module-level logger for utility functions
+const logger = Logger.createConsoleLogger('ContextLens')
 
 /**
  * Specialized error for lens-related issues
@@ -263,7 +267,10 @@ export function safeTransformQuery<T>(
   try {
     return lens.transformQuery(query)
   } catch (error) {
-    console.warn(`Lens ${lens.id} failed to transform query:`, error)
+    logger.warn(`Lens ${lens.id} failed to transform query`, {
+      lensId: lens.id,
+      error: error instanceof Error ? error.message : String(error)
+    })
     return fallbackQuery || query
   }
 }
@@ -279,7 +286,10 @@ export function safeProcessResults<T>(
   try {
     return lens.processResults(results, context)
   } catch (error) {
-    console.warn(`Lens ${lens.id} failed to process results:`, error)
+    logger.warn(`Lens ${lens.id} failed to process results`, {
+      lensId: lens.id,
+      error: error instanceof Error ? error.message : String(error)
+    })
     return results
   }
 }

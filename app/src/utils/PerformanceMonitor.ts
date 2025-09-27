@@ -12,6 +12,8 @@
  * - Lightweight with minimal performance impact
  */
 
+import { Logger } from './Logger'
+
 export interface PerformanceConfig {
   /** Whether performance monitoring is enabled */
   enabled?: boolean
@@ -58,8 +60,10 @@ export class PerformanceMonitor {
   private config: Required<PerformanceConfig>
   private activeTiming: Map<string, ActiveTiming> = new Map()
   private operationMetrics: Map<string, OperationMetrics> = new Map()
+  private logger: Logger
 
   constructor(config: PerformanceConfig = {}) {
+    this.logger = Logger.createConsoleLogger('PerformanceMonitor');
     this.config = {
       enabled: config.enabled ?? true,
       slowOperationThreshold: config.slowOperationThreshold ?? 100,
@@ -275,9 +279,9 @@ export class PerformanceMonitor {
     const durationStr = `${duration.toFixed(2)}ms`
 
     if (context) {
-      console.warn(`${message} (${durationStr})`, context)
+      this.logger.warn(`${message} (${durationStr})`, context)
     } else {
-      console.warn(`${message} (${durationStr})`)
+      this.logger.warn(`${message} (${durationStr})`)
     }
   }
 }

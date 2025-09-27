@@ -8,6 +8,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { StorageError, StorageErrorCode } from '../interfaces/Storage'
+import { Logger } from '../../utils/Logger'
 
 /**
  * Configuration for file I/O operations
@@ -26,8 +27,10 @@ export interface FileIOConfig {
  */
 export class FileIOHandler {
   private config: Required<Omit<FileIOConfig, 'id'>> & { id?: string }
+  private logger: Logger
 
   constructor(config: FileIOConfig) {
+    this.logger = Logger.createConsoleLogger('FileIOHandler');
     if (!config.filePath) {
       throw new StorageError(
         'filePath is required for file I/O',
@@ -173,7 +176,7 @@ export class FileIOHandler {
    */
   private log(message: string): void {
     const prefix = `[FileIO${this.config.id ? `:${this.config.id}` : ''}]`
-    console.log(`${prefix} ${message}`)
+    this.logger.info(`${prefix} ${message}`)
   }
 
   /**
@@ -181,7 +184,7 @@ export class FileIOHandler {
    */
   private logWarn(message: string): void {
     const prefix = `[FileIO${this.config.id ? `:${this.config.id}` : ''}]`
-    console.warn(`${prefix} ${message}`)
+    this.logger.warn(`${prefix} ${message}`)
   }
 
   /**

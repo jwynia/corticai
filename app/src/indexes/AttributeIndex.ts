@@ -11,6 +11,7 @@ import { promisify } from 'util';
 import type { Entity } from '../types/entity';
 import type { AttributeQuery, BooleanOperator, IndexStatistics, SerializedIndex } from './types';
 import { Storage, JSONStorageAdapter } from '../storage';
+import { Logger } from '../utils/Logger';
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
@@ -22,17 +23,21 @@ const mkdir = promisify(fs.mkdir);
 export class AttributeIndex {
   // Main index: attribute -> value -> Set of entity IDs
   private index: Map<string, Map<any, Set<string>>>;
-  
+
   // Reverse index: entity ID -> Set of attributes (for efficient entity removal)
   private entityAttributes: Map<string, Set<string>>;
-  
+
   // Storage adapter for persistence
   private storage?: Storage<SerializedIndex>;
+
+  // Logger instance
+  private logger: Logger;
 
   constructor(storage?: Storage<SerializedIndex>) {
     this.index = new Map();
     this.entityAttributes = new Map();
     this.storage = storage;
+    this.logger = Logger.createConsoleLogger('AttributeIndex');
   }
 
   /**
@@ -347,7 +352,9 @@ export class AttributeIndex {
         }
       } catch (error) {
         // Skip entities that cause errors during indexing
-        console.warn(`Failed to index entity: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn('Failed to index entity', {
+          error: error instanceof Error ? error.message : String(error)
+        });
         continue;
       }
     }
