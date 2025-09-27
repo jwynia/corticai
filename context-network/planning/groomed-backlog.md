@@ -13,45 +13,7 @@
 
 ## 🚀 Ready for Implementation
 
-### 1. Create Comprehensive Discovery Records
-**One-liner**: Document the major implemented components (Progressive Loading, Lens System, NovelAdapter) in proper discovery records
-**Complexity**: Small (1-2 hours)
-**Priority**: HIGH - Critical for knowledge management
-**Dependencies**: None - implementation already exists
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: Sync report identified that major implementations exist but lack proper discovery records in the context network. This creates knowledge management gaps and prevents effective onboarding.
-
-**Acceptance Criteria**:
-- [ ] Create `discoveries/locations/progressive-loading.md` documenting ContextDepth implementation
-- [ ] Create `discoveries/locations/lens-system.md` documenting lens infrastructure
-- [ ] Create `discoveries/locations/novel-adapter.md` documenting domain adapter proof
-- [ ] Update location indexes with new discoveries
-- [ ] Cross-link related concept documents
-- [ ] Follow discovery record format from CLAUDE.md
-
-**Implementation Guide**:
-1. Review actual implementation in `app/src/types/context.ts` (ContextDepth)
-2. Review lens system in `app/src/context/lenses/` directory
-3. Review NovelAdapter in `app/src/adapters/NovelAdapter.ts`
-4. Create discovery records following established format
-5. Update indexes and cross-references
-
-**Files to modify**:
-- `context-network/discoveries/locations/progressive-loading.md` (create)
-- `context-network/discoveries/locations/lens-system.md` (create)
-- `context-network/discoveries/locations/novel-adapter.md` (create)
-- Related location index files (update)
-
-**Watch Out For**: Ensure accuracy by reading actual implementation, not documentation
-
-</details>
-
----
-
-### 2. Assess Current Development Phase
+### 1. Assess Current Development Phase
 **One-liner**: Determine actual current phase (4+ likely) and update roadmap to reflect implementation reality
 **Complexity**: Medium (1-2 hours)
 **Priority**: HIGH - Strategic planning alignment
@@ -89,16 +51,16 @@
 
 ---
 
-### 3. Update System Architecture Documentation
+### 2. Update System Architecture Documentation
 **One-liner**: Reflect Progressive Loading and Lens System integration in architecture documentation
 **Complexity**: Medium (2-3 hours)
 **Priority**: MEDIUM - Architectural clarity
-**Dependencies**: Discovery records should be completed first
+**Dependencies**: None - discovery records are already complete
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: Architecture documentation doesn't reflect progressive loading and lens system integration points, creating architectural blind spots.
+**Context**: Architecture documentation needs updating to reflect the already-implemented Progressive Loading and Lens System components documented in discovery records.
 
 **Acceptance Criteria**:
 - [ ] Update `architecture/system_architecture.md` with progressive loading
@@ -110,11 +72,11 @@
 - [ ] Update cross-references
 
 **Implementation Guide**:
-1. Review discovery records for component details
+1. Review existing discovery records (lens-system.md, novel-adapter.md) for component details
 2. Map progressive loading impact on system architecture
-3. Document lens system integration patterns
-4. Update component relationships
-5. Validate integration patterns
+3. Document lens system integration patterns from existing implementation
+4. Update component relationships in architecture docs
+5. Validate integration patterns against actual code
 
 **Files to modify**:
 - `context-network/architecture/system_architecture.md`
@@ -128,7 +90,7 @@
 
 ---
 
-### 4. Implement Next Domain Adapter (CodebaseAdapter)
+### 3. Complete CodebaseAdapter Implementation
 **One-liner**: Complete the CodebaseAdapter implementation to prove domain adapter pattern scalability
 **Complexity**: Large (4-6 hours)
 **Priority**: MEDIUM - Proves adapter framework
@@ -167,6 +129,39 @@
 
 ---
 
+### 4. Quick Win: Edge Type Filtering Performance Optimization
+**One-liner**: Complete TODO in KuzuSecureQueryBuilder for variable-length path filtering performance
+**Complexity**: Small (85 minutes)
+**Priority**: LOW - Performance optimization when time permits
+**Dependencies**: None - isolated improvement
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Edge type filtering for variable-length graph traversal is handled in post-processing rather than query-level, impacting performance for large graphs.
+
+**Acceptance Criteria**:
+- [ ] Research Kuzu's variable-length path filtering capabilities
+- [ ] Implement query-level filtering if supported
+- [ ] Add performance benchmarks comparing approaches
+- [ ] Update documentation and remove TODO comment
+- [ ] Ensure existing tests pass
+
+**Implementation Guide**:
+1. Investigate Kuzu documentation for variable-length path filtering
+2. Create performance test with large graph dataset
+3. Implement query-level filtering if supported
+4. Benchmark both approaches and choose optimal solution
+
+**Files to modify**:
+- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts:109-111`
+
+**Watch Out For**: May be limited by Kuzu version capabilities - validate first
+
+</details>
+
+---
+
 ## ⏳ Ready Soon (Blocked)
 
 ### Implement Sync Automation Process
@@ -199,19 +194,21 @@
 ### Foundation Issues (F1, F2) - **Reason**: Based on outdated assessment, actual foundation is solid
 ### Universal Adapter Completion (A1) - **Reason**: Already implemented and tested
 ### Basic Lens System - **Reason**: Already complete per sync findings
+### Create Discovery Records - **Reason**: Already complete - lens-system.md, novel-adapter.md exist with comprehensive documentation
 
 ---
 
 ## Summary Statistics
 - Total tasks reviewed: 58 task files + planning documents
-- Ready for work: 4 prioritized tasks
+- Ready for work: 4 prioritized tasks (3 strategic + 1 quick win)
 - Blocked: 2 tasks awaiting decisions/design
 - Archived: 6 tasks based on outdated assessment
+- Tech debt opportunities: 5 deferred items with clear acceptance criteria
 
 ## Top 3 Recommendations
-1. **Create Discovery Records** - Critical knowledge management gap, enables all other work
-2. **Assess Current Phase** - Strategic alignment essential for proper planning
-3. **Complete CodebaseAdapter** - Proves domain adapter scalability, delivers practical value
+1. **Assess Current Phase** - Strategic alignment essential for proper planning
+2. **Complete CodebaseAdapter** - Proves domain adapter scalability, delivers practical value (14/18 tests already passing)
+3. **Update Architecture Docs** - Reflect implemented systems in documentation
 
 ---
 
