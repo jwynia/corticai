@@ -239,7 +239,15 @@ export class DuckDBSQLGenerator {
       // Replace the first parameter with the file path for read_parquet
       // Escape single quotes to prevent SQL injection
       const safePath = DuckDBSQLGenerator.escapePath(filePath)
-      const finalSQL = sql.replace(/\?/, `'${safePath}'`)
+      // Only replace first occurrence as intended for file path parameter
+      let replacedFirst = false
+      const finalSQL = sql.replace(/\?/g, (match) => {
+        if (!replacedFirst) {
+          replacedFirst = true
+          return `'${safePath}'`
+        }
+        return match
+      })
       
       // Handle remaining parameters like in the regular query method
       if (params && params.length > 0) {

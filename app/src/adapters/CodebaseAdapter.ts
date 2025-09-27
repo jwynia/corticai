@@ -168,46 +168,44 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
    */
   private extractClasses(content: string, metadata: FileMetadata): Entity[] {
     const classes: Entity[] = [];
-    const lines = content.split('\n');
 
-    // Pattern for class declarations
-    const classPattern = /(?:export\s+)?(?:abstract\s+)?class\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:extends\s+([a-zA-Z_$][a-zA-Z0-9_$<>]+))?\s*(?:implements\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]+))?\s*{/g;
+    // Handle multi-line class declarations by looking at the full content
+    // Pattern for class declarations that may span multiple lines
+    const classPattern = /(?:export\s+)?(?:abstract\s+)?class\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<[^>]*>)?\s*(?:extends\s+([a-zA-Z_$][a-zA-Z0-9_$<>]+))?\s*(?:implements\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]+))?\s*\{/gs;
 
-    let lineNumber = 0;
-    for (const line of lines) {
-      lineNumber++;
-      const trimmedLine = line.trim();
+    let match;
+    while ((match = classPattern.exec(content)) !== null) {
+      const className = match[1];
+      const extendsClass = match[2] ? match[2].trim() : undefined;
+      const implementsInterfaces = match[3] ? match[3].split(',').map(i => i.trim()) : [];
 
-      const match = classPattern.exec(trimmedLine);
-      if (match) {
-        const className = match[1];
-        const extendsClass = match[2];
-        const implementsInterfaces = match[3] ? match[3].split(',').map(i => i.trim()) : [];
+      // Find the line number where this class starts
+      const beforeMatch = content.substring(0, match.index);
+      const lineNumber = beforeMatch.split('\n').length;
 
-        // Extract class body to analyze methods and properties
-        const classBody = this.extractClassBody(lines, lineNumber);
-        const methods = this.extractClassMethods(classBody);
-        const properties = this.extractClassProperties(classBody);
+      // Extract class body using the full content approach
+      const classStartIndex = match.index + match[0].length - 1; // Position of opening brace
+      const classBody = this.extractClassBodyFromContent(content, classStartIndex);
+      const methods = this.extractClassMethods(classBody.split('\n'));
+      const properties = this.extractClassProperties(classBody.split('\n'));
 
-        classes.push({
-          id: this.generateCodeId('class'),
-          type: 'container', // Classes are containers of methods and properties
-          name: className,
-          content: trimmedLine,
-          metadata: {
-            filename: metadata.filename,
-            lineNumbers: [lineNumber, lineNumber] as [number, number],
-            entityType: 'class',
-            extends: extendsClass,
-            implements: implementsInterfaces.length > 0 ? implementsInterfaces : undefined,
-            abstract: trimmedLine.includes('abstract'),
-            methods: methods,
-            properties: properties,
-            format: metadata.extension
-          }
-        });
-      }
-      classPattern.lastIndex = 0; // Reset pattern
+      classes.push({
+        id: this.generateCodeId('class'),
+        type: 'container', // Classes are containers of methods and properties
+        name: className,
+        content: match[0],
+        metadata: {
+          filename: metadata.filename,
+          lineNumbers: [lineNumber, lineNumber] as [number, number],
+          entityType: 'class',
+          extends: extendsClass,
+          implements: implementsInterfaces.length > 0 ? implementsInterfaces : undefined,
+          abstract: match[0].includes('abstract'),
+          methods: methods,
+          properties: properties,
+          format: metadata.extension
+        }
+      });
     }
 
     return classes;
@@ -218,44 +216,42 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
    */
   private extractInterfaces(content: string, metadata: FileMetadata): Entity[] {
     const interfaces: Entity[] = [];
-    const lines = content.split('\n');
 
-    const interfacePattern = /(?:export\s+)?interface\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<([^>]+)>)?\s*(?:extends\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]+))?\s*{/g;
+    // Pattern for interface declarations that may span multiple lines
+    const interfacePattern = /(?:export\s+)?interface\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<([^>]+)>)?\s*(?:extends\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]*))?\s*\{/gs;
 
-    let lineNumber = 0;
-    for (const line of lines) {
-      lineNumber++;
-      const trimmedLine = line.trim();
+    let match;
+    while ((match = interfacePattern.exec(content)) !== null) {
+      const interfaceName = match[1];
+      const genericTypes = match[2] ? match[2].split(',').map(t => t.trim()) : [];
+      const extendsInterfaces = match[3] ? match[3].split(',').map(i => i.trim()) : [];
 
-      const match = interfacePattern.exec(trimmedLine);
-      if (match) {
-        const interfaceName = match[1];
-        const genericTypes = match[2] ? match[2].split(',').map(t => t.trim()) : [];
-        const extendsInterfaces = match[3] ? match[3].split(',').map(i => i.trim()) : [];
+      // Find the line number where this interface starts
+      const beforeMatch = content.substring(0, match.index);
+      const lineNumber = beforeMatch.split('\n').length;
 
-        // Extract interface body
-        const interfaceBody = this.extractClassBody(lines, lineNumber);
-        const methods = this.extractInterfaceMethods(interfaceBody);
-        const properties = this.extractInterfaceProperties(interfaceBody);
+      // Extract interface body using the full content approach
+      const interfaceStartIndex = match.index + match[0].length - 1; // Position of opening brace
+      const interfaceBody = this.extractClassBodyFromContent(content, interfaceStartIndex);
+      const methods = this.extractInterfaceMethods(interfaceBody.split('\n'));
+      const properties = this.extractInterfaceProperties(interfaceBody.split('\n'));
 
-        interfaces.push({
-          id: this.generateCodeId('interface'),
-          type: 'container',
-          name: interfaceName,
-          content: trimmedLine,
-          metadata: {
-            filename: metadata.filename,
-            lineNumbers: [lineNumber, lineNumber] as [number, number],
-            entityType: 'interface',
-            genericTypes: genericTypes.length > 0 ? genericTypes : undefined,
-            extends: extendsInterfaces.length > 0 ? extendsInterfaces.join(', ') : undefined,
-            methods: methods,
-            properties: properties,
-            format: metadata.extension
-          }
-        });
-      }
-      interfacePattern.lastIndex = 0;
+      interfaces.push({
+        id: this.generateCodeId('interface'),
+        type: 'container',
+        name: interfaceName,
+        content: match[0],
+        metadata: {
+          filename: metadata.filename,
+          lineNumbers: [lineNumber, lineNumber] as [number, number],
+          entityType: 'interface',
+          genericTypes: genericTypes.length > 0 ? genericTypes : undefined,
+          extends: extendsInterfaces.length > 0 ? extendsInterfaces.join(', ') : undefined,
+          methods: methods,
+          properties: properties,
+          format: metadata.extension
+        }
+      });
     }
 
     return interfaces;
@@ -514,40 +510,34 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
       functionMap.set(func.name, func);
     });
 
-    // Analyze the full content for function calls
-    const callPattern = /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g;
-    let match;
-    const foundCalls = new Set<string>(); // Track unique calls to avoid duplicates
+    // Simple approach: look for calls in the full content and match to functions
+    for (const targetFunc of functionEntities) {
+      const callPattern = new RegExp(`\\b${targetFunc.name}\\s*\\(`, 'g');
+      let match;
 
-    while ((match = callPattern.exec(fullContent)) !== null) {
-      const calledFunction = match[1];
+      while ((match = callPattern.exec(fullContent)) !== null) {
+        // Find which function contains this call by looking at the context
+        const callPosition = match.index;
 
-      // Skip language keywords and built-ins
-      if (this.isLanguageKeyword(calledFunction)) continue;
+        // Find the calling function by looking for function declarations before this call
+        for (const callerFunc of functionEntities) {
+          if (callerFunc.name !== targetFunc.name) {
+            // Check if this call appears after the caller function definition
+            const callerPattern = new RegExp(`function\\s+${callerFunc.name}\\s*\\(`);
+            const callerMatch = callerPattern.exec(fullContent);
 
-      // Check if this is a call to a function we've extracted
-      const targetFunction = functionMap.get(calledFunction);
-      if (targetFunction) {
-        // Try to find which function contains this call
-        // This is a simplified approach - in a real implementation,
-        // we'd need more sophisticated parsing to determine the calling context
-
-        // For now, create relationships between functions that are called
-        for (const func of functionEntities) {
-          if (func.name !== calledFunction) {
-            const callKey = `${func.name}->${calledFunction}`;
-            if (!foundCalls.has(callKey)) {
-              foundCalls.add(callKey);
-
+            if (callerMatch && callerMatch.index < callPosition) {
+              // This is a potential call relationship
               relationships.push({
-                type: 'references',
-                target: targetFunction.id,
+                type: 'calls',
+                target: targetFunc.id,
                 metadata: {
                   relationshipType: 'calls',
-                  caller: func.name,
-                  callee: calledFunction
+                  caller: callerFunc.name,
+                  callee: targetFunc.name
                 }
               });
+              break; // Only create one relationship per call
             }
           }
         }
@@ -722,23 +712,77 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
     return body;
   }
 
+  private extractClassBodyFromContent(content: string, startIndex: number): string {
+    let braceCount = 0;
+    let bodyStart = startIndex;
+    let bodyEnd = startIndex;
+
+    // Find the opening brace
+    for (let i = startIndex; i < content.length; i++) {
+      const char = content[i];
+      if (char === '{') {
+        braceCount++;
+        if (braceCount === 1) {
+          bodyStart = i + 1;
+        }
+      } else if (char === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          bodyEnd = i;
+          break;
+        }
+      }
+    }
+
+    return content.substring(bodyStart, bodyEnd);
+  }
+
   private extractClassMethods(classBody: string[]): any[] {
     const methods = [];
+
+    // Pattern for regular methods with return types
     const methodPattern = /(?:(public|private|protected)\s+)?(?:(static)\s+)?(?:(async)\s+)?([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)\s*:\s*([^{;]+)/g;
 
+    // Pattern for constructor
+    const constructorPattern = /(?:(public|private|protected)\s+)?constructor\s*\(([^)]*)\)/g;
+
     for (const line of classBody) {
-      const match = methodPattern.exec(line.trim());
+      const trimmed = line.trim();
+
+      // Check for constructor first
+      constructorPattern.lastIndex = 0;
+      let match = constructorPattern.exec(trimmed);
       if (match) {
-        methods.push({
+        const method: any = {
+          name: 'constructor',
+          visibility: match[1] || 'public',
+          parameters: this.parseParameters(match[2])
+        };
+        methods.push(method);
+        continue;
+      }
+
+      // Check for regular methods
+      methodPattern.lastIndex = 0;
+      match = methodPattern.exec(trimmed);
+      if (match) {
+        const method: any = {
           name: match[4],
           visibility: match[1] || 'public',
-          static: !!match[2],
-          async: !!match[3],
-          parameters: this.parseParameters(match[5]),
           returnType: match[6].trim()
-        });
+        };
+
+        // Only include optional fields if they exist
+        if (match[2]) method.static = true;
+        if (match[3]) method.async = true;
+
+        const parameters = this.parseParameters(match[5]);
+        if (parameters.length > 0) {
+          method.parameters = parameters;
+        }
+
+        methods.push(method);
       }
-      methodPattern.lastIndex = 0;
     }
 
     return methods;

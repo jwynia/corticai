@@ -503,13 +503,14 @@ function exampleFunction(): void {
 
       const entities = adapter.extract(content, mockMetadata);
 
-      // Should have base entities (document, sections, paragraphs, lists) from Universal Adapter
+      // Should have base entities (document, paragraphs) from Universal Adapter
+      // Note: .ts files are processed as plain text, creating paragraphs, not sections
       const documentEntities = entities.filter(e => e.type === 'document');
-      const sectionEntities = entities.filter(e => e.type === 'section');
+      const paragraphEntities = entities.filter(e => e.type === 'paragraph');
       const functionEntities = entities.filter(e => e.metadata?.entityType === 'function');
 
       expect(documentEntities.length).toBeGreaterThan(0);
-      expect(sectionEntities.length).toBeGreaterThan(0);
+      expect(paragraphEntities.length).toBeGreaterThan(0);
       expect(functionEntities.length).toBeGreaterThan(0);
 
       // Verify we get the function from CodebaseAdapter

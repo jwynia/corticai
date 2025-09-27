@@ -11,7 +11,7 @@ import { promises as fs, constants as fsConstants } from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { fileTypeFromFile } from 'file-type';
-// @ts-ignore: No type definitions available for mime-types
+// @ts-ignore: mime-types package lacks TypeScript definitions
 import { lookup as mimeTypeLookup } from 'mime-types';
 import { Logger } from '../../utils/Logger';
 

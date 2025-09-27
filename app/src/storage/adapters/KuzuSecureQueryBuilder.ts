@@ -107,6 +107,8 @@ export class KuzuSecureQueryBuilder {
     // For now, implement variable-length traversal without edge type filtering
     // Edge type filtering will be done in post-processing
     // TODO: Implement proper edge type filtering for variable-length paths
+    // Currently handled in post-processing for performance reasons
+    // Consider implementing when Kuzu adds better variable-length path filtering support
 
     // Note: edgeTypes are handled in post-processing, not as query parameters
 
