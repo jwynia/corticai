@@ -177,6 +177,44 @@ export interface DuckDBStorageConfig extends StorageConfig {
 }
 
 /**
+ * Azure CosmosDB storage configuration
+ */
+export interface CosmosDBStorageConfig extends StorageConfig {
+  type: 'cosmosdb'
+  endpoint?: string           // CosmosDB endpoint URL
+  key?: string               // CosmosDB access key
+  connectionString?: string   // Complete connection string (alternative to endpoint+key)
+  database: string           // Database name
+  container: string          // Container name
+
+  // Performance and behavior options
+  throughput?: {
+    type: 'manual' | 'autoscale'
+    value: number            // RU/s for manual, max RU/s for autoscale
+  }
+  consistencyLevel?: 'Strong' | 'BoundedStaleness' | 'Session' | 'ConsistentPrefix' | 'Eventual'
+
+  // Partition strategy
+  partitionKey?: string      // Partition key path (default: '/entityType')
+
+  // Connection options
+  connectionPolicy?: {
+    maxRetryAttempts?: number
+    maxRetryWaitTime?: number
+    enableEndpointDiscovery?: boolean
+    preferredLocations?: string[]
+  }
+
+  // Azure authentication (when not using connection string)
+  auth?: {
+    type: 'managed-identity' | 'service-principal' | 'default-azure-credential'
+    clientId?: string        // For service principal
+    clientSecret?: string    // For service principal
+    tenantId?: string        // For service principal
+  }
+}
+
+/**
  * Optional save capability for storage adapters that support manual persistence
  */
 export interface SaveableStorage {
