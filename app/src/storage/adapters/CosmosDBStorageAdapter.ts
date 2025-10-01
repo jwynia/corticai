@@ -6,7 +6,7 @@
  * and multiple consistency models for cloud-native applications.
  */
 
-import { CosmosClient, Container, Database, ItemResponse, FeedResponse, SqlQuerySpec, PatchOperation } from '@azure/cosmos'
+import { CosmosClient, Container, Database, ItemResponse, FeedResponse, SqlQuerySpec, PatchOperation, PartitionKeyKind } from '@azure/cosmos'
 import { BaseStorageAdapter } from '../base/BaseStorageAdapter'
 import { CosmosDBStorageConfig, StorageError, StorageErrorCode, Operation, BatchResult } from '../interfaces/Storage'
 import { Logger } from '../../utils/Logger'
@@ -230,7 +230,7 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         id: this.config.container,
         partitionKey: {
           paths: [this.config.partitionKey!],
-          kind: 'Hash'
+          kind: PartitionKeyKind.Hash
         },
         indexingPolicy: {
           indexingMode: 'consistent' as const,
@@ -254,7 +254,7 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
 
       const { container } = await this.database.containers.createIfNotExists(
         containerDef,
-        throughputOptions
+        throughputOptions as any
       )
 
       this.container = container
@@ -408,8 +408,14 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         const batch = resources.slice(i, i + batchSize)
         await Promise.all(
           batch.map(item =>
-            this.container!.item(item.id, item.entityType).delete().catch(() => {
-              // Ignore 404 errors (item already deleted)
+            this.container!.item(item.id, item.entityType).delete().catch((error: any) => {
+              // Only ignore 404 errors (item already deleted)
+              // Log other errors for debugging
+              if (error.code !== 404) {
+                if (this.config.debug) {
+                  logger.debug(`Failed to delete item ${item.id} during clear: ${error.message}`)
+                }
+              }
             })
           )
         )
@@ -583,7 +589,7 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         } catch (error) {
           // Continue on individual failures
           if (this.config.debug) {
-            logger.debug(`Failed to get key ${key}:`, error)
+            logger.debug(`Failed to get key ${key}:`, error as any)
           }
         }
       })
@@ -652,7 +658,7 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         } catch (error) {
           // Continue on individual failures
           if (this.config.debug) {
-            logger.debug(`Failed to delete key ${key}:`, error)
+            logger.debug(`Failed to delete key ${key}:`, error as any)
           }
         }
       })

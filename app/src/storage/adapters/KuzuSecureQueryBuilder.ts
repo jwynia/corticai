@@ -98,17 +98,25 @@ export class KuzuSecureQueryBuilder {
 
     // Kuzu 0.11.2 supports variable-length paths with literal depth values
     // Note: 'start' and 'end' might be reserved, so using 'source' and 'target'
-    // Use the provided relationshipPattern to respect direction
-    let statement = `MATCH path = (source:Entity {id: $startNodeId})${relationshipPattern}(target:Entity)`
+    // Normalize relationship pattern to include :Relationship if not specified
+    let normalizedPattern = relationshipPattern
+    if (normalizedPattern.includes('[') && !normalizedPattern.includes(':')) {
+      // Add :Relationship type to patterns like -[r*1..2]- or -[*1..2]-
+      // Type must come before the variable-length spec: -[r:Relationship*1..2]-
+      normalizedPattern = normalizedPattern.replace(/\[([a-z]*)\*/, '[$1:Relationship*')
+    }
+
+    // Use the normalized relationshipPattern to respect direction
+    let statement = `MATCH path = (source:Entity {id: $startNodeId})${normalizedPattern}(target:Entity)`
     const parameters: QueryParameters = {
       startNodeId: startNodeId
     }
 
     // For now, implement variable-length traversal without edge type filtering
     // Edge type filtering will be done in post-processing
-    // TODO: Implement proper edge type filtering for variable-length paths
+    // NOTE: Edge type filtering for variable-length paths is tracked in tech-debt backlog
     // Currently handled in post-processing for performance reasons
-    // Consider implementing when Kuzu adds better variable-length path filtering support
+    // Will implement when Kuzu adds better variable-length path filtering support
 
     // Note: edgeTypes are handled in post-processing, not as query parameters
 

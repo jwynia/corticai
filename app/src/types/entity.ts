@@ -52,11 +52,11 @@ export interface EntityMetadata {
  */
 export interface Relationship {
   /** Type of relationship */
-  type: 'contains' | 'references' | 'part-of' | 'follows' | 'precedes';
-  
+  type: 'contains' | 'references' | 'part-of' | 'follows' | 'precedes' | 'calls';
+
   /** ID of the target entity */
   target: string;
-  
+
   /** Optional metadata about the relationship */
   metadata?: any;
 }
