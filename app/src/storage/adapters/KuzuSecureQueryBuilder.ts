@@ -73,10 +73,19 @@ export class KuzuSecureQueryBuilder {
 
   /**
    * Build a secure query for finding edges from a node
+   * Returns both incoming and outgoing relationships (bidirectional)
+   *
+   * Uses UNION to combine outgoing and incoming edges while preserving direction
    */
   buildGetEdgesQuery(nodeId: string): SecureQuery {
     return {
-      statement: 'MATCH (a:Entity {id: $nodeId})-[r:Relationship]->(b:Entity) RETURN a.id, b.id, r.type, r.data',
+      statement: `
+        MATCH (a:Entity {id: $nodeId})-[r:Relationship]->(b:Entity)
+        RETURN a.id, b.id, r.type, r.data
+        UNION ALL
+        MATCH (a:Entity)-[r:Relationship]->(b:Entity {id: $nodeId})
+        RETURN a.id, b.id, r.type, r.data
+      `.trim(),
       parameters: {
         nodeId: nodeId
       }

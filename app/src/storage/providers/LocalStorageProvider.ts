@@ -81,28 +81,17 @@ class EnhancedKuzuAdapter<T = any> extends KuzuStorageAdapter {
   /**
    * Get relationships for an entity
    *
-   * NOTE: Currently uses full scan - optimization tracked in performance backlog
-   * TODO: Migrate to Kuzu's native graph traversal for better performance
+   * Uses Kuzu's native graph traversal for O(degree) complexity instead of O(n) full scan.
+   * Returns all edges (relationships) connected to the entity, both incoming and outgoing.
+   *
+   * Performance: O(degree) where degree is the number of connected relationships
+   * Previous: O(n) where n was total number of entities in storage
    */
   async getRelationships(entityId: string): Promise<T[]> {
-    const relationships: T[] = []
-
-    try {
-      // Iterate through all entries to find relationships
-      for await (const [key, value] of (this as any).entries()) {
-        const entity = value as any
-        if (entity.from === entityId || entity.to === entityId) {
-          relationships.push(value)
-        }
-      }
-    } catch (error) {
-      // Log iteration errors for debugging
-      if (error instanceof Error) {
-        console.debug(`Error iterating relationships for ${entityId}: ${error.message}`)
-      }
-    }
-
-    return relationships
+    // Use Kuzu's native getEdges method which uses graph queries
+    // This leverages the graph database's indexing and traversal capabilities
+    const edges = await (this as any).getEdges(entityId)
+    return edges as T[]
   }
 }
 
