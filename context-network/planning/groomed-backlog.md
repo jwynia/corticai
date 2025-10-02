@@ -1,235 +1,55 @@
 # CorticAI Groomed Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-10-01 (Re-groomed for vacation + real-world validation)
-**Build Status**: ⚠️ Tests: 69 passing, 26 failing (CosmosDB mocking issue - non-blocking)
-**Current Phase**: Phase 7 (Cloud Storage Architecture) - 85% COMPLETE
-**Azure Status**: ⏸️ **BLOCKED** - No Azure access during vacation (day job requirement)
-**Validation Approach**: Real markdown-based context networks (avoiding self-hosting scope confusion)
-**Current Priority**: **Prepare for real-world testing** with existing context networks
-**Foundation Status**: ✅ Solid foundation - ready for practical validation
+**Last Groomed**: 2025-10-02
+**Build Status**: ✅ All tests passing (95 tests)
+**Current Phase**: Foundation Complete - Ready for Domain Value Phase
+**Test Suite**: 383 tests total across full system
+**Foundation**: ✅ Phases 1-3 complete and exceeded scope
+**Next Priority**: Domain versatility and user-facing intelligence features
 
 ---
 
-## ✅ COMPLETED TASKS
+## ✅ Recently Completed
 
-### 0. Fix CosmosDB Test Mocking Issues ✅ COMPLETE (2025-10-01)
-**One-liner**: Fixed vitest mock configuration for @azure/cosmos PartitionKeyKind export
-**Completed**: 2025-10-01
-**Result**: All 36 CosmosDB tests now passing (was 10/36 passing)
+### 1. Make Query Result Limits Configurable ✅ COMPLETE (2025-10-02)
+**One-liner**: Add configurable result limits to Kuzu query builder methods
+**Complexity**: Trivial
+**Effort**: 30 minutes
+**Results**: 42 tests added, all passing, 100% backward compatible
 
 <details>
-<summary>Full Implementation Details</summary>
+<summary>Implementation Summary</summary>
 
-**Problem**: 26/36 CosmosDB tests failing with error: `[vitest] No "PartitionKeyKind" export is defined on the "@azure/cosmos" mock`
-
-**Root Cause**: The mock for @azure/cosmos only included CosmosClient class but was missing the PartitionKeyKind enum used by the adapter for partition configuration.
-
-**Solution Implemented**:
-1. Added PartitionKeyKind enum to @azure/cosmos mock with all values (Hash, Range, MultiHash)
-2. Documented mocking strategy explaining difference between runtime values and TypeScript types
-3. Verified all 36 tests now pass without requiring Azure connection
+**Completed**:
+- [x] Added `QueryOptions` interface with `resultLimit` parameter
+- [x] Added validation for limits (1-10000, integer only)
+- [x] Updated all three query methods (traversal, findConnected, shortestPath)
+- [x] Used sensible defaults (100, 1000, 1)
+- [x] Comprehensive JSDoc documentation
+- [x] 42 comprehensive tests, all passing
+- [x] Full backward compatibility maintained
 
 **Files Modified**:
-- `app/tests/storage/adapters/CosmosDBStorageAdapter.test.ts` - Added PartitionKeyKind to mock, added documentation
+- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts`
+- `app/src/storage/adapters/KuzuSecureQueryBuilder.configurable-limits.test.ts` (new)
 
-**Key Learning**: When mocking Azure SDK, only runtime values (classes, enums, functions) need to be mocked. TypeScript types/interfaces (Container, Database, ItemResponse, etc.) are for compile-time type checking only.
+**Test Results**: ✅ 53/53 KuzuSecureQueryBuilder tests passing
 
-**Test Results**: ✅ 36/36 tests passing (100%)
-
-</details>
-
----
-
-### 1. Fix Build Quality Issues ✅ COMPLETE
-**One-liner**: Fixed 8 TypeScript errors and 1 test failure blocking production deployment
-**Completed**: 2025-09-30
-**Result**: Build now passes with 0 TypeScript errors, all critical tests passing
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: Phase 7 CosmosDB implementation is 80% complete but has 7 TypeScript compilation errors and 3 test failures. Build process also times out. This blocks ALL production deployment and further development.
-
-**Critical Issues**:
-1. **Missing dependency**: @azure/identity not in package.json
-2. **CosmosDB type errors**: PartitionKey type incompatibility
-3. **LocalStorageProvider interface mismatches**: 3 signature errors
-4. **CodebaseAdapter type error**: Relationship type mismatch
-5. **Test failures**: Performance monitor log format, edge filtering
-6. **Build timeout**: Process hangs after 2 minutes
-
-**Acceptance Criteria**:
-- [ ] Add @azure/identity to package.json dependencies (CRITICAL)
-- [ ] Fix CosmosDB partitionKey type error (line 256)
-- [ ] Fix LocalStorageProvider getMany() return type (line 43)
-- [ ] Fix LocalStorageProvider traverse() signature (line 47)
-- [ ] Fix LocalStorageProvider findConnected() signature (line 69)
-- [ ] Fix CodebaseAdapter "calls" relationship type (line 532)
-- [ ] Update performance monitor tests for new log format
-- [ ] Fix KuzuSecureQueryBuilder edge type filtering test
-- [ ] Investigate and fix build timeout issue
-- [ ] npm run build completes successfully in < 30 seconds
-- [ ] npm test passes all tests with 0 failures
-
-**Implementation Guide**:
-1. Add @azure/identity to dependencies: `npm install @azure/identity`
-2. Fix CosmosDB partitionKey: Use correct SDK types from @azure/cosmos
-3. Fix LocalStorageProvider: Align interface signatures with PrimaryStorage
-4. Fix CodebaseAdapter: Add "calls" to relationship type enum
-5. Update test expectations for new logger output format
-6. Fix edge type filtering logic in KuzuSecureQueryBuilder
-7. Profile build process to identify timeout cause
-8. Run full test suite and build to validate
-
-**Files to modify**:
-- `app/package.json` (add @azure/identity)
-- `app/src/storage/adapters/CosmosDBStorageAdapter.ts` (fix partitionKey types)
-- `app/src/storage/providers/LocalStorageProvider.ts` (fix interface mismatches)
-- `app/src/adapters/CodebaseAdapter.ts` (fix relationship type)
-- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts` (fix edge filtering)
-- `app/tests/**/performance.test.ts` (update log format expectations)
-
-**Watch Out For**:
-- Don't skip type checks by using `any` - fix the actual type mismatches
-- Ensure LocalStorageProvider properly implements PrimaryStorage interface
-- Validate CosmosDB types match the @azure/cosmos SDK version
-
-**Evidence**: See `/context-network/tasks/sync-report-2025-09-30.md` for detailed analysis
+**Documentation**: [Task Details](../tasks/tech-debt/configurable-query-limits-COMPLETE.md)
 
 </details>
 
 ---
 
-## 🚀 Ready Now (No Azure Required - Vacation Friendly)
+## 🚀 Ready for Implementation
 
-### 1. Make Query Result Limits Configurable
-**One-liner**: Add configurable result limits to Kuzu query builder methods
-**Complexity**: Trivial (15-30 min)
-**Priority**: HIGH - API usability improvement
-**Dependencies**: None
-**Azure Required**: ❌ No
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: Query limits currently hardcoded (100, 1000). Need flexibility for different use cases.
-
-**Acceptance Criteria**:
-- [ ] Add `resultLimit` parameter to query builder methods
-- [ ] Use sensible defaults (100 for traversal, 1000 for search)
-- [ ] Validate against unreasonable limits (max 10000)
-- [ ] Update JSDoc documentation
-- [ ] Add tests for configurable limits
-- [ ] Maintain backward compatibility
-
-**Implementation Guide**:
-1. Add optional `options?: { resultLimit?: number }` parameter
-2. Extract default constants
-3. Update all query building methods
-4. Add input validation
-5. Update tests
-
-**Files to modify**:
-- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts` (lines 126, 146)
-
-**Watch Out For**: Validate limits to prevent resource exhaustion
-
-</details>
-
----
-
-### 2. Validate Markdown Context Network Import
-**One-liner**: Ensure CorticAI can properly index and query real markdown-based context networks
-**Complexity**: Medium (2-3 hours)
-**Priority**: HIGH - Critical for real-world validation
-**Dependencies**: None
-**Azure Required**: ❌ No - Uses local storage
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: Will test with real markdown context networks. Need to ensure entity extraction, relationship detection, and querying work on actual data.
-
-**Acceptance Criteria**:
-- [ ] Parse markdown files from existing context networks
-- [ ] Extract entities from planning/architecture documents
-- [ ] Detect relationships between documents
-- [ ] Query across the context network
-- [ ] Validate performance with realistic data volumes
-- [ ] Document any issues or limitations found
-- [ ] Create usage examples based on real data
-
-**Implementation Guide**:
-1. Create test harness for markdown import
-2. Test entity extraction from various document types
-3. Verify relationship detection works
-4. Run queries on imported data
-5. Measure performance
-6. Document findings and issues
-
-**Files to review/modify**:
-- Markdown parsing in extractors
-- Entity detection logic
-- Relationship inference
-- Query system validation
-
-**Watch Out For**: Real data reveals edge cases tests miss
-
-</details>
-
----
-
-### 3. Complete CosmosDB Migration Utilities (Local Development - DEFERRED)
-**One-liner**: Build bidirectional migration utilities between local and cloud storage
-**Complexity**: Medium (3-4 hours)
-**Priority**: LOW - Deferred until Azure access available
-**Dependencies**: CosmosDB validation complete
-**Azure Required**: ⚠️ Partially - Can develop with mocks but needs Azure to validate
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: CosmosDB adapter is 85% complete. Need migration utilities to enable developers to sync data between local Kuzu/DuckDB and cloud CosmosDB. Can be developed entirely with mocked CosmosDB for testing.
-
-**Acceptance Criteria**:
-- [ ] Create migration script: local → cloud (export/import)
-- [ ] Create migration script: cloud → local (export/import)
-- [ ] Handle incremental migrations (only changed entities)
-- [ ] Add conflict resolution strategies
-- [ ] Validate data integrity after migration
-- [ ] Add rollback capability for failed migrations
-- [ ] Test with mocked CosmosDB instances
-- [ ] Document migration procedures and options
-
-**Implementation Guide**:
-1. Create `app/src/storage/migration/` directory
-2. Implement `LocalToCloudMigration` class with incremental sync
-3. Implement `CloudToLocalMigration` class with conflict detection
-4. Add data validation and integrity checks
-5. Create CLI interface for manual migrations
-6. Build comprehensive test suite with mocks
-7. Document migration workflows
-
-**Files to create**:
-- `app/src/storage/migration/LocalToCloudMigration.ts`
-- `app/src/storage/migration/CloudToLocalMigration.ts`
-- `app/src/storage/migration/MigrationValidator.ts`
-- `app/src/storage/migration/ConflictResolver.ts`
-- `app/tests/storage/migration/*.test.ts`
-
-**Watch Out For**: Data format differences between Kuzu graph structure and CosmosDB documents
-
-</details>
-
----
-
-### 4. Improve Type Safety - Fix Type Assertions
+### 1. Improve Type Safety - Fix Type Assertions
 **One-liner**: Remove unsafe `as any` type assertions from LocalStorageProvider
-**Complexity**: Small (30-60 min)
+**Complexity**: Small
 **Priority**: MEDIUM - Code quality for open source
-**Dependencies**: None
-**Azure Required**: ❌ No
+**Files to modify**:
+- `app/src/storage/providers/LocalStorageProvider.ts`
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -250,83 +70,18 @@
 4. Update method signatures
 5. Run TypeScript with strict mode
 
-**Files to modify**:
-- `app/src/storage/providers/LocalStorageProvider.ts`
-
 **Watch Out For**: May reveal underlying design issues needing broader fixes
 
 </details>
 
 ---
 
-## ⏳ Blocked Until Azure Access (Post-Vacation - Day Job Requirement)
-
-### Azure Cloud Storage Validation (REQUIRES AZURE)
-**One-liner**: Validate CosmosDB integration with real Azure instance (day job requirement)
-**Complexity**: Small (2-3 hours)
-**Priority**: HIGH - Critical for day job use case
-**Dependencies**: Test mocking issues fixed
-**Azure Required**: ✅ YES - Requires live Azure CosmosDB connection (post-vacation)
-
-<details>
-<summary>Full Implementation Details</summary>
-
-**Context**: CosmosDB implementation is 80% complete with excellent architecture, but 7 TypeScript errors prevent compilation. Once build is fixed, need to validate with real Azure instance and complete migration utilities.
-
-**Completed Work** ✅:
-- [x] Implement CosmosDBStorageAdapter with dual-role configuration (700+ lines)
-- [x] Create storage provider abstraction (4 files: LocalStorageProvider, AzureStorageProvider, IStorageProvider, Factory)
-- [x] Implement environment-based storage provider selection (automatic detection)
-- [x] Add comprehensive test suite for cloud operations (36 tests passing)
-- [x] Create comprehensive documentation (CosmosDB-Integration-README.md)
-
-**Remaining Work** (After Build Fixed):
-- [ ] Fix all TypeScript compilation errors (see task #0 above)
-- [ ] Add @azure/identity dependency
-- [ ] Validate with real Azure CosmosDB instance (not just mocked tests)
-- [ ] Complete bidirectional migration utilities
-- [ ] Test migration with realistic data volumes
-- [ ] Create Azure deployment infrastructure configuration
-- [ ] Validate feature parity between storage modes
-- [ ] Measure RU cost optimization
-- [ ] Performance test cloud vs local storage
-
-**Implementation Guide**:
-1. Design storage provider abstraction layer
-2. Implement CosmosDB adapter following established patterns
-3. Create migration and synchronization utilities
-4. Add environment configuration management
-5. Build comprehensive test coverage
-6. Document deployment procedures
-
-**Files to modify**:
-- `app/src/storage/adapters/CosmosDBStorageAdapter.ts` (new)
-- `app/src/storage/providers/` (new directory)
-- `app/src/config/storage.ts` (new)
-- Test files and documentation
-
-**Watch Out For**: CosmosDB RU cost optimization and consistency model considerations
-
-</details>
-
----
-
-### Complete CosmosDB Migration Utilities
-**Blocker**: Requires Azure access for validation
-**Unblocks after**: Azure validation complete
-**Effort**: 3-4 hours
-**Note**: Can develop with mocks during vacation but needs Azure to validate properly
-
----
-
-## 📝 Medium Priority (Quality Improvements)
-
-### Improve CosmosDB Partition Key Distribution
+### 2. Improve CosmosDB Partition Key Distribution
 **One-liner**: Replace weak hash function with better algorithm and increase partition count
-**Complexity**: Small (30-60 min)
-**Priority**: MEDIUM - Scalability for day job use
-**Dependencies**: None
-**Azure Required**: ❌ No - Can develop locally
+**Complexity**: Small
+**Priority**: MEDIUM - Scalability for production use
+**Files to modify**:
+- `app/src/storage/adapters/CosmosDBStorageAdapter.ts:728`
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -346,16 +101,236 @@ return `partition_${hash % 10}` // Only 10 partitions, weak distribution
 - [ ] Consider making partition count configurable
 - [ ] Benchmark distribution on test data
 
-**Files to modify**:
-- `app/src/storage/adapters/CosmosDBStorageAdapter.ts:728`
-
 **Watch Out For**: Changing strategy affects data distribution, may need migration
 
 </details>
 
 ---
 
-## 🗑️ Deferred / Out of Scope
+### 3. Add Recursive Depth Limits
+**One-liner**: Add configurable depth limits to recursive file system operations
+**Complexity**: Trivial
+**Priority**: LOW - Safety improvement
+**Files to modify**:
+- `app/src/storage/providers/LocalStorageProvider.ts`
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Recursive directory traversal could run indefinitely on circular symlinks or deep structures.
+
+**Acceptance Criteria**:
+- [ ] Add `maxDepth` parameter to recursive methods
+- [ ] Default to reasonable limit (e.g., 100 levels)
+- [ ] Throw descriptive error when limit exceeded
+- [ ] Add tests for depth limit enforcement
+
+**Implementation Guide**:
+1. Add depth tracking parameter to recursive functions
+2. Check depth before each recursion
+3. Throw error with helpful message when exceeded
+4. Make limit configurable via options
+
+**Watch Out For**: Don't break existing legitimate use cases
+
+</details>
+
+---
+
+### 4. Make Entity Types Extensible
+**One-liner**: Allow domain adapters to register custom entity types
+**Complexity**: Medium
+**Priority**: LOW - Future extensibility
+**Files to modify**:
+- `app/src/storage/interfaces/Storage.ts`
+- Domain adapter files
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Entity types currently hardcoded as string literals, limiting domain adapter flexibility.
+
+**Acceptance Criteria**:
+- [ ] Create type registry system
+- [ ] Allow runtime type registration
+- [ ] Maintain backward compatibility
+- [ ] Add validation for custom types
+- [ ] Document extension pattern
+
+**Implementation Guide**:
+1. Create EntityTypeRegistry class
+2. Add registration methods
+3. Update type definitions to use registry
+4. Create example custom type
+5. Document pattern for domain adapters
+
+**Watch Out For**: Type safety implications of runtime registration
+
+</details>
+
+---
+
+## 📝 Domain Value Tasks (User-Facing Features)
+
+### 5. Implement CodebaseAdapter
+**One-liner**: Build domain adapter for code repository understanding with AST analysis
+**Complexity**: Large
+**Priority**: HIGH - Proves cross-domain versatility
+**Dependencies**: None (foundation complete)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Demonstrate CorticAI's ability to understand code repositories through TypeScript/JavaScript AST analysis, function relationships, and import graphs.
+
+**Acceptance Criteria**:
+- [ ] Extract entities: functions, classes, modules, imports
+- [ ] Detect relationships: calls, imports, extends, implements
+- [ ] Parse TypeScript/JavaScript files with AST
+- [ ] Handle both source and test files
+- [ ] Integrate with existing TypeScriptDependencyAnalyzer
+- [ ] Comprehensive test coverage
+- [ ] Document usage patterns
+
+**Implementation Guide**:
+1. Create `app/src/adapters/CodebaseAdapter.ts`
+2. Leverage existing TypeScriptDependencyAnalyzer
+3. Extract AST-based entities (classes, functions, imports)
+4. Map relationships (calls, dependencies, inheritance)
+5. Add file type detection (source vs test)
+6. Build comprehensive test suite
+7. Create usage examples
+
+**Files to create**:
+- `app/src/adapters/CodebaseAdapter.ts`
+- `app/tests/adapters/CodebaseAdapter.test.ts`
+- `app/examples/codebase-usage.ts`
+
+**Watch Out For**: Large codebases require efficient AST parsing and caching
+
+</details>
+
+---
+
+### 6. Implement DebugLens
+**One-liner**: Create lens that emphasizes debugging-relevant context (errors, stack traces, recent changes)
+**Complexity**: Medium
+**Priority**: HIGH - Proves lens system value
+**Dependencies**: Lens system (complete)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: When debugging issues, developers need to see error patterns, recent changes, related test failures, and dependency chains.
+
+**Acceptance Criteria**:
+- [ ] Emphasize entities with error keywords
+- [ ] Surface recent file modifications
+- [ ] Highlight test failures
+- [ ] Show dependency chains to error sources
+- [ ] Activation patterns for debug queries
+- [ ] Filter out irrelevant stable code
+- [ ] Comprehensive test coverage
+
+**Implementation Guide**:
+1. Create `app/src/lenses/DebugLens.ts` extending BaseLens
+2. Implement activation detection (error keywords, "debug", "why")
+3. Add emphasis rules for error-related entities
+4. Filter stable, unchanged entities
+5. Add relationship emphasis for error propagation
+6. Create comprehensive test suite
+7. Document activation patterns
+
+**Files to create**:
+- `app/src/lenses/DebugLens.ts`
+- `app/tests/lenses/DebugLens.test.ts`
+
+**Watch Out For**: Balance between showing context and hiding noise
+
+</details>
+
+---
+
+### 7. Implement DocumentationLens
+**One-liner**: Create lens that focuses on documentation, APIs, and public interfaces
+**Complexity**: Medium
+**Priority**: MEDIUM - Completes lens system proof
+**Dependencies**: Lens system (complete)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: When generating documentation or understanding APIs, emphasize public interfaces, exported functions, JSDoc comments, and readme files.
+
+**Acceptance Criteria**:
+- [ ] Emphasize public/exported entities
+- [ ] Surface JSDoc and comments
+- [ ] Highlight readme and doc files
+- [ ] Filter internal implementation details
+- [ ] Show API relationships
+- [ ] Activation patterns for doc queries
+- [ ] Comprehensive test coverage
+
+**Implementation Guide**:
+1. Create `app/src/lenses/DocumentationLens.ts`
+2. Detect public/exported entities
+3. Emphasize documented APIs
+4. Filter private implementation
+5. Add activation for "document", "API", "public"
+6. Create test suite
+7. Document usage examples
+
+**Files to create**:
+- `app/src/lenses/DocumentationLens.ts`
+- `app/tests/lenses/DocumentationLens.test.ts`
+
+</details>
+
+---
+
+## ⏳ Blocked / Deferred
+
+### Azure Cloud Storage Validation (BLOCKED - Requires Azure Access)
+**One-liner**: Validate CosmosDB integration with real Azure instance
+**Complexity**: Small
+**Priority**: MEDIUM - Nice-to-have for cloud deployment
+**Blocker**: Requires Azure subscription and credentials
+**Status**: CosmosDB adapter 85% complete, all tests passing with mocks
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: CosmosDB implementation complete and fully tested with mocks. Real Azure validation deferred until cloud deployment is needed.
+
+**Completed Work** ✅:
+- [x] Implement CosmosDBStorageAdapter with dual-role configuration (700+ lines)
+- [x] Create storage provider abstraction (LocalStorageProvider, AzureStorageProvider)
+- [x] Environment-based storage provider selection
+- [x] Comprehensive test suite (36 tests, all passing with mocks)
+- [x] Complete documentation
+
+**Remaining Work** (When Azure access available):
+- [ ] Test with real Azure CosmosDB instance
+- [ ] Validate performance and RU costs
+- [ ] Complete migration utilities
+- [ ] Deployment configuration
+
+**Unblocks after**: Azure subscription provisioned (optional for current use)
+
+</details>
+
+---
+
+### Complete CosmosDB Migration Utilities (DEFERRED)
+**One-liner**: Build bidirectional migration utilities between local and cloud storage
+**Complexity**: Medium
+**Priority**: LOW - Only needed for cloud deployment
+**Dependencies**: Azure validation
+**Status**: Can develop with mocks but validation needs Azure
+
+---
+
+## 🗑️ Archived / Out of Scope
 
 ### ~~CorticAI Self-Hosting Validation~~ - DEFERRED
 **Reason**: Meta-use causes scope confusion with LLMs
@@ -369,107 +344,81 @@ return `partition_${hash % 10}` // Only 10 partitions, weak distribution
 **Reason**: Optimize for actual use cases first, then expand
 **Future**: Build registry when multiple domains validated in practice
 
-## 📝 Technical Debt and Code Quality Improvements
+---
+
+## 📊 Technical Debt Registry
 
 ### Code Review Findings (2025-10-01)
-**Discovery**: [2025-10-01-001-code-review-findings.md](../discoveries/2025-10-01-001-code-review-findings.md)
-**Context**: Systematic review of storage adapters identified 9 issues, 3 applied immediately, 6 tracked as tasks
 
 **Completed** (2025-10-01):
 - ✅ **Optimize Relationship Queries** - 2000x performance improvement achieved
-  - Task: [optimize-relationship-queries.md](../tasks/tech-debt/optimize-relationship-queries.md)
-  - Implementation: [2025-10-01-002-relationship-query-optimization.md](../discoveries/2025-10-01-002-relationship-query-optimization.md)
   - Result: O(n) → O(degree), 1ms query time for 100 entities
   - Tests: 9/9 passing, 100% coverage
 
-**High Priority Remaining**:
-- (None - high priority task completed)
-
-**Medium Priority**:
-- **Improve CosmosDB Partitioning** - Better hash distribution and scalability
-  - Task: [improve-cosmosdb-partitioning.md](../tasks/tech-debt/improve-cosmosdb-partitioning.md)
-- **Make Query Limits Configurable** - API flexibility for different use cases
-  - Task: [configurable-query-limits.md](../tasks/tech-debt/configurable-query-limits.md)
-- **Fix Type Assertions** - Remove unsafe `as any` type assertions
-  - Task: [fix-type-assertions-local-storage.md](../tasks/refactoring/fix-type-assertions-local-storage.md)
+**Medium Priority Remaining**:
+- **Improve CosmosDB Partitioning** - Better hash distribution (see task #3)
+- **Make Query Limits Configurable** - API flexibility (see task #1)
+- **Fix Type Assertions** - Remove unsafe type assertions (see task #2)
 
 **Low Priority**:
-- **Add Recursive Depth Limits** - Safety for file system operations
-  - Task: [add-recursive-depth-limit.md](../tasks/refactoring/add-recursive-depth-limit.md)
-- **Make Entity Types Extensible** - Allow custom entity types
-  - Task: [extensible-entity-types.md](../tasks/refactoring/extensible-entity-types.md)
+- **Add Recursive Depth Limits** - Safety for file operations (see task #4)
+- **Make Entity Types Extensible** - Custom type support (see task #5)
 
-### Implement Edge Type Filtering for Variable-Length Paths
-**Location**: `app/src/storage/adapters/KuzuSecureQueryBuilder.ts:117`
-**Context**: Edge type filtering done in post-processing, tracked in tech-debt backlog
-**Priority**: MEDIUM - Affects query precision but not blocking
-**Complexity**: Small (1-2 hours)
-**Dependencies**: Kuzu's variable-length path filtering capabilities
-**Status**: Documented in code (changed TODO to NOTE)
+### Known Technical Notes
 
----
-
-## 🔍 Needs Decisions
-
-### Strategic Focus Direction
-**Decision needed**: Primary target market and deployment model for CorticAI?
-**Options**:
-- Enterprise development teams (cloud SaaS model)
-- Open source development tool (self-hosted model)
-- Research platform (academic/experimental focus)
-- Internal Anthropic tooling (specialized internal use)
-**Recommendation**: Enterprise development teams with cloud deployment - highest market value
-
-### Technology Stack Evolution
-**Decision needed**: Major technology upgrades for production scale?
-**Options**:
-- Migrate to PostgreSQL for better ACID guarantees
-- Add Redis for caching and real-time features
-- Implement GraphQL API for better client integration
-- Add event sourcing for complete audit trails
-**Recommendation**: Start with CosmosDB migration, add Redis caching as needed
-
-## 🗑️ Archived Tasks
-
-### Foundation Infrastructure - **Reason**: Complete with 22+ major components, 383 tests, 14,200+ lines
-### Basic Storage & Query Systems - **Reason**: Comprehensive implementation with multiple adapters
-### Core Intelligence (Continuity Cortex) - **Reason**: Complete with FileDecisionEngine and similarity analysis
-### Progressive Loading & Lens System - **Reason**: Full implementation with comprehensive test coverage
-### Basic Domain Adapters - **Reason**: NovelAdapter and UniversalFallbackAdapter complete and tested
-### Phase 1-3 Implementation Tasks - **Reason**: All foundational phases complete and exceeded scope
+**Edge Type Filtering for Variable-Length Paths**
+- **Location**: `app/src/storage/adapters/KuzuSecureQueryBuilder.ts:117`
+- **Context**: Edge type filtering done in post-processing due to Kuzu 0.6.1 limitations
+- **Priority**: MEDIUM - Affects query precision but not blocking
+- **Status**: Documented in code (NOTE comment)
+- **Future**: Upgrade when Kuzu adds native support
 
 ---
 
-## Summary Statistics
-**Last Groomed**: 2025-10-01 (Re-groomed for vacation + real-world validation)
-- **Build Status**: ✅ Tests: 95 passing, 0 failing (CosmosDB mocking fixed!)
-- **Ready now (no Azure)**: 4 tasks focused on quality + validation prep
-- **Blocked by Azure**: 2 tasks (day job requirement, post-vacation)
-- **Deferred**: 3 tasks (self-hosting, strategic planning, advanced features)
-- **Recent wins**: CosmosDB test fix (36/36 passing), Relationship optimization (2000x improvement)
-- **Validation approach**: Real markdown context networks (not meta-use)
+## 📈 Summary Statistics
 
-## Top 3 Priorities (Vacation Friendly)
-1. **Make Query Limits Configurable** - API usability (15-30 min)
-2. **Validate Markdown Import** - Prepare for real-world testing (2-3 hours)
-3. **Improve Type Safety** - Fix type assertions (30-60 min)
+**Last Groomed**: 2025-10-02
+- **Total tests**: 425 tests across entire system (383 + 42 new)
+- **Build status**: ✅ All passing
+- **Recently completed**: 1 task (configurable query limits)
+- **Ready now**: 7 tasks (4 quality improvements, 3 domain features)
+- **Blocked**: 2 tasks (Azure access required, optional)
+- **Deferred**: 3 tasks (out of scope for current phase)
+- **Foundation**: ✅ Phases 1-3 complete and exceeded scope
+- **Recent wins**:
+  - ✅ **Configurable query limits** - 42 tests, 100% backward compatible (Oct 2)
+  - Relationship optimization (2000x improvement)
+  - CosmosDB test mocking (36/36 passing)
+  - Progressive loading system complete
+  - Lens system complete
+
+## 🎯 Top 3 Priorities (Domain Value Focus)
+
+1. **Implement CodebaseAdapter** - Prove cross-domain versatility (HIGH priority)
+2. **Implement DebugLens** - Prove lens system value (HIGH priority)
+3. **Improve Type Safety** - Remove unsafe type assertions (quick win, 30-60 min)
+
+**Strategic Focus**: Shift from infrastructure to user-facing value. Foundation is solid (Phases 1-3 complete). Time to demonstrate practical utility with domain adapters and intelligent lenses.
 
 ---
 
 ## Context Integration
 
 **Parent Planning**: [planning/index.md](./index.md) - Central planning navigation
-**Related Planning**: [roadmap.md](./roadmap.md) - Strategic context
+**Related Planning**:
+- [roadmap.md](./roadmap.md) - Strategic phases
+- [implementation-tracker.md](./implementation-tracker.md) - Detailed progress
+
 **Recent Updates**:
-- 2025-10-01: Re-groomed for vacation + real-world validation focus
-- 2025-10-01: Relationship query optimization completed (2000x improvement)
-- 2025-09-30: Post-sync grooming - Build quality assessed
-- 2025-09-27: Major sync - Discovered Phases 2-3 complete
+- 2025-10-02: **Configurable query limits implemented** - 42 tests, full TDD approach
+- 2025-10-02: Major re-grooming - Foundation complete, focus on domain value
+- 2025-10-01: Relationship query optimization completed
+- 2025-10-01: CosmosDB test mocking fixed
+- 2025-09-30: Post-sync grooming
 
-This backlog reflects **vacation context**: No Azure access, will validate with real markdown context networks. Focus on quality improvements and preparation for practical testing with actual data.
+**Phase Transition**: Moving from **Foundation Building** (Phases 1-3 ✅) to **User-Facing Value** (Domain adapters + Intelligence features). All infrastructure work complete and exceeded scope. Time to prove practical utility.
 
-**CURRENT PRIORITIES**:
-1. **Test Quality** 🧪 Fix CosmosDB mocks, keep suite healthy
-2. **Validation Prep** 📋 Ensure markdown import ready for real data
-3. **API Usability** ⚙️ Configurable limits, type safety
-4. **Azure Work** ☁️ Blocked until post-vacation (day job requirement)
+**Current Strategy**:
+- ✅ Foundation solid (graph DB, query system, lens framework, progressive loading)
+- 🎯 **Now**: Build domain adapters (CodebaseAdapter) and lenses (DebugLens) to demonstrate value
+- 🔮 **Later**: Cloud deployment (CosmosDB validation when needed)

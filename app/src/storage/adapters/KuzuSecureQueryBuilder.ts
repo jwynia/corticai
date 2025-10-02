@@ -11,9 +11,17 @@ import { Logger } from '../../utils/Logger'
 // Constants for validation limits
 const MAX_STRING_PARAMETER_LENGTH = 1000000 // 1MB limit for string parameters
 const MAX_DEPTH_LIMIT = 50 // Maximum depth for graph traversal to prevent performance issues
+const MAX_RESULT_LIMIT = 10000 // Maximum result limit to prevent resource exhaustion
+const DEFAULT_TRAVERSAL_LIMIT = 100 // Default limit for traversal queries
+const DEFAULT_SEARCH_LIMIT = 1000 // Default limit for search/connected queries
+const DEFAULT_SHORTEST_PATH_LIMIT = 1 // Default limit for shortest path queries
 
 export interface QueryParameters {
   [key: string]: string | number | boolean | null
+}
+
+export interface QueryOptions {
+  resultLimit?: number
 }
 
 export interface SecureQuery {
@@ -95,15 +103,26 @@ export class KuzuSecureQueryBuilder {
   /**
    * Build a secure query for graph traversal
    * With Kuzu 0.11.2, we can use proper variable-length paths
+   *
+   * @param startNodeId - The ID of the starting node
+   * @param relationshipPattern - The relationship pattern (e.g., '-[r*1..2]->')
+   * @param maxDepth - Maximum depth for traversal
+   * @param edgeTypes - Optional array of edge types to filter (handled in post-processing)
+   * @param options - Optional query options including resultLimit
+   * @returns SecureQuery object with statement and parameters
    */
   buildTraversalQuery(
     startNodeId: string,
     relationshipPattern: string,
     maxDepth: number,
-    edgeTypes?: string[]
+    edgeTypes?: string[],
+    options?: QueryOptions
   ): SecureQuery {
     // Validate depth parameter
     this.validateDepthParameter(maxDepth)
+
+    // Get validated result limit
+    const resultLimit = this.getResultLimit(options, DEFAULT_TRAVERSAL_LIMIT)
 
     // Kuzu 0.11.2 supports variable-length paths with literal depth values
     // Note: 'start' and 'end' might be reserved, so using 'source' and 'target'
@@ -132,9 +151,9 @@ export class KuzuSecureQueryBuilder {
     // For single-hop relationships, path length is always 1
     // For variable-length paths, we would use length(r)
     if (statement.includes('*')) {
-      statement += ` RETURN path, length(r) as pathLength LIMIT 100`
+      statement += ` RETURN path, length(r) as pathLength LIMIT ${resultLimit}`
     } else {
-      statement += ` RETURN path, 1 as pathLength LIMIT 100`
+      statement += ` RETURN path, 1 as pathLength LIMIT ${resultLimit}`
     }
 
     return {
@@ -146,13 +165,21 @@ export class KuzuSecureQueryBuilder {
   /**
    * Build a secure query for finding connected nodes
    * With Kuzu 0.11.2, we can use variable-length paths properly
+   *
+   * @param nodeId - The ID of the node to find connections for
+   * @param depth - Maximum depth for finding connections
+   * @param options - Optional query options including resultLimit
+   * @returns SecureQuery object with statement and parameters
    */
-  buildFindConnectedQuery(nodeId: string, depth: number): SecureQuery {
+  buildFindConnectedQuery(nodeId: string, depth: number, options?: QueryOptions): SecureQuery {
     // Validate depth parameter
     this.validateDepthParameter(depth)
 
+    // Get validated result limit
+    const resultLimit = this.getResultLimit(options, DEFAULT_SEARCH_LIMIT)
+
     return {
-      statement: `MATCH (source:Entity {id: $nodeId})-[*1..${depth}]-(connected:Entity) WHERE connected.id <> $nodeId RETURN DISTINCT connected.id as id, connected.type as type, connected.data as data LIMIT 1000`,
+      statement: `MATCH (source:Entity {id: $nodeId})-[*1..${depth}]-(connected:Entity) WHERE connected.id <> $nodeId RETURN DISTINCT connected.id as id, connected.type as type, connected.data as data LIMIT ${resultLimit}`,
       parameters: {
         nodeId: nodeId
       }
@@ -162,13 +189,22 @@ export class KuzuSecureQueryBuilder {
   /**
    * Build a secure query for shortest path
    * With Kuzu 0.11.2, we can use SHORTEST path algorithms
+   *
+   * @param fromId - The ID of the starting node
+   * @param toId - The ID of the target node
+   * @param maxDepth - Maximum depth for shortest path search
+   * @param options - Optional query options including resultLimit
+   * @returns SecureQuery object with statement and parameters
    */
-  buildShortestPathQuery(fromId: string, toId: string, maxDepth: number): SecureQuery {
+  buildShortestPathQuery(fromId: string, toId: string, maxDepth: number, options?: QueryOptions): SecureQuery {
     // Validate depth parameter
     this.validateDepthParameter(maxDepth)
 
+    // Get validated result limit
+    const resultLimit = this.getResultLimit(options, DEFAULT_SHORTEST_PATH_LIMIT)
+
     return {
-      statement: `MATCH path = (sourceNode:Entity {id: $fromId})-[r* SHORTEST 1..${maxDepth}]-(targetNode:Entity {id: $toId}) RETURN path, length(r) as pathLength LIMIT 1`,
+      statement: `MATCH path = (sourceNode:Entity {id: $fromId})-[r* SHORTEST 1..${maxDepth}]-(targetNode:Entity {id: $toId}) RETURN path, length(r) as pathLength LIMIT ${resultLimit}`,
       parameters: {
         fromId: fromId,
         toId: toId
@@ -209,6 +245,32 @@ export class KuzuSecureQueryBuilder {
     if (depth > MAX_DEPTH_LIMIT) {
       throw new Error(`Depth exceeds maximum allowed limit of ${MAX_DEPTH_LIMIT}`)
     }
+  }
+
+  /**
+   * Validate result limit parameter
+   */
+  private validateResultLimit(limit: number): void {
+    if (!Number.isInteger(limit)) {
+      throw new Error('Result limit must be an integer')
+    }
+    if (limit < 1) {
+      throw new Error('Result limit must be positive')
+    }
+    if (limit > MAX_RESULT_LIMIT) {
+      throw new Error(`Result limit exceeds maximum allowed limit of ${MAX_RESULT_LIMIT}`)
+    }
+  }
+
+  /**
+   * Get validated result limit from options or return default
+   */
+  private getResultLimit(options: QueryOptions | undefined, defaultLimit: number): number {
+    if (options?.resultLimit !== undefined) {
+      this.validateResultLimit(options.resultLimit)
+      return options.resultLimit
+    }
+    return defaultLimit
   }
 
   /**
