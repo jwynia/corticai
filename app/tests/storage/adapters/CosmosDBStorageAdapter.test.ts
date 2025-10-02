@@ -3,6 +3,15 @@
  *
  * Comprehensive test suite for the CosmosDB storage adapter including
  * basic operations, batch operations, error handling, and configuration validation.
+ *
+ * @note Azure SDK Mocking Strategy
+ * This test suite mocks the @azure/cosmos SDK to enable testing without a live Azure connection.
+ * The mock includes:
+ * - CosmosClient: Main client class for connecting to Azure Cosmos DB
+ * - PartitionKeyKind: Enum defining partition key types (Hash, Range, MultiHash)
+ *
+ * TypeScript types/interfaces (Container, Database, ItemResponse, etc.) are imported for
+ * type-checking only and do not require runtime mocking.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest'
@@ -10,6 +19,7 @@ import { CosmosDBStorageAdapter } from '../../../src/storage/adapters/CosmosDBSt
 import { CosmosDBStorageConfig, StorageError, StorageErrorCode } from '../../../src/storage/interfaces/Storage'
 
 // Mock Azure Cosmos SDK
+// Note: We only mock runtime values (classes, enums, functions), not TypeScript types/interfaces
 const mockContainer = {
   items: {
     upsert: vi.fn(),
@@ -33,7 +43,12 @@ const mockClient = {
 
 // Mock the entire @azure/cosmos module
 vi.mock('@azure/cosmos', () => ({
-  CosmosClient: vi.fn().mockImplementation(() => mockClient)
+  CosmosClient: vi.fn().mockImplementation(() => mockClient),
+  PartitionKeyKind: {
+    Hash: 'Hash',
+    Range: 'Range',
+    MultiHash: 'MultiHash'
+  }
 }))
 
 describe('CosmosDBStorageAdapter', () => {

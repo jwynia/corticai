@@ -1,19 +1,47 @@
 # CorticAI Groomed Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-10-01 (Post Code Review)
-**REALITY CONFIRMED**: ✅ **BUILD PASSING** - Phase 7 complete, code quality reviewed
+**Last Groomed**: 2025-10-01 (Re-groomed for vacation + real-world validation)
+**Build Status**: ⚠️ Tests: 69 passing, 26 failing (CosmosDB mocking issue - non-blocking)
 **Current Phase**: Phase 7 (Cloud Storage Architecture) - 85% COMPLETE
-**Status**: ✅ **BUILD PASSING** - Ready for Azure validation and strategic planning
-**Implementation Status**: CosmosDB + Storage Providers implemented, code reviewed, 6 improvement tasks identified
-**Current Priority**: **Strategic Planning** or **Azure Validation** (can proceed in parallel)
-**Foundation Status**: ✅ Exceptional foundation with quality gates restored and code quality reviewed
+**Azure Status**: ⏸️ **BLOCKED** - No Azure access during vacation (day job requirement)
+**Validation Approach**: Real markdown-based context networks (avoiding self-hosting scope confusion)
+**Current Priority**: **Prepare for real-world testing** with existing context networks
+**Foundation Status**: ✅ Solid foundation - ready for practical validation
 
 ---
 
 ## ✅ COMPLETED TASKS
 
-### 0. Fix Build Quality Issues ✅ COMPLETE
+### 0. Fix CosmosDB Test Mocking Issues ✅ COMPLETE (2025-10-01)
+**One-liner**: Fixed vitest mock configuration for @azure/cosmos PartitionKeyKind export
+**Completed**: 2025-10-01
+**Result**: All 36 CosmosDB tests now passing (was 10/36 passing)
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Problem**: 26/36 CosmosDB tests failing with error: `[vitest] No "PartitionKeyKind" export is defined on the "@azure/cosmos" mock`
+
+**Root Cause**: The mock for @azure/cosmos only included CosmosClient class but was missing the PartitionKeyKind enum used by the adapter for partition configuration.
+
+**Solution Implemented**:
+1. Added PartitionKeyKind enum to @azure/cosmos mock with all values (Hash, Range, MultiHash)
+2. Documented mocking strategy explaining difference between runtime values and TypeScript types
+3. Verified all 36 tests now pass without requiring Azure connection
+
+**Files Modified**:
+- `app/tests/storage/adapters/CosmosDBStorageAdapter.test.ts` - Added PartitionKeyKind to mock, added documentation
+
+**Key Learning**: When mocking Azure SDK, only runtime values (classes, enums, functions) need to be mocked. TypeScript types/interfaces (Container, Database, ItemResponse, etc.) are for compile-time type checking only.
+
+**Test Results**: ✅ 36/36 tests passing (100%)
+
+</details>
+
+---
+
+### 1. Fix Build Quality Issues ✅ COMPLETE
 **One-liner**: Fixed 8 TypeScript errors and 1 test failure blocking production deployment
 **Completed**: 2025-09-30
 **Result**: Build now passes with 0 TypeScript errors, all critical tests passing
@@ -73,52 +101,91 @@
 
 ---
 
-## 🚀 Ready for Implementation (NO AZURE CONNECTION REQUIRED)
+## 🚀 Ready Now (No Azure Required - Vacation Friendly)
 
-### 1. Strategic Production Readiness Assessment
-**One-liner**: Define production readiness criteria and next strategic direction for CorticAI
-**Complexity**: Medium (2-3 hours)
-**Priority**: HIGH - Strategic alignment critical
-**Dependencies**: None - foundational decision
-**Azure Required**: ❌ No - Pure planning/analysis task
+### 1. Make Query Result Limits Configurable
+**One-liner**: Add configurable result limits to Kuzu query builder methods
+**Complexity**: Trivial (15-30 min)
+**Priority**: HIGH - API usability improvement
+**Dependencies**: None
+**Azure Required**: ❌ No
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: With exceptional foundation complete (22+ components, 383 tests, Continuity Cortex), need strategic decision on production direction.
+**Context**: Query limits currently hardcoded (100, 1000). Need flexibility for different use cases.
 
 **Acceptance Criteria**:
-- [ ] Define "production ready" criteria for CorticAI's intended use case
-- [ ] Assess current capabilities against production criteria
-- [ ] Identify gaps between current state and production goals
-- [ ] Create strategic roadmap for next 2-3 phases
-- [ ] Document deployment architecture requirements
-- [ ] Validate cloud storage transition strategy
+- [ ] Add `resultLimit` parameter to query builder methods
+- [ ] Use sensible defaults (100 for traversal, 1000 for search)
+- [ ] Validate against unreasonable limits (max 10000)
+- [ ] Update JSDoc documentation
+- [ ] Add tests for configurable limits
+- [ ] Maintain backward compatibility
 
 **Implementation Guide**:
-1. Analyze current implementation against original vision
-2. Define specific production deployment scenarios
-3. Map technical gaps to strategic priorities
-4. Create decision framework for next phase selection
-5. Update roadmap with production-focused phases
+1. Add optional `options?: { resultLimit?: number }` parameter
+2. Extract default constants
+3. Update all query building methods
+4. Add input validation
+5. Update tests
 
 **Files to modify**:
-- `context-network/planning/roadmap.md` (strategic update)
-- `context-network/planning/milestones.md` (production criteria)
-- New production readiness assessment document
+- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts` (lines 126, 146)
 
-**Watch Out For**: Requires fundamental strategic decisions about system purpose and deployment
+**Watch Out For**: Validate limits to prevent resource exhaustion
 
 </details>
 
 ---
 
-### 2A. Complete CosmosDB Migration Utilities (Local Development)
-**One-liner**: Build bidirectional migration utilities between local and cloud storage (can test with mocks)
+### 2. Validate Markdown Context Network Import
+**One-liner**: Ensure CorticAI can properly index and query real markdown-based context networks
+**Complexity**: Medium (2-3 hours)
+**Priority**: HIGH - Critical for real-world validation
+**Dependencies**: None
+**Azure Required**: ❌ No - Uses local storage
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Will test with real markdown context networks. Need to ensure entity extraction, relationship detection, and querying work on actual data.
+
+**Acceptance Criteria**:
+- [ ] Parse markdown files from existing context networks
+- [ ] Extract entities from planning/architecture documents
+- [ ] Detect relationships between documents
+- [ ] Query across the context network
+- [ ] Validate performance with realistic data volumes
+- [ ] Document any issues or limitations found
+- [ ] Create usage examples based on real data
+
+**Implementation Guide**:
+1. Create test harness for markdown import
+2. Test entity extraction from various document types
+3. Verify relationship detection works
+4. Run queries on imported data
+5. Measure performance
+6. Document findings and issues
+
+**Files to review/modify**:
+- Markdown parsing in extractors
+- Entity detection logic
+- Relationship inference
+- Query system validation
+
+**Watch Out For**: Real data reveals edge cases tests miss
+
+</details>
+
+---
+
+### 3. Complete CosmosDB Migration Utilities (Local Development - DEFERRED)
+**One-liner**: Build bidirectional migration utilities between local and cloud storage
 **Complexity**: Medium (3-4 hours)
-**Priority**: MEDIUM - Enables seamless local/cloud transitions
-**Dependencies**: None - can use mocked CosmosDB
-**Azure Required**: ❌ No - Can develop and test with mocks
+**Priority**: LOW - Deferred until Azure access available
+**Dependencies**: CosmosDB validation complete
+**Azure Required**: ⚠️ Partially - Can develop with mocks but needs Azure to validate
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -157,12 +224,49 @@
 
 ---
 
-### 2B. Azure Cloud Storage Validation (REQUIRES AZURE)
-**One-liner**: Validate CosmosDB integration with real Azure instance and measure performance
+### 4. Improve Type Safety - Fix Type Assertions
+**One-liner**: Remove unsafe `as any` type assertions from LocalStorageProvider
+**Complexity**: Small (30-60 min)
+**Priority**: MEDIUM - Code quality for open source
+**Dependencies**: None
+**Azure Required**: ❌ No
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Multiple `as any` assertions bypass TypeScript type safety in LocalStorageProvider.
+
+**Acceptance Criteria**:
+- [ ] Identify all `as any` assertions
+- [ ] Replace with proper type guards or interfaces
+- [ ] Verify strict TypeScript checks pass
+- [ ] Add tests for edge cases
+- [ ] Document type assumptions
+
+**Implementation Guide**:
+1. Search for `as any` in LocalStorageProvider
+2. Determine proper types for each
+3. Add type guards where needed
+4. Update method signatures
+5. Run TypeScript with strict mode
+
+**Files to modify**:
+- `app/src/storage/providers/LocalStorageProvider.ts`
+
+**Watch Out For**: May reveal underlying design issues needing broader fixes
+
+</details>
+
+---
+
+## ⏳ Blocked Until Azure Access (Post-Vacation - Day Job Requirement)
+
+### Azure Cloud Storage Validation (REQUIRES AZURE)
+**One-liner**: Validate CosmosDB integration with real Azure instance (day job requirement)
 **Complexity**: Small (2-3 hours)
-**Priority**: HIGH - Final validation for Phase 7
-**Dependencies**: Task 2A complete (migration utilities)
-**Azure Required**: ✅ YES - Requires live Azure CosmosDB connection
+**Priority**: HIGH - Critical for day job use case
+**Dependencies**: Test mocking issues fixed
+**Azure Required**: ✅ YES - Requires live Azure CosmosDB connection (post-vacation)
 
 <details>
 <summary>Full Implementation Details</summary>
@@ -207,99 +311,63 @@
 
 ---
 
-### 3. CorticAI Self-Hosting Validation
-**One-liner**: Use CorticAI to manage its own development context and validate meta-capabilities
-**Complexity**: Medium (4-5 hours)
-**Priority**: HIGH - Validates core system value
-**Dependencies**: None - can run with local storage
-**Azure Required**: ❌ No - Uses local Kuzu/DuckDB storage
+### Complete CosmosDB Migration Utilities
+**Blocker**: Requires Azure access for validation
+**Unblocks after**: Azure validation complete
+**Effort**: 3-4 hours
+**Note**: Can develop with mocks during vacation but needs Azure to validate properly
+
+---
+
+## 📝 Medium Priority (Quality Improvements)
+
+### Improve CosmosDB Partition Key Distribution
+**One-liner**: Replace weak hash function with better algorithm and increase partition count
+**Complexity**: Small (30-60 min)
+**Priority**: MEDIUM - Scalability for day job use
+**Dependencies**: None
+**Azure Required**: ❌ No - Can develop locally
 
 <details>
 <summary>Full Implementation Details</summary>
 
-**Context**: Ultimate validation of CorticAI is using it to manage its own complex development context, preventing the coordination problems it's designed to solve.
+**Context**: Current hash function uses character sum with only 10 partitions - poor distribution and limited scalability.
+
+**Current Problem**:
+```typescript
+const hash = key.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+return `partition_${hash % 10}` // Only 10 partitions, weak distribution
+```
 
 **Acceptance Criteria**:
-- [ ] Configure CorticAI to index its own context network
-- [ ] Validate entity extraction from planning documents
-- [ ] Test cross-domain relationship detection (code ↔ planning)
-- [ ] Verify lens system works with development contexts
-- [ ] Document coordination problem prevention examples
-- [ ] Measure context discovery performance vs manual navigation
-- [ ] Create usage examples for other development teams
-
-**Implementation Guide**:
-1. Configure CorticAI to analyze its own context network
-2. Create development-focused lens implementations
-3. Test planning document entity extraction
-4. Validate cross-references between code and planning
-5. Document specific coordination improvements
-6. Create templates for other projects
+- [ ] Implement proper hash function (djb2 or similar)
+- [ ] Increase partition count to 100+
+- [ ] Document partitioning strategy
+- [ ] Consider making partition count configurable
+- [ ] Benchmark distribution on test data
 
 **Files to modify**:
-- CorticAI configuration for self-analysis
-- Development-specific lens implementations
-- Usage documentation and examples
-- Self-hosting validation reports
+- `app/src/storage/adapters/CosmosDBStorageAdapter.ts:728`
 
-**Watch Out For**: Recursive complexity - ensure system doesn't create infinite meta-loops
+**Watch Out For**: Changing strategy affects data distribution, may need migration
 
 </details>
 
 ---
 
-### 4. Advanced Domain Adapter Framework
-**One-liner**: Complete CodebaseAdapter and create domain adapter registry for extensibility
-**Complexity**: Large (6-8 hours)
-**Priority**: MEDIUM - Proves extensibility model
-**Dependencies**: Self-hosting validation helpful
-**Azure Required**: ❌ No - Pure code development
+## 🗑️ Deferred / Out of Scope
 
-<details>
-<summary>Full Implementation Details</summary>
+### ~~CorticAI Self-Hosting Validation~~ - DEFERRED
+**Reason**: Meta-use causes scope confusion with LLMs
+**Alternative**: Validate with real external markdown context networks instead
 
-**Context**: With NovelAdapter proving cross-domain capability, complete the technical domain adapter and create framework for easy extension.
+### ~~Strategic Production Readiness Assessment~~ - NOT RELEVANT
+**Reason**: Open source project, not enterprise SaaS product
+**Alternative**: Focus on practical utility for personal/day job use
 
-**Acceptance Criteria**:
-- [ ] Complete CodebaseAdapter with TypeScript AST parsing
-- [ ] Implement domain adapter registry and loading system
-- [ ] Create adapter composition for multi-domain projects
-- [ ] Add natural language query translation for domain-specific queries
-- [ ] Build adapter validation framework
-- [ ] Create adapter development guide and templates
-- [ ] Performance test with realistic codebases
-
-**Implementation Guide**:
-1. Complete CodebaseAdapter implementation following NovelAdapter patterns
-2. Design domain adapter registry architecture
-3. Implement dynamic adapter loading and composition
-4. Create validation framework for adapter compliance
-5. Add natural language query processing
-6. Build comprehensive test suite
-
-**Files to modify**:
-- `app/src/adapters/CodebaseAdapter.ts` (complete implementation)
-- `app/src/adapters/registry/` (new registry system)
-- `app/src/adapters/validation/` (new validation framework)
-- Tests and documentation
-
-**Watch Out For**: Complexity of multi-adapter composition and query routing
-
-</details>
-
----
-
-## ⏳ Ready Soon (Blocked)
-
-### External Integration Framework (GitHub, Issue Trackers)
-**Blocker**: Requires production deployment strategy decision
-**Unblocks after**: Cloud storage integration complete
-**Prep work possible**: Research GitHub API integration patterns and webhook architecture
-
-### Pattern Detection and Learning System
-**Blocker**: Depends on sufficient usage data from self-hosting
-**Unblocks after**: Self-hosting validation demonstrates usage patterns
-**Prep work possible**: Design pattern recognition algorithms and data collection strategy
+### Advanced Domain Adapter Framework - DEFERRED
+**Reason**: Optimize for actual use cases first, then expand
+**Future**: Build registry when multiple domains validated in practice
 
 ## 📝 Technical Debt and Code Quality Improvements
 
@@ -373,19 +441,18 @@
 ---
 
 ## Summary Statistics
-**Last Groomed**: 2025-09-30 (Post-Build Fix - Azure Filter Applied)
-- **Build Status**: ✅ PASSING (0 TypeScript errors)
-- **Tasks without Azure requirement**: 4 ready for immediate work
-- **Tasks requiring Azure**: 1 (validation only, 2-3 hours)
-- **Ready for work (no Azure)**: 4 strategic and development tasks
-- **Blocked by decisions**: 2 advanced feature tasks
-- **Archived**: 6 major foundational phases + Task #0 (build fix complete)
-- **Implementation quality**: ✅ **PRODUCTION READY** - Build passing, tests passing
+**Last Groomed**: 2025-10-01 (Re-groomed for vacation + real-world validation)
+- **Build Status**: ✅ Tests: 95 passing, 0 failing (CosmosDB mocking fixed!)
+- **Ready now (no Azure)**: 4 tasks focused on quality + validation prep
+- **Blocked by Azure**: 2 tasks (day job requirement, post-vacation)
+- **Deferred**: 3 tasks (self-hosting, strategic planning, advanced features)
+- **Recent wins**: CosmosDB test fix (36/36 passing), Relationship optimization (2000x improvement)
+- **Validation approach**: Real markdown context networks (not meta-use)
 
-## Top 3 Recommendations (No Azure Required)
-1. **Strategic Production Readiness Assessment** (Task #1) - Define next direction (2-3 hours)
-2. **CorticAI Self-Hosting Validation** (Task #3) - Prove system value with local storage (4-5 hours)
-3. **Complete Migration Utilities** (Task #2A) - Enable local/cloud sync without live Azure (3-4 hours)
+## Top 3 Priorities (Vacation Friendly)
+1. **Make Query Limits Configurable** - API usability (15-30 min)
+2. **Validate Markdown Import** - Prepare for real-world testing (2-3 hours)
+3. **Improve Type Safety** - Fix type assertions (30-60 min)
 
 ---
 
@@ -394,13 +461,15 @@
 **Parent Planning**: [planning/index.md](./index.md) - Central planning navigation
 **Related Planning**: [roadmap.md](./roadmap.md) - Strategic context
 **Recent Updates**:
-- 2025-09-30: Post-sync grooming - Identified build quality blockers and updated task #0
-- 2025-09-28: Comprehensive grooming - Confirmed Phase 7 in progress
+- 2025-10-01: Re-groomed for vacation + real-world validation focus
+- 2025-10-01: Relationship query optimization completed (2000x improvement)
+- 2025-09-30: Post-sync grooming - Build quality assessed
 - 2025-09-27: Major sync - Discovered Phases 2-3 complete
 
-This groomed backlog reflects current reality: **BUILD PASSING** ✅ and Phase 7 (Cloud Storage) 85% complete. Code review completed 2025-10-01 with 6 improvement tasks identified. Focus can shift to strategic production decisions or Azure validation in parallel with code quality improvements.
+This backlog reflects **vacation context**: No Azure access, will validate with real markdown context networks. Focus on quality improvements and preparation for practical testing with actual data.
 
 **CURRENT PRIORITIES**:
-1. **Strategic Production Planning** 🚀 (can start immediately)
-2. **Code Quality Improvements** 📊 (6 tracked tasks, high-value optimization available)
-3. **Azure Validation** ☁️ (when Azure access available)
+1. **Test Quality** 🧪 Fix CosmosDB mocks, keep suite healthy
+2. **Validation Prep** 📋 Ensure markdown import ready for real data
+3. **API Usability** ⚙️ Configurable limits, type safety
+4. **Azure Work** ☁️ Blocked until post-vacation (day job requirement)
