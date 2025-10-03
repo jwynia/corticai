@@ -119,7 +119,7 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
       let returnType: string = '';
       let genericTypes: string[] = [];
 
-      // Regular function declaration
+      // Regular function declaration WITH return type
       let match = /(?:export\s+)?(?:async\s+)?function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<([^>]+)>)?\s*\(([^)]*)\)\s*:\s*([^{;]+)/.exec(trimmedLine);
       if (match) {
         functionName = match[1];
@@ -127,12 +127,29 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
         parameters = this.parseParameters(match[3]);
         returnType = this.parseReturnType(match[4]);
       } else {
-        // Arrow function expression
-        match = /(?:export\s+)?(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*:\s*([^=]+)\s*=>/.exec(trimmedLine);
+        // Regular function declaration WITHOUT return type
+        match = /(?:export\s+)?(?:async\s+)?function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<([^>]+)>)?\s*\(([^)]*)\)/.exec(trimmedLine);
         if (match) {
           functionName = match[1];
-          parameters = this.parseParameters(match[2]);
-          returnType = this.parseReturnType(match[3]);
+          genericTypes = match[2] ? match[2].split(',').map(t => t.trim()) : [];
+          parameters = this.parseParameters(match[3]);
+          returnType = '';
+        } else {
+          // Arrow function expression WITH return type
+          match = /(?:export\s+)?(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*:\s*([^=]+)\s*=>/.exec(trimmedLine);
+          if (match) {
+            functionName = match[1];
+            parameters = this.parseParameters(match[2]);
+            returnType = this.parseReturnType(match[3]);
+          } else {
+            // Arrow function expression WITHOUT return type
+            match = /(?:export\s+)?(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/.exec(trimmedLine);
+            if (match) {
+              functionName = match[1];
+              parameters = this.parseParameters(match[2]);
+              returnType = '';
+            }
+          }
         }
       }
 
@@ -171,7 +188,8 @@ export class CodebaseAdapter extends UniversalFallbackAdapter implements DomainA
 
     // Handle multi-line class declarations by looking at the full content
     // Pattern for class declarations that may span multiple lines
-    const classPattern = /(?:export\s+)?(?:abstract\s+)?class\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<[^>]*>)?\s*(?:extends\s+([a-zA-Z_$][a-zA-Z0-9_$<>]+))?\s*(?:implements\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]+))?\s*\{/gs;
+    // Updated to handle generics in extends clause (e.g., extends Component<Props, State>)
+    const classPattern = /(?:export\s+)?(?:abstract\s+)?class\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:<[^>]*>)?\s*(?:extends\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]+?)(?=\s+implements|\s*\{))?\s*(?:implements\s+([a-zA-Z_$][a-zA-Z0-9_$<>,\s]+))?\s*\{/gs;
 
     let match;
     while ((match = classPattern.exec(content)) !== null) {
