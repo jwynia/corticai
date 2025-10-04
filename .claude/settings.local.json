@@ -35,7 +35,11 @@
       "Bash(/workspaces/corticai/scripts/groom-scan.sh:*)",
       "Bash(timeout 30 npm test:*)",
       "Bash(npx vitest run:*)",
-      "Bash(npm run test:run:*)"
+      "Bash(npm run test:run:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(ls:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

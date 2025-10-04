@@ -26,6 +26,8 @@ Central navigation point for all project planning, prioritization, and task mana
 ### Validation & Meta-Planning
 - [CorticAI Validation Cases](./corticai-validation-cases.md) - How CorticAI proves its value by solving its own coordination problems
 - [Self-Hosting Transition Strategy](./self-hosting-transition-strategy.md) - Progressive transition from manual to automated context management
+- **→ [Reference Network Testing Strategy](./reference-network-testing-strategy.md)** - Comprehensive testing approach using external context networks
+- **→ [Reference Network Test Plan](./reference-network-test-plan.md)** - Detailed test specifications and scenarios
 
 ### Legacy Backlogs (Being Migrated)
 - [Unified Backlog](./unified_backlog.md) - Previous combined backlog
