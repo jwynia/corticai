@@ -17,9 +17,55 @@ import {
   SearchOptions,
   AggregateOperation
 } from './IStorageProvider'
+import { GraphEntity } from '../types/GraphTypes'
 import { Logger } from '../../utils/Logger'
 
 const logger = Logger.createConsoleLogger('LocalStorageProvider')
+
+/**
+ * Type guard to check if an entity has an id property
+ */
+function hasId(entity: unknown): entity is { id: string } & Record<string, unknown> {
+  return (
+    typeof entity === 'object' &&
+    entity !== null &&
+    'id' in entity &&
+    typeof (entity as Record<string, unknown>).id === 'string' &&
+    (entity as Record<string, unknown>).id !== ''
+  )
+}
+
+/**
+ * Type guard to check if an object is an Error
+ */
+function isError(error: unknown): error is Error {
+  return (
+    error instanceof Error ||
+    (typeof error === 'object' && error !== null && 'message' in error)
+  )
+}
+
+/**
+ * Type guard to check if storage adapter has a close method
+ */
+function hasCloseMethod(adapter: unknown): adapter is { close(): Promise<void> } {
+  return (
+    typeof adapter === 'object' &&
+    adapter !== null &&
+    'close' in adapter &&
+    typeof (adapter as Record<string, unknown>).close === 'function'
+  )
+}
+
+/**
+ * Interface for view metadata
+ */
+interface ViewMetadata {
+  name: string
+  query: string
+  createdAt: string
+  lastRefreshed?: string
+}
 
 /**
  * Configuration for local storage provider
@@ -42,16 +88,30 @@ export interface LocalStorageConfig extends StorageProviderConfig {
  *
  * Note: KuzuStorageAdapter already implements traverse() and findConnected() with proper
  * graph query implementations. The base class provides graph functionality with its own
- * signature patterns. We add the additional PrimaryStorage optional methods here.
+ * signature patterns. We add the additional PrimaryStorage optional methods here and provide
+ * compatibility adapters for the different method signatures.
  */
-class EnhancedKuzuAdapter<T = any> extends KuzuStorageAdapter {
+class EnhancedKuzuAdapter extends KuzuStorageAdapter {
   /**
    * Add entity to graph storage
+   * @param entity The entity to add (must have string id or one will be generated)
    */
-  async addEntity(entity: T): Promise<void> {
+  async addEntity(entity: any): Promise<void> {
     // Extract ID from entity or generate one
-    const id = (entity as any).id || `entity_${Date.now()}`
-    await (this as any).set(id, entity)
+    const id = hasId(entity) ? entity.id : `entity_${Date.now()}`
+
+    // Convert entity to GraphEntity format expected by KuzuStorageAdapter
+    const graphEntity: GraphEntity = {
+      id,
+      type: entity.type || 'Entity',
+      properties: entity.properties || entity,
+      metadata: {
+        created: new Date(),
+        updated: new Date()
+      }
+    }
+
+    await this.set(id, graphEntity)
   }
 
   /**
@@ -59,23 +119,29 @@ class EnhancedKuzuAdapter<T = any> extends KuzuStorageAdapter {
    */
   async addRelationship(from: string, to: string, type: string, properties?: any): Promise<void> {
     const relationshipId = `${from}_${type}_${to}`
-    const relationship = {
+    const relationship: GraphEntity = {
       id: relationshipId,
-      from,
-      to,
-      type,
-      properties: properties || {},
-      createdAt: new Date().toISOString()
+      type: 'Relationship',
+      properties: {
+        from,
+        to,
+        relationshipType: type,
+        ...(properties || {}),
+        createdAt: new Date().toISOString()
+      },
+      metadata: {
+        created: new Date()
+      }
     }
 
-    await (this as any).set(relationshipId, relationship as T)
+    await this.set(relationshipId, relationship)
   }
 
   /**
    * Get entity by ID
    */
-  async getEntity(id: string): Promise<T | undefined> {
-    return (this as any).get(id)
+  async getEntity(id: string): Promise<any | undefined> {
+    return await this.get(id)
   }
 
   /**
@@ -87,11 +153,11 @@ class EnhancedKuzuAdapter<T = any> extends KuzuStorageAdapter {
    * Performance: O(degree) where degree is the number of connected relationships
    * Previous: O(n) where n was total number of entities in storage
    */
-  async getRelationships(entityId: string): Promise<T[]> {
+  async getRelationships(entityId: string): Promise<any[]> {
     // Use Kuzu's native getEdges method which uses graph queries
     // This leverages the graph database's indexing and traversal capabilities
-    const edges = await (this as any).getEdges(entityId)
-    return edges as T[]
+    const edges = await this.getEdges(entityId)
+    return edges
   }
 }
 
@@ -172,7 +238,12 @@ class EnhancedDuckDBAdapter<T = any> extends DuckDBStorageAdapter<T> implements 
    */
   async createView(name: string, query: string): Promise<void> {
     // Store view definition
-    await this.set(`__view_${name}`, { name, query, createdAt: new Date().toISOString() } as T)
+    const viewMetadata: ViewMetadata = {
+      name,
+      query,
+      createdAt: new Date().toISOString()
+    }
+    await this.set(`__view_${name}`, viewMetadata as T)
   }
 
   /**
@@ -182,9 +253,13 @@ class EnhancedDuckDBAdapter<T = any> extends DuckDBStorageAdapter<T> implements 
     // In a full implementation, this would re-execute the view query
     // For now, just update the timestamp
     const view = await this.get(`__view_${name}`)
-    if (view) {
-      (view as any).lastRefreshed = new Date().toISOString()
-      await this.set(`__view_${name}`, view)
+    if (view && typeof view === 'object' && view !== null) {
+      // Create updated view with lastRefreshed
+      const updatedView = {
+        ...view,
+        lastRefreshed: new Date().toISOString()
+      }
+      await this.set(`__view_${name}`, updatedView as T)
     }
   }
 
@@ -238,9 +313,10 @@ export class LocalStorageProvider implements IStorageProvider {
     if (!this.primaryAdapter) {
       throw new Error('LocalStorageProvider not initialized')
     }
-    // EnhancedKuzuAdapter extends KuzuStorageAdapter which provides graph functionality
-    // The optional methods in PrimaryStorage are covered by the base class's methods
-    return this.primaryAdapter as any as PrimaryStorage
+    // EnhancedKuzuAdapter implements PrimaryStorage's required methods (from BatchStorage)
+    // The optional graph methods (traverse, findConnected) have different signatures in the base class
+    // but are compatible for the use cases they serve
+    return this.primaryAdapter as unknown as PrimaryStorage
   }
 
   /**
@@ -263,7 +339,7 @@ export class LocalStorageProvider implements IStorageProvider {
 
     try {
       // Initialize primary storage (Kuzu)
-      this.primaryAdapter = new (EnhancedKuzuAdapter as any)({
+      this.primaryAdapter = new EnhancedKuzuAdapter({
         type: 'kuzu',
         database: this.config.primary.database,
         readOnly: this.config.primary.readOnly || false,
@@ -290,7 +366,8 @@ export class LocalStorageProvider implements IStorageProvider {
         })
       }
     } catch (error) {
-      throw new Error(`Failed to initialize local storage provider: ${(error as any).message}`)
+      const errorMessage = isError(error) ? error.message : String(error)
+      throw new Error(`Failed to initialize local storage provider: ${errorMessage}`)
     }
   }
 
@@ -298,13 +375,13 @@ export class LocalStorageProvider implements IStorageProvider {
    * Close storage connections
    */
   async close(): Promise<void> {
-    if (this.primaryAdapter) {
-      await (this.primaryAdapter as any).close?.()
+    if (this.primaryAdapter && hasCloseMethod(this.primaryAdapter)) {
+      await this.primaryAdapter.close()
       this.primaryAdapter = null
     }
 
-    if (this.semanticAdapter) {
-      await (this.semanticAdapter as any).close?.()
+    if (this.semanticAdapter && hasCloseMethod(this.semanticAdapter)) {
+      await this.semanticAdapter.close()
       this.semanticAdapter = null
     }
 
@@ -333,7 +410,8 @@ export class LocalStorageProvider implements IStorageProvider {
       return true
     } catch (error) {
       if (this.config.debug) {
-        logger.debug('Health check failed:', (error as any).message)
+        const errorMessage = isError(error) ? error.message : String(error)
+        logger.debug('Health check failed:', { error: errorMessage })
       }
       return false
     }
