@@ -1,0 +1,70 @@
+# Scene Building - Navigation Hub
+
+## Purpose
+Central navigation and overview for scene building frameworks and methodologies. This hub connects to atomic documents containing specific scene-building approaches.
+
+## Classification
+- **Domain:** Plot Development - Scene Level
+- **Stability:** Stable
+- **Abstraction:** Navigation
+- **Confidence:** High
+
+## Scene Building Framework Categories
+
+### Foundational Frameworks
+- [[dramatic-arc]] - Universal tension patterns for scenes
+- [[story-circle]] - Cyclical transformation framework
+- [[conflict-types]] - Types and layers of narrative conflict
+- [[narrative-causality]] - Cause-and-effect relationships
+- [[value-shifts]] - Meaningful changes in value states
+
+### Scene Construction
+- [[scene-sequel-structure]] - Action-reaction narrative rhythm
+- [[scene-purpose]] - Multi-function scene optimization
+- [[scene-tension]] - Creating and maintaining engagement
+- [[scene-entrances-exits]] - Beginning and ending scenes effectively
+- [[information-management]] - Strategic information distribution
+
+### Analysis and Evaluation
+- [[scene-purpose-verification]] - Evaluating narrative effectiveness
+- [[tension-evaluation]] - Assessing and improving tension
+- [[character-agency]] - Ensuring character-driven scenes
+- [[setting-integration]] - Leveraging setting elements
+- [[dialogue-effectiveness]] - Improving character exchanges
+
+### Implementation Tools
+- [[scene-planning-worksheet]] - Practical planning template
+- [[revision-checklist]] - Scene improvement guide
+- [[common-problems]] - Troubleshooting scene issues
+
+## Quick Reference
+
+### When to Use These Frameworks
+- Planning new scenes from scratch
+- Revising existing scenes for impact
+- Diagnosing scene problems
+- Ensuring scene-level narrative coherence
+- Optimizing pacing and engagement
+
+### Key Principles
+1. Every scene must create meaningful change
+2. Character decisions drive outcomes
+3. Multiple purposes optimize narrative economy
+4. Tension maintains reader engagement
+5. Setting and dialogue serve narrative goals
+
+## Relationships
+- **Parent:** [[plot/overview]]
+- **Sibling:** [[plot-structure/index]]
+- **Related:** [[characters/character-arcs]], [[world/setting-as-character]]
+
+## Navigation Guidance
+- **New Scene Planning:** Start with [[scene-purpose]] and [[value-shifts]]
+- **Scene Problems:** Check [[common-problems]] and [[revision-checklist]]
+- **Advanced Techniques:** Explore [[scene-tension]] and [[information-management]]
+- **Quick Tools:** Use [[scene-planning-worksheet]] for rapid development
+
+## Metadata
+- **Created:** 2025-06-29
+- **Last Updated:** 2025-06-29
+- **Maintainer:** Context Network Admin

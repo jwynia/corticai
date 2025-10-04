@@ -1,0 +1,186 @@
+# Story Circles Framework
+
+## Purpose
+Indigenous storytelling tradition emphasizing communal engagement, shared narrative authority, and circular structures that reflect community-centered worldviews.
+
+## Classification
+- **Domain:** Communal Narrative
+- **Stability:** Traditional
+- **Abstraction:** Social Structure
+- **Confidence:** Very High
+
+## Key Components
+
+### Communal Narration
+- Stories shared in turn
+- Multiple contributors
+- Collective ownership
+- Shared creation process
+
+### Voice Integration
+- Multiple perspectives woven together
+- Equal narrative weight
+- Diverse viewpoints honored
+- Polyphonic structure
+
+### Non-Hierarchical Structure
+- No single authority
+- Equal validity of contributions
+- Democratic narrative space
+- Circular rather than linear
+
+### Contextual Adaptation
+- Stories modified for audience
+- Occasion-specific telling
+- Living narrative tradition
+- Responsive storytelling
+
+### Participatory Engagement
+- Active audience role
+- Co-creation expected
+- Response integrated
+- Dynamic interaction
+
+## Implementation Principles
+
+### Creating Narrative Space
+- Design for multiple voices
+- Leave intentional gaps
+- Invite contribution
+- Honor all perspectives
+
+### Circular Resolution
+- Return to beginning transformed
+- Cycles rather than conclusions
+- Ongoing rather than ended
+- Connection over closure
+
+### Authority Distribution
+- Avoid single narrator dominance
+- Create equal speaking positions
+- Value all contributions
+- Resist hierarchical structure
+
+### Audience Integration
+- Build in response moments
+- Create participation cues
+- Expect active engagement
+- Design for interaction
+
+## Traditional Elements
+
+### Physical Circle
+- Spatial arrangement matters
+- Equal positioning
+- No head of table
+- Shared center
+
+### Turn-Taking Protocols
+- Established patterns
+- Respectful transitions
+- Speaking objects
+- Silence honoring
+
+### Story Ownership
+- Collective property
+- Shared responsibility
+- Community memory
+- Living tradition
+
+## Modern Adaptations
+
+### Written Forms
+- Multiple narrator novels
+- Collaborative narratives
+- Reader response integration
+- Interactive fiction
+
+### Digital Possibilities
+- Online story circles
+- Collaborative platforms
+- Real-time co-creation
+- Global participation
+
+### Hybrid Approaches
+- Guided participation
+- Structured improvisation
+- Framework narratives
+- Open architecture
+
+## Creating Story Circles
+
+### Setup Phase
+1. Establish theme/question
+2. Create safe space
+3. Set participation norms
+4. Open narrative container
+
+### Active Phase
+1. Initial story seed
+2. Pass narrative authority
+3. Weave contributions
+4. Build collectively
+
+### Integration Phase
+1. Acknowledge all voices
+2. Find connecting threads
+3. Create unified whole
+4. Honor process
+
+## Benefits
+
+### Community Building
+- Shared experience
+- Collective identity
+- Social bonding
+- Cultural transmission
+
+### Multiple Truths
+- Various perspectives valid
+- Complex understanding
+- Nuanced narrative
+- Rich interpretation
+
+### Living Story
+- Evolves with telling
+- Responds to moment
+- Stays relevant
+- Grows organically
+
+## Challenges and Solutions
+
+### Written Adaptation
+- **Challenge:** Capturing oral dynamics
+- **Solution:** Multiple narrators, gaps for reader
+
+### Individual Author
+- **Challenge:** Single voice limitation
+- **Solution:** Imagine multiple perspectives, invite interpretation
+
+### Linear Medium
+- **Challenge:** Sequential reading
+- **Solution:** Circular structure, return elements
+
+## Cultural Considerations
+
+### Respect Origins
+- Acknowledge Indigenous roots
+- Avoid appropriation
+- Honor principles
+- Credit traditions
+
+### Authentic Application
+- Understand underlying values
+- Focus on community
+- Emphasize connection
+- Value process
+
+## Relationships
+- **Parent:** [[cross-cultural/indecollective experiencaudience role spectrum
+- **Related:** [[collective-experienccollective experiencaudience role spectrum, [[audience-role-spectruaudience role spectrucommunal perspective
+- **Influences:** [[communal-perspectivcollective experiencaudience role spectrum,
+
+## Metadata
+- **Created:** 2025-06-29
+- **Last Updated:** 2025-06-29
+- **Source:** Indigenous oral traditions

@@ -1,0 +1,1607 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-20",
+  "description": "Master category taxonomy for Whereness - comprehensive coverage of city services and experiences",
+  "tiers": {
+    "tier1_essential": {
+      "name": "Essential Daily Services",
+      "priority": 1,
+      "description": "Core services residents and visitors need regularly"
+    },
+    "tier2_lifestyle": {
+      "name": "Lifestyle & Recreation",
+      "priority": 2,
+      "description": "Activities and services that enhance quality of life"
+    },
+    "tier3_community": {
+      "name": "Community & Connection",
+      "priority": 3,
+      "description": "Social, learning, and community engagement opportunities"
+    },
+    "tier4_special": {
+      "name": "Special Circumstances",
+      "priority": 4,
+      "description": "Visitor-specific and city-specific categories"
+    }
+  },
+  "categories": {
+    "food_beverage": {
+      "tier": "tier1_essential",
+      "name": "Food & Beverage",
+      "subcategories": {
+        "coffee_shops": {
+          "name": "Coffee Shops",
+          "intents": ["work_friendly", "quick_caffeine", "quality_focused", "social_meeting"],
+          "search_terms": ["coffee shop", "cafe", "espresso bar", "coffee house", "coffeehouse"],
+          "operational_focus": ["wifi", "outlets", "seating", "hours", "noise_level"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL coffee shops, not just highly-rated ones",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "coffee {zip_code}",
+                  "coffee shops {neighborhood}",
+                  "coffee {major_street}",
+                  "coffee near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by what people actually need",
+                "queries": [
+                  "coffee to go",
+                  "coffee with wifi",
+                  "coffee open early",
+                  "coffee drive through",
+                  "coffee beans for sale",
+                  "espresso machine"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "coffee shops in {city}",
+                  "local coffee {neighborhood}",
+                  "family owned coffee",
+                  "new coffee shop",
+                  "small coffee shop"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Proximity and convenience-based",
+                "queries": [
+                  "coffee within walking distance",
+                  "coffee near work",
+                  "coffee on commute route",
+                  "24 hour coffee",
+                  "coffee with parking"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "popular", "award winning"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "restaurants_casual": {
+          "name": "Casual Dining",
+          "intents": ["quick_meal", "family_friendly", "affordable", "local_favorite"],
+          "search_terms": ["restaurant", "diner", "cafe", "eatery", "bistro"],
+          "operational_focus": ["wait_times", "reservations", "parking", "price_range"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL casual dining options, not just highly-rated ones",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "restaurant {zip_code}",
+                  "diner {neighborhood}",
+                  "restaurant {major_street}",
+                  "restaurant near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by dining needs",
+                "queries": [
+                  "family restaurant",
+                  "quick lunch",
+                  "takeout restaurant",
+                  "restaurant with parking",
+                  "affordable dining",
+                  "open late restaurant"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local restaurant {neighborhood}",
+                  "neighborhood diner",
+                  "family owned restaurant",
+                  "small restaurant"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Convenience-based searches",
+                "queries": [
+                  "restaurant within walking distance",
+                  "restaurant near work",
+                  "restaurant open now",
+                  "restaurant delivery",
+                  "drive through restaurant"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "popular", "award winning"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "restaurants_fine": {
+          "name": "Fine Dining",
+          "intents": ["special_occasion", "business_dinner", "date_night", "culinary_experience"],
+          "search_terms": ["fine dining", "upscale restaurant", "steakhouse", "french restaurant"],
+          "operational_focus": ["dress_code", "reservations", "price_range", "ambiance"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL fine dining establishments, not just celebrity chef restaurants",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "fine dining {zip_code}",
+                  "upscale restaurant {neighborhood}",
+                  "steakhouse {major_street}",
+                  "fine dining near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by dining occasion",
+                "queries": [
+                  "date night restaurant",
+                  "business dinner",
+                  "anniversary restaurant",
+                  "private dining",
+                  "wine bar restaurant",
+                  "special occasion dining"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "upscale dining {neighborhood}",
+                  "formal restaurant",
+                  "white tablecloth restaurant",
+                  "fine dining establishment"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Service-based searches",
+                "queries": [
+                  "restaurant reservations",
+                  "restaurant valet parking",
+                  "restaurant private room",
+                  "restaurant wine list"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "michelin", "award winning"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "restaurants_ethnic": {
+          "name": "Ethnic Cuisine",
+          "intents": ["authentic_experience", "cultural_exploration", "dietary_specific", "comfort_food"],
+          "search_terms": ["mexican restaurant", "chinese food", "indian restaurant", "thai food", "vietnamese", "ethiopian"],
+          "operational_focus": ["authenticity", "spice_levels", "vegetarian_options", "language"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL ethnic restaurants, including family-owned and neighborhood spots",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "mexican restaurant {zip_code}",
+                  "chinese restaurant {neighborhood}",
+                  "ethnic food {major_street}",
+                  "international restaurant near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by cuisine and dietary needs",
+                "queries": [
+                  "authentic mexican food",
+                  "family style chinese",
+                  "vegetarian indian",
+                  "halal restaurant",
+                  "spicy food",
+                  "ethnic takeout"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local mexican {neighborhood}",
+                  "family owned restaurant",
+                  "ethnic grocery restaurant",
+                  "immigrant owned restaurant"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Service and accessibility",
+                "queries": [
+                  "ethnic restaurant delivery",
+                  "restaurant spanish speaking",
+                  "ethnic catering",
+                  "ethnic restaurant lunch buffet"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "authentic rated"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "breweries": {
+          "name": "Breweries & Taprooms",
+          "intents": ["craft_beer", "social_drinking", "food_trucks", "outdoor_seating"],
+          "search_terms": ["brewery", "brewpub", "taproom", "beer garden", "microbrewery"],
+          "operational_focus": ["age_restrictions", "food_options", "dog_friendly", "events"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL breweries and taprooms, including small local operations",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "brewery {zip_code}",
+                  "taproom {neighborhood}",
+                  "brewery {major_street}",
+                  "brewery near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by beer experience",
+                "queries": [
+                  "craft beer",
+                  "local brewery",
+                  "beer tasting",
+                  "brewery food",
+                  "outdoor beer garden",
+                  "brewery events"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local brewery {neighborhood}",
+                  "small brewery",
+                  "microbrewery",
+                  "neighborhood taproom"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and convenience",
+                "queries": [
+                  "dog friendly brewery",
+                  "brewery with parking",
+                  "family friendly brewery",
+                  "brewery takeout"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "award winning"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "bars_cocktails": {
+          "name": "Bars & Cocktails",
+          "intents": ["cocktails", "nightlife", "happy_hour", "sports_watching"],
+          "search_terms": ["bar", "cocktail bar", "sports bar", "pub", "tavern", "speakeasy"],
+          "operational_focus": ["hours", "crowd_type", "noise_level", "dress_code"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL bars and drinking establishments, from dive bars to cocktail lounges",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "bar {zip_code}",
+                  "pub {neighborhood}",
+                  "bar {major_street}",
+                  "bar near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by drinking occasion",
+                "queries": [
+                  "sports bar",
+                  "happy hour",
+                  "cocktail bar",
+                  "dive bar",
+                  "quiet bar",
+                  "live music bar"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local bar {neighborhood}",
+                  "neighborhood pub",
+                  "corner bar",
+                  "tavern"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and atmosphere",
+                "queries": [
+                  "bar with pool table",
+                  "bar with parking",
+                  "outdoor bar",
+                  "bar open late"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "trendy"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "bakeries": {
+          "name": "Bakeries & Desserts",
+          "intents": ["breakfast", "pastries", "special_orders", "gluten_free"],
+          "search_terms": ["bakery", "pastry shop", "donut shop", "ice cream", "dessert"],
+          "operational_focus": ["early_hours", "pre_order", "dietary_options", "seating"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL bakeries and dessert shops, including small family operations",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "bakery {zip_code}",
+                  "donut shop {neighborhood}",
+                  "bakery {major_street}",
+                  "bakery near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by bakery needs",
+                "queries": [
+                  "fresh bread",
+                  "custom cakes",
+                  "early morning bakery",
+                  "gluten free bakery",
+                  "wedding cakes",
+                  "pastries"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local bakery {neighborhood}",
+                  "family bakery",
+                  "neighborhood donut shop",
+                  "small bakery"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Service and timing",
+                "queries": [
+                  "bakery open early",
+                  "bakery with coffee",
+                  "bakery custom orders",
+                  "bakery parking"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "award winning"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "grocery_markets": {
+          "name": "Grocery & Markets",
+          "intents": ["weekly_shopping", "specialty_items", "organic_local", "convenience"],
+          "search_terms": ["grocery store", "supermarket", "farmers market", "specialty food", "international market"],
+          "operational_focus": ["hours", "parking", "price_level", "product_range"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL grocery and food markets, including ethnic and specialty stores",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "grocery store {zip_code}",
+                  "supermarket {neighborhood}",
+                  "grocery {major_street}",
+                  "grocery near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by shopping needs",
+                "queries": [
+                  "international market",
+                  "organic grocery",
+                  "24 hour grocery",
+                  "specialty food store",
+                  "farmers market",
+                  "discount grocery"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local grocery {neighborhood}",
+                  "neighborhood market",
+                  "family owned grocery",
+                  "small grocery store"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Convenience and access",
+                "queries": [
+                  "grocery delivery",
+                  "grocery with parking",
+                  "walking distance grocery",
+                  "grocery open late"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        }
+      }
+    },
+    "essential_services": {
+      "tier": "tier1_essential",
+      "name": "Essential Services",
+      "subcategories": {
+        "laundry_cleaning": {
+          "name": "Laundry & Cleaning",
+          "intents": ["self_service", "wash_fold", "dry_cleaning", "specialty_care"],
+          "search_terms": ["laundromat", "dry cleaner", "wash and fold", "laundry service", "coin laundry"],
+          "operational_focus": ["hours", "payment", "turnaround", "prices", "safety"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL laundry and cleaning services, including small neighborhood operations",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "laundromat {zip_code}",
+                  "dry cleaner {neighborhood}",
+                  "laundromat {major_street}",
+                  "laundromat near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by laundry needs",
+                "queries": [
+                  "self service laundry",
+                  "wash and fold service",
+                  "24 hour laundromat",
+                  "coin laundry",
+                  "dry cleaning pickup",
+                  "large capacity washers"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local laundromat {neighborhood}",
+                  "neighborhood dry cleaner",
+                  "family laundromat",
+                  "laundry service"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Convenience and access",
+                "queries": [
+                  "laundromat open late",
+                  "laundromat with parking",
+                  "laundromat near apartment",
+                  "laundromat change machine"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "auto_services": {
+          "name": "Auto Services",
+          "intents": ["repairs", "maintenance", "emergency", "specialty_work"],
+          "search_terms": ["auto repair", "mechanic", "oil change", "tire shop", "car service"],
+          "operational_focus": ["trust", "pricing", "speed", "specialties", "warranties"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL auto services, including independent mechanics and specialty shops",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "auto repair {zip_code}",
+                  "mechanic {neighborhood}",
+                  "auto service {major_street}",
+                  "mechanic near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by auto service needs",
+                "queries": [
+                  "oil change",
+                  "tire repair",
+                  "brake service",
+                  "transmission repair",
+                  "car inspection",
+                  "emergency auto repair"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local mechanic {neighborhood}",
+                  "independent auto repair",
+                  "family auto shop",
+                  "neighborhood mechanic"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Convenience and specialization",
+                "queries": [
+                  "auto repair while you wait",
+                  "mechanic open saturday",
+                  "auto shop towing",
+                  "mechanic shuttle service"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "certified rated"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "gas_stations": {
+          "name": "Gas Stations",
+          "intents": ["fuel", "convenience_items", "car_wash", "air_pump"],
+          "search_terms": ["gas station", "fuel station", "petrol station", "convenience store"],
+          "operational_focus": ["24_hour", "prices", "amenities", "safety"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL gas stations, including independent and branded stations",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "gas station {zip_code}",
+                  "fuel {neighborhood}",
+                  "gas station {major_street}",
+                  "gas station near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by fuel and service needs",
+                "queries": [
+                  "24 hour gas station",
+                  "diesel fuel",
+                  "car wash gas station",
+                  "gas station convenience store",
+                  "gas station air pump",
+                  "cheap gas"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local gas station {neighborhood}",
+                  "independent gas station",
+                  "neighborhood fuel",
+                  "gas station"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Convenience and access",
+                "queries": [
+                  "gas station credit card",
+                  "gas station open now",
+                  "gas station on route",
+                  "highway gas station"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "parking": {
+          "name": "Parking Solutions",
+          "intents": ["daily", "monthly", "event", "overnight"],
+          "search_terms": ["parking garage", "parking lot", "street parking", "park and ride"],
+          "operational_focus": ["rates", "security", "availability", "payment_methods"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL parking options, including private lots and street parking areas",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "parking {zip_code}",
+                  "parking garage {neighborhood}",
+                  "parking {major_street}",
+                  "parking near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by parking needs",
+                "queries": [
+                  "monthly parking",
+                  "overnight parking",
+                  "event parking",
+                  "cheap parking",
+                  "covered parking",
+                  "secure parking"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "parking lot {neighborhood}",
+                  "private parking",
+                  "street parking",
+                  "parking structure"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and convenience",
+                "queries": [
+                  "24 hour parking",
+                  "parking validation",
+                  "free parking",
+                  "parking meter"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "banking": {
+          "name": "Banking & Finance",
+          "intents": ["accounts", "atm", "loans", "money_transfer"],
+          "search_terms": ["bank", "credit union", "atm", "check cashing", "money services"],
+          "operational_focus": ["hours", "fees", "services", "accessibility"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL banking and financial services, including credit unions and check cashing",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "bank {zip_code}",
+                  "atm {neighborhood}",
+                  "credit union {major_street}",
+                  "bank near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by banking needs",
+                "queries": [
+                  "24 hour atm",
+                  "check cashing",
+                  "money transfer",
+                  "notary service",
+                  "drive through bank",
+                  "free checking"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local bank {neighborhood}",
+                  "community bank",
+                  "credit union",
+                  "financial services"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and convenience",
+                "queries": [
+                  "bank open saturday",
+                  "atm no fee",
+                  "bank with parking",
+                  "multilingual bank"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premier"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "shipping_mail": {
+          "name": "Shipping & Mail",
+          "intents": ["packages", "mail", "printing", "notary"],
+          "search_terms": ["post office", "ups store", "fedex", "shipping", "mailbox"],
+          "operational_focus": ["hours", "services", "prices", "pickup_dropoff"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL shipping and mail services, including independent pack/ship stores",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "post office {zip_code}",
+                  "shipping {neighborhood}",
+                  "ups store {major_street}",
+                  "mail service near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by shipping needs",
+                "queries": [
+                  "package shipping",
+                  "mailbox rental",
+                  "overnight shipping",
+                  "printing services",
+                  "notary public",
+                  "copy center"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local shipping {neighborhood}",
+                  "pack and ship",
+                  "mailing center",
+                  "postal service"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Convenience and access",
+                "queries": [
+                  "shipping open saturday",
+                  "24 hour package pickup",
+                  "shipping with parking",
+                  "package hold"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "healthcare_access": {
+          "name": "Healthcare Access",
+          "intents": ["urgent_care", "routine_care", "prescriptions", "emergency"],
+          "search_terms": ["clinic", "urgent care", "doctor", "medical center", "health clinic"],
+          "operational_focus": ["insurance", "wait_times", "hours", "languages"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL healthcare access points, including community clinics and specialists",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "clinic {zip_code}",
+                  "doctor {neighborhood}",
+                  "urgent care {major_street}",
+                  "medical center near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by healthcare needs",
+                "queries": [
+                  "walk in clinic",
+                  "urgent care open",
+                  "family doctor",
+                  "community health center",
+                  "sliding scale clinic",
+                  "same day appointment"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local clinic {neighborhood}",
+                  "neighborhood doctor",
+                  "community clinic",
+                  "health center"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and convenience",
+                "queries": [
+                  "clinic no insurance",
+                  "clinic open weekend",
+                  "spanish speaking doctor",
+                  "clinic public transport"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premier"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "pharmacy": {
+          "name": "Pharmacies",
+          "intents": ["prescriptions", "otc_meds", "health_supplies", "vaccinations"],
+          "search_terms": ["pharmacy", "drugstore", "cvs", "walgreens", "medicine"],
+          "operational_focus": ["24_hour", "insurance", "services", "wait_times"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL pharmacies, including independent and specialty pharmacies",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "pharmacy {zip_code}",
+                  "drugstore {neighborhood}",
+                  "pharmacy {major_street}",
+                  "pharmacy near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by pharmacy needs",
+                "queries": [
+                  "24 hour pharmacy",
+                  "independent pharmacy",
+                  "specialty pharmacy",
+                  "pharmacy vaccination",
+                  "compound pharmacy",
+                  "pharmacy drive through"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local pharmacy {neighborhood}",
+                  "neighborhood drugstore",
+                  "family pharmacy",
+                  "community pharmacy"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and convenience",
+                "queries": [
+                  "pharmacy open sunday",
+                  "pharmacy delivery",
+                  "pharmacy spanish",
+                  "pharmacy free consultation"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        }
+      }
+    },
+    "shopping_retail": {
+      "tier": "tier1_essential",
+      "name": "Shopping & Retail",
+      "subcategories": {
+        "clothing_apparel": {
+          "name": "Clothing & Apparel",
+          "intents": ["fashion", "basics", "professional", "outdoor_gear"],
+          "search_terms": ["clothing store", "boutique", "thrift store", "consignment", "department store"],
+          "operational_focus": ["price_range", "styles", "sizes", "return_policy"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL clothing stores, from thrift shops to boutiques to department stores",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "clothing store {zip_code}",
+                  "boutique {neighborhood}",
+                  "clothing {major_street}",
+                  "clothing store near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by clothing needs",
+                "queries": [
+                  "thrift store",
+                  "consignment shop",
+                  "work clothes",
+                  "plus size clothing",
+                  "vintage clothing",
+                  "discount clothing"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local boutique {neighborhood}",
+                  "clothing shop",
+                  "apparel store",
+                  "neighborhood clothing"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and services",
+                "queries": [
+                  "clothing alterations",
+                  "clothing store parking",
+                  "clothing layaway",
+                  "clothing store open sunday"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "trendy"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "home_hardware": {
+          "name": "Home & Hardware",
+          "intents": ["repairs", "projects", "furniture", "decor"],
+          "search_terms": ["hardware store", "home depot", "lowes", "furniture store", "home goods"],
+          "operational_focus": ["expertise", "rental_tools", "delivery", "prices"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL home and hardware stores, including independent shops and specialty stores",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "hardware store {zip_code}",
+                  "home improvement {neighborhood}",
+                  "hardware {major_street}",
+                  "hardware store near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by home improvement needs",
+                "queries": [
+                  "tool rental",
+                  "paint store",
+                  "plumbing supplies",
+                  "electrical supplies",
+                  "lumber yard",
+                  "garden center"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local hardware {neighborhood}",
+                  "independent hardware",
+                  "neighborhood hardware",
+                  "family hardware store"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Services and convenience",
+                "queries": [
+                  "hardware delivery",
+                  "hardware open sunday",
+                  "hardware key cutting",
+                  "hardware truck rental"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "electronics_tech": {
+          "name": "Electronics & Tech",
+          "intents": ["purchases", "repairs", "accessories", "help"],
+          "search_terms": ["electronics store", "computer repair", "phone repair", "best buy"],
+          "operational_focus": ["expertise", "warranty", "repair_time", "prices"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL electronics and tech services, including independent repair shops",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "electronics store {zip_code}",
+                  "computer repair {neighborhood}",
+                  "phone repair {major_street}",
+                  "electronics near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by tech needs",
+                "queries": [
+                  "phone screen repair",
+                  "computer virus removal",
+                  "data recovery",
+                  "laptop repair",
+                  "game console repair",
+                  "tv repair"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local electronics {neighborhood}",
+                  "independent computer repair",
+                  "small electronics shop",
+                  "neighborhood tech repair"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Service and convenience",
+                "queries": [
+                  "same day phone repair",
+                  "electronics store open sunday",
+                  "computer repair while you wait",
+                  "electronics trade in"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "certified"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "books_media": {
+          "name": "Books & Media",
+          "intents": ["browsing", "specific_titles", "gifts", "events"],
+          "search_terms": ["bookstore", "library", "comic shop", "record store", "music store"],
+          "operational_focus": ["selection", "orders", "events", "atmosphere"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL books and media stores, including independent bookshops and specialty stores",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "bookstore {zip_code}",
+                  "record store {neighborhood}",
+                  "bookstore {major_street}",
+                  "bookstore near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by media interests",
+                "queries": [
+                  "used bookstore",
+                  "comic book shop",
+                  "vinyl records",
+                  "rare books",
+                  "children's bookstore",
+                  "textbook store"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local bookstore {neighborhood}",
+                  "independent bookstore",
+                  "small bookshop",
+                  "neighborhood book store"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Services and atmosphere",
+                "queries": [
+                  "bookstore coffee",
+                  "bookstore events",
+                  "bookstore special orders",
+                  "quiet bookstore"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "famous"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "specialty_retail": {
+          "name": "Specialty Retail",
+          "intents": ["hobbies", "gifts", "art_supplies", "pet_supplies"],
+          "search_terms": ["gift shop", "art supply", "craft store", "pet store", "hobby shop"],
+          "operational_focus": ["expertise", "selection", "prices", "special_orders"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL specialty retail stores, including niche hobby and craft shops",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "gift shop {zip_code}",
+                  "hobby store {neighborhood}",
+                  "specialty store {major_street}",
+                  "craft store near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by specialty interests",
+                "queries": [
+                  "art supplies",
+                  "pet store",
+                  "craft supplies",
+                  "model trains",
+                  "sewing supplies",
+                  "party supplies"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local gift shop {neighborhood}",
+                  "specialty hobby store",
+                  "neighborhood craft store",
+                  "independent pet store"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Services and expertise",
+                "queries": [
+                  "craft store classes",
+                  "pet store grooming",
+                  "hobby store expert",
+                  "custom framing"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premier"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        }
+      }
+    },
+    "fitness_wellness": {
+      "tier": "tier2_lifestyle",
+      "name": "Fitness & Wellness",
+      "subcategories": {
+        "gyms_fitness": {
+          "name": "Gyms & Fitness Centers",
+          "intents": ["strength_training", "cardio", "classes", "personal_training"],
+          "search_terms": ["gym", "fitness center", "health club", "crossfit", "orange theory"],
+          "operational_focus": ["membership_cost", "equipment", "hours", "crowd_times"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL fitness facilities, from budget gyms to specialty fitness studios",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "gym {zip_code}",
+                  "fitness center {neighborhood}",
+                  "gym {major_street}",
+                  "fitness near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by fitness needs",
+                "queries": [
+                  "24 hour gym",
+                  "women only gym",
+                  "crossfit gym",
+                  "budget gym",
+                  "personal training",
+                  "group fitness classes"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local gym {neighborhood}",
+                  "independent gym",
+                  "neighborhood fitness",
+                  "small gym"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and amenities",
+                "queries": [
+                  "gym with pool",
+                  "gym parking",
+                  "gym no contract",
+                  "gym day pass"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "premium"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "yoga_meditation": {
+          "name": "Yoga & Meditation",
+          "intents": ["stress_relief", "flexibility", "mindfulness", "community"],
+          "search_terms": ["yoga studio", "meditation center", "pilates", "mindfulness"],
+          "operational_focus": ["class_schedule", "drop_in_rates", "skill_levels", "atmosphere"],
+          "discovery_strategy": {
+            "approach": "comprehensive_coverage",
+            "goal": "Find ALL yoga and meditation facilities, including home studios and community centers",
+            "coverage_patterns": [
+              {
+                "type": "geographic",
+                "description": "Systematic geographic coverage",
+                "queries": [
+                  "yoga studio {zip_code}",
+                  "yoga {neighborhood}",
+                  "meditation {major_street}",
+                  "yoga near {landmark}"
+                ]
+              },
+              {
+                "type": "functional",
+                "description": "Search by practice type",
+                "queries": [
+                  "hot yoga",
+                  "beginner yoga",
+                  "prenatal yoga",
+                  "meditation class",
+                  "pilates studio",
+                  "gentle yoga"
+                ]
+              },
+              {
+                "type": "neutral",
+                "description": "Non-superlative discovery",
+                "queries": [
+                  "local yoga {neighborhood}",
+                  "small yoga studio",
+                  "community yoga",
+                  "neighborhood meditation"
+                ]
+              },
+              {
+                "type": "utility",
+                "description": "Access and scheduling",
+                "queries": [
+                  "drop in yoga",
+                  "early morning yoga",
+                  "evening meditation",
+                  "yoga trial class"
+                ]
+              }
+            ],
+            "avoid_terms": ["best", "top", "rated", "elite"],
+            "pagination_depth": "complete",
+            "deduplication": "cross_pattern"
+          }
+        },
+        "spa_massage": {
+          "name": "Spa & Massage",
+          "intents": ["relaxation", "therapy", "beauty", "couples"],
+          "search_terms": ["spa", "massage", "day spa", "wellness center", "float tank"],
+          "operational_focus": ["services", "prices", "booking", "ambiance"]
+        },
+        "sports_recreation": {
+          "name": "Sports & Recreation",
+          "intents": ["leagues", "pickup_games", "training", "equipment"],
+          "search_terms": ["recreation center", "sports complex", "tennis courts", "basketball courts", "pool"],
+          "operational_focus": ["availability", "fees", "equipment", "skill_levels"]
+        }
+      }
+    },
+    "entertainment_culture": {
+      "tier": "tier2_lifestyle",
+      "name": "Entertainment & Culture",
+      "subcategories": {
+        "museums_galleries": {
+          "name": "Museums & Galleries",
+          "intents": ["education", "art_appreciation", "family_activity", "date"],
+          "search_terms": ["museum", "art gallery", "science center", "history museum", "exhibit"],
+          "operational_focus": ["admission", "hours", "current_exhibits", "accessibility"]
+        },
+        "music_venues": {
+          "name": "Music Venues",
+          "intents": ["concerts", "dancing", "discovery", "nightlife"],
+          "search_terms": ["concert venue", "music hall", "club", "live music", "jazz club"],
+          "operational_focus": ["calendar", "tickets", "age_restrictions", "parking"]
+        },
+        "theater_film": {
+          "name": "Theater & Film",
+          "intents": ["movies", "plays", "comedy", "culture"],
+          "search_terms": ["movie theater", "cinema", "playhouse", "comedy club", "theater"],
+          "operational_focus": ["showtimes", "tickets", "parking", "concessions"]
+        },
+        "entertainment_venues": {
+          "name": "Entertainment Venues",
+          "intents": ["bowling", "arcade", "karaoke", "pool"],
+          "search_terms": ["bowling alley", "arcade", "karaoke bar", "pool hall", "entertainment center"],
+          "operational_focus": ["prices", "hours", "age_restrictions", "group_options"]
+        }
+      }
+    },
+    "outdoor_nature": {
+      "tier": "tier2_lifestyle",
+      "name": "Outdoor & Nature",
+      "subcategories": {
+        "parks_trails": {
+          "name": "Parks & Trails",
+          "intents": ["walking", "hiking", "picnics", "playgrounds"],
+          "search_terms": ["park", "trail", "hiking trail", "nature preserve", "green space"],
+          "operational_focus": ["parking", "difficulty", "amenities", "safety"]
+        },
+        "adventure_activities": {
+          "name": "Adventure Activities",
+          "intents": ["climbing", "skiing", "water_sports", "extreme"],
+          "search_terms": ["climbing gym", "ski resort", "rafting", "zip line", "adventure park"],
+          "operational_focus": ["skill_level", "equipment", "guides", "safety"]
+        },
+        "scenic_spots": {
+          "name": "Scenic Spots",
+          "intents": ["photography", "sunset", "relaxation", "tourism"],
+          "search_terms": ["viewpoint", "lookout", "scenic drive", "waterfall", "landmark"],
+          "operational_focus": ["access", "parking", "best_times", "crowds"]
+        },
+        "gardens_nature": {
+          "name": "Gardens & Nature",
+          "intents": ["botanicals", "education", "events", "meditation"],
+          "search_terms": ["botanical garden", "arboretum", "nature center", "community garden"],
+          "operational_focus": ["admission", "seasons", "events", "photography"]
+        }
+      }
+    },
+    "learning_development": {
+      "tier": "tier3_community",
+      "name": "Learning & Development",
+      "subcategories": {
+        "classes_workshops": {
+          "name": "Classes & Workshops",
+          "intents": ["skill_learning", "hobbies", "professional", "social"],
+          "search_terms": ["cooking class", "art class", "workshop", "lessons", "training"],
+          "operational_focus": ["schedule", "cost", "skill_level", "materials"]
+        },
+        "maker_spaces": {
+          "name": "Maker Spaces",
+          "intents": ["creating", "tools_access", "learning", "community"],
+          "search_terms": ["makerspace", "workshop", "studio", "fab lab", "hackerspace"],
+          "operational_focus": ["membership", "equipment", "training", "hours"]
+        },
+        "libraries_study": {
+          "name": "Libraries & Study Spaces",
+          "intents": ["quiet_work", "resources", "programs", "internet"],
+          "search_terms": ["library", "study space", "reading room", "quiet space"],
+          "operational_focus": ["hours", "wifi", "resources", "noise_level"]
+        },
+        "professional_dev": {
+          "name": "Professional Development",
+          "intents": ["coworking", "networking", "training", "mentorship"],
+          "search_terms": ["coworking space", "business center", "incubator", "networking events"],
+          "operational_focus": ["membership", "amenities", "community", "events"]
+        }
+      }
+    },
+    "social_community": {
+      "tier": "tier3_community",
+      "name": "Social & Community",
+      "subcategories": {
+        "community_centers": {
+          "name": "Community Centers",
+          "intents": ["activities", "classes", "events", "services"],
+          "search_terms": ["community center", "recreation center", "ymca", "boys and girls club"],
+          "operational_focus": ["programs", "membership", "facilities", "ages"]
+        },
+        "religious_spiritual": {
+          "name": "Religious & Spiritual",
+          "intents": ["worship", "community", "meditation", "support"],
+          "search_terms": ["church", "temple", "mosque", "synagogue", "meditation center"],
+          "operational_focus": ["services", "programs", "community", "accessibility"]
+        },
+        "clubs_organizations": {
+          "name": "Clubs & Organizations",
+          "intents": ["hobbies", "social", "service", "professional"],
+          "search_terms": ["social club", "hobby group", "meetup", "organization", "society"],
+          "operational_focus": ["meetings", "membership", "activities", "requirements"]
+        },
+        "volunteer_opportunities": {
+          "name": "Volunteer Opportunities",
+          "intents": ["giving_back", "skills", "community", "causes"],
+          "search_terms": ["volunteer", "charity", "nonprofit", "food bank", "shelter"],
+          "operational_focus": ["needs", "schedule", "requirements", "impact"]
+        }
+      }
+    },
+    "family_kids": {
+      "tier": "tier3_community",
+      "name": "Family & Kids",
+      "subcategories": {
+        "kid_activities": {
+          "name": "Kid Activities",
+          "intents": ["entertainment", "education", "physical", "creative"],
+          "search_terms": ["playground", "kids museum", "trampoline park", "mini golf", "aquarium"],
+          "operational_focus": ["ages", "prices", "safety", "parking"]
+        },
+        "schools_education": {
+          "name": "Schools & Education",
+          "intents": ["preschool", "tutoring", "camps", "after_school"],
+          "search_terms": ["preschool", "daycare", "tutoring", "summer camp", "after school"],
+          "operational_focus": ["enrollment", "costs", "programs", "hours"]
+        },
+        "family_services": {
+          "name": "Family Services",
+          "intents": ["childcare", "support", "resources", "emergency"],
+          "search_terms": ["childcare", "babysitter", "nanny", "family services", "parenting"],
+          "operational_focus": ["availability", "costs", "qualifications", "hours"]
+        },
+        "birthday_parties": {
+          "name": "Birthday & Parties",
+          "intents": ["venues", "entertainment", "supplies", "planning"],
+          "search_terms": ["party venue", "birthday party", "event space", "party supplies"],
+          "operational_focus": ["capacity", "packages", "catering", "availability"]
+        }
+      }
+    },
+    "visitor_essentials": {
+      "tier": "tier4_special",
+      "name": "Visitor Essentials",
+      "subcategories": {
+        "hotels_lodging": {
+          "name": "Hotels & Lodging",
+          "intents": ["business", "tourism", "budget", "luxury"],
+          "search_terms": ["hotel", "motel", "airbnb", "hostel", "inn", "resort"],
+          "operational_focus": ["location", "amenities", "prices", "availability"]
+        },
+        "transportation": {
+          "name": "Transportation",
+          "intents": ["airport", "local_transit", "rideshare", "rental"],
+          "search_terms": ["airport", "taxi", "uber", "lyft", "car rental", "public transit"],
+          "operational_focus": ["routes", "schedules", "costs", "accessibility"]
+        },
+        "tourist_attractions": {
+          "name": "Tourist Attractions",
+          "intents": ["must_see", "unique", "photo_ops", "experiences"],
+          "search_terms": ["tourist attraction", "landmark", "sightseeing", "tour", "visitor center"],
+          "operational_focus": ["tickets", "crowds", "best_times", "guides"]
+        },
+        "travel_services": {
+          "name": "Travel Services",
+          "intents": ["luggage", "currency", "sim_cards", "emergencies"],
+          "search_terms": ["luggage storage", "currency exchange", "travel agency", "tour operator"],
+          "operational_focus": ["location", "hours", "prices", "languages"]
+        }
+      }
+    },
+    "city_specific": {
+      "tier": "tier4_special",
+      "name": "City-Specific Categories",
+      "subcategories": {
+        "cannabis_denver": {
+          "name": "Cannabis (Denver)",
+          "cities": ["denver"],
+          "intents": ["recreational", "medical", "education", "tourism"],
+          "search_terms": ["dispensary", "cannabis store", "pot shop", "marijuana", "cbd"],
+          "operational_focus": ["id_required", "cash_only", "products", "limits"]
+        },
+        "green_chile_abq": {
+          "name": "Green Chile (Albuquerque)",
+          "cities": ["albuquerque"],
+          "intents": ["authentic", "mild", "hot", "tourist_friendly"],
+          "search_terms": ["green chile", "new mexican", "hatch chile", "red or green"],
+          "operational_focus": ["heat_level", "authenticity", "seasonal", "preparation"]
+        },
+        "lakes_minneapolis": {
+          "name": "Lakes & Water (Minneapolis)",
+          "cities": ["minneapolis"],
+          "intents": ["swimming", "boating", "fishing", "beaches"],
+          "search_terms": ["lake", "beach", "boat rental", "fishing", "waterfront"],
+          "operational_focus": ["season", "rentals", "permits", "parking"]
+        },
+        "altitude_denver": {
+          "name": "Altitude Activities (Denver)",
+          "cities": ["denver"],
+          "intents": ["acclimatization", "mountain_access", "skiing", "hiking"],
+          "search_terms": ["mountain", "skiing", "14er", "alpine", "high altitude"],
+          "operational_focus": ["elevation", "preparation", "season", "equipment"]
+        }
+      }
+    }
+  },
+  "search_strategies": {
+    "primary_terms": "Use main category search terms first",
+    "intent_modifiers": "Add intent-based modifiers (e.g., 'family-friendly restaurant', 'work-friendly coffee shop')",
+    "neighborhood_search": "Combine with neighborhood names for geographic coverage",
+    "chain_vs_local": "Search for both chain names and 'local' modifiers",
+    "review_mining": "'best', 'top rated', 'hidden gem' modifiers for discovery"
+  },
+  "coverage_targets": {
+    "minimum_per_subcategory": 10,
+    "ideal_per_subcategory": 25,
+    "geographic_distribution": "All major neighborhoods",
+    "chain_local_balance": "60% local, 40% chain maximum",
+    "intent_diversity": "All intents covered per subcategory"
+  }
+}

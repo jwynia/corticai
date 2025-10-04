@@ -1,0 +1,217 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-19T15:01:57.464Z",
+  "genres": {
+    "speakeasy bars": {
+      "genre": "speakeasy bars",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque",
+        "denver"
+      ],
+      "frequency": 2,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.221Z",
+      "lastSeen": "2025-09-19T15:01:47.677Z"
+    },
+    "wine bars": {
+      "genre": "wine bars",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar",
+        "manual"
+      ],
+      "citiesFound": [
+        "albuquerque",
+        "denver"
+      ],
+      "frequency": 2,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.222Z",
+      "lastSeen": "2025-09-19T15:01:52.282Z"
+    },
+    "rooftop bars": {
+      "genre": "rooftop bars",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.222Z",
+      "lastSeen": "2025-09-19T15:01:09.222Z"
+    },
+    "live music venues": {
+      "genre": "live music venues",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar",
+        "manual"
+      ],
+      "citiesFound": [
+        "albuquerque",
+        "denver"
+      ],
+      "frequency": 2,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.222Z",
+      "lastSeen": "2025-09-19T15:01:57.464Z"
+    },
+    "happy hour spots": {
+      "genre": "happy hour spots",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.222Z",
+      "lastSeen": "2025-09-19T15:01:09.222Z"
+    },
+    "date night restaurants": {
+      "genre": "date night restaurants",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.223Z",
+      "lastSeen": "2025-09-19T15:01:09.223Z"
+    },
+    "late night bars": {
+      "genre": "late night bars",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.223Z",
+      "lastSeen": "2025-09-19T15:01:09.223Z"
+    },
+    "tequila bars": {
+      "genre": "tequila bars",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.223Z",
+      "lastSeen": "2025-09-19T15:01:09.223Z"
+    },
+    "whiskey bars": {
+      "genre": "whiskey bars",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.223Z",
+      "lastSeen": "2025-09-19T15:01:09.223Z"
+    },
+    "brewery taprooms": {
+      "genre": "brewery taprooms",
+      "category": "discovered",
+      "discoveredFrom": [
+        "craft cocktail bar"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:09.223Z",
+      "lastSeen": "2025-09-19T15:01:09.223Z"
+    },
+    "add": {
+      "genre": "add",
+      "category": "food",
+      "discoveredFrom": [
+        "manual"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:25.337Z",
+      "lastSeen": "2025-09-19T15:01:25.337Z"
+    },
+    "craft cocktail bar": {
+      "genre": "craft cocktail bar",
+      "category": "food",
+      "discoveredFrom": [
+        "manual"
+      ],
+      "citiesFound": [
+        "albuquerque"
+      ],
+      "frequency": 1,
+      "confidence": 0.8,
+      "addedAt": "2025-09-19T15:01:40.865Z",
+      "lastSeen": "2025-09-19T15:01:40.865Z"
+    }
+  },
+  "categories": {
+    "discovered": [
+      "speakeasy bars",
+      "wine bars",
+      "rooftop bars",
+      "live music venues",
+      "happy hour spots",
+      "date night restaurants",
+      "late night bars",
+      "tequila bars",
+      "whiskey bars",
+      "brewery taprooms"
+    ],
+    "food": [
+      "add",
+      "craft cocktail bar",
+      "speakeasy bars",
+      "wine bars"
+    ],
+    "entertainment": [
+      "live music venues"
+    ]
+  },
+  "citySpecific": {},
+  "relationships": {
+    "craft cocktail bar": [
+      "speakeasy bars",
+      "wine bars",
+      "rooftop bars",
+      "live music venues",
+      "happy hour spots",
+      "date night restaurants",
+      "late night bars",
+      "tequila bars",
+      "whiskey bars",
+      "brewery taprooms"
+    ]
+  }
+}

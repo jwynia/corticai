@@ -1,0 +1,175 @@
+# Fantasy Hero's Journey Framework
+
+## Purpose
+The classic hero's journey adapted specifically for fantasy narratives, organizing stories into distinct stages that facilitate character transformation through magical challenges.
+
+## Classification
+- **Domain:** Fantasy Structure
+- **Stability:** Established
+- **Abstraction:** Framework
+- **Confidence:** Very High
+
+## Core Stages
+
+### Departure Phase
+1. **Ordinary World**
+ - Pre-magical existence
+ - Character limitations shown
+ - World rules established
+ - Foreshadowing elements
+
+2. **Call to Adventure**
+ - Magical intrusion
+ - Destiny revealed
+ - Quest necessity
+ - Stakes introduction
+
+3. **Refusal of Call**
+ - Fear of unknown
+ - Attachment to familiar
+ - Self-doubt manifestation
+ - Cost acknowledgment
+
+4. **Meeting the Mentor**
+ - Magical knowledge transfer
+ - Tool/weapon bestowing
+ - Wisdom imparting
+ - Protection providing
+
+5. **Crossing First Threshold**
+ - Entering magical realm
+ - Point of no return
+ - First magical test
+ - Guardian encounter
+
+### Initiation Phase
+6. **Tests, Allies, Enemies**
+ - Magical challenges
+ - Companion gathering
+ - Enemy identification
+ - Power discovery
+
+7. **Approach to Inmost Cave**
+ - Preparation phase
+ - Fear confrontation
+ - Plan formation
+ - Resource gathering
+
+8. **Supreme Ordeal**
+ - Death/rebirth experience
+ - Greatest fear faced
+ - Power unleashed
+ - Transformation moment
+
+9. **Reward (Seizing the Sword)**
+ - Magical object gained
+ - Knowledge acquired
+ - Power mastered
+ - Victory achieved
+
+### Return Phase
+10. **The Road Back**
+ - Pursuit/consequences
+ - Choice to return
+ - New challenges
+ - Changed perspective
+
+11. **Resurrection**
+ - Final test
+ - Synthesis of learning
+ - True transformation
+ - Ultimate sacrifice
+
+12. **Return with Elixir**
+ - Wisdom sharing
+ - World healing
+ - Balance restoration
+ - New beginning
+
+## Fantasy-Specific Adaptations
+
+### Magical Elements Integration
+- Each stage involves magical growth
+- Powers develop through journey
+- Magic reflects internal state
+- Costs increase with progression
+
+### World-Building Opportunities
+- Ordinary vs magical world contrast
+- Threshold as world boundary
+- Tests reveal world rules
+- Return changes both worlds
+
+### Character Transformation
+- Physical changes possible
+- Magical awakening
+- Destiny acceptance
+- Power responsibility
+
+## Common Variations
+
+### Multiple Journeys
+- Nested hero journeys
+- Parallel character arcs
+- Generational patterns
+- Cyclical adventures
+
+### Subverted Journeys
+- Villain's journey
+- Failed hero path
+- Reluctant completion
+- Pyrrhic victory
+
+### Ensemble Journeys
+- Multiple heroes
+- Shared stages
+- Divergent paths
+- Collective return
+
+## Implementation Guidelines
+
+### Stage Proportion
+- Departure: 25%
+- Initiation: 50%
+- Return: 25%
+- Flexible based on focus
+
+### Pacing Considerations
+- Don't rush departure
+- Tests build progressively
+- Ordeal as true midpoint
+- Return not anticlimax
+
+### Character Agency
+- Hero drives progression
+- Choices have weight
+- Growth through action
+- Earned transformation
+
+## Classic Examples
+- Tolkien's *The Lord of the Rings*
+- Le Guin's *A Wizard of Earthsea*
+- Jordan's *The Wheel of Time*
+- Rothfuss's *The Name of the Wind*
+
+## Modern Applications
+- Urban fantasy adaptations
+- Psychological interpretations
+- Collective hero journeys
+- Deconstructed paths
+
+## Common Pitfalls
+- Passive hero syndrome
+- Mentor ex machina
+- Rushed transformation
+- Weak return phase
+
+## Relationships
+- **Parent:** [[genre-specific/index]]
+- **Related:** [fantasy seven-point structure](fantasy-seven-point.md), [fantasy character development](fantasy-character-dev.md)
+- **Influenced by:**
+
+## Metadata
+- **Created:** 2025-06-29
+- **Last Updated:** 2025-06-29
+- **Source:** Campbell, adapted for fantasy
