@@ -13,15 +13,15 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { KuzuStorageAdapter } from './KuzuStorageAdapter'
+import { KuzuStorageAdapter } from '../../../src/storage/adapters/KuzuStorageAdapter'
 import {
   GraphEntity,
   GraphNode,
   GraphEdge,
   TraversalPattern,
   KuzuStorageConfig
-} from '../types/GraphTypes'
-import { StorageError, StorageErrorCode } from '../interfaces/Storage'
+} from '../../../src/storage/types/GraphTypes'
+import { StorageError, StorageErrorCode } from '../../../src/storage/interfaces/Storage'
 import * as fs from 'fs'
 import * as path from 'path'
 
