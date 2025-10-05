@@ -213,6 +213,100 @@ export class KuzuSecureQueryBuilder {
   }
 
   /**
+   * Build a secure query for getting a single node by ID
+   */
+  buildGetNodeQuery(nodeId: string): SecureQuery {
+    return {
+      statement: 'MATCH (n:Entity {id: $nodeId}) RETURN n.id as id, n.type as type, n.data as properties, n.metadata as metadata',
+      parameters: {
+        nodeId: nodeId
+      }
+    }
+  }
+
+  /**
+   * Build a secure query for getting neighbors of a node
+   */
+  buildGetNeighborsQuery(
+    nodeId: string,
+    edgeTypes?: string[],
+    direction: 'outgoing' | 'incoming' | 'both' = 'outgoing'
+  ): SecureQuery {
+    let relationshipPattern = ''
+
+    if (direction === 'outgoing') {
+      relationshipPattern = '-[r:Relationship]->'
+    } else if (direction === 'incoming') {
+      relationshipPattern = '<-[r:Relationship]-'
+    } else {
+      relationshipPattern = '-[r:Relationship]-'
+    }
+
+    // TODO: Add edge type filtering when edgeTypes is provided
+    return {
+      statement: `MATCH (n:Entity {id: $nodeId})${relationshipPattern}(neighbor:Entity) RETURN neighbor.id as neighborId`,
+      parameters: {
+        nodeId: nodeId
+      }
+    }
+  }
+
+  /**
+   * Build a secure query for adding a node
+   */
+  buildAddNodeQuery(node: { id: string; type: string; properties?: any; metadata?: any }): SecureQuery {
+    return {
+      statement: 'CREATE (n:Entity {id: $id, type: $type, data: $properties, metadata: $metadata})',
+      parameters: {
+        id: node.id,
+        type: node.type,
+        properties: JSON.stringify(node.properties || {}),
+        metadata: JSON.stringify(node.metadata || {})
+      }
+    }
+  }
+
+  /**
+   * Build a secure query for adding an edge
+   */
+  buildAddEdgeQuery(edge: { id: string; type: string; source: string; target: string; properties?: any }): SecureQuery {
+    return {
+      statement: 'MATCH (a:Entity {id: $source}), (b:Entity {id: $target}) CREATE (a)-[r:Relationship {id: $id, type: $type, data: $properties}]->(b)',
+      parameters: {
+        id: edge.id,
+        type: edge.type,
+        source: edge.source,
+        target: edge.target,
+        properties: JSON.stringify(edge.properties || {})
+      }
+    }
+  }
+
+  /**
+   * Build a secure query for deleting a node
+   */
+  buildDeleteNodeQuery(nodeId: string): SecureQuery {
+    return {
+      statement: 'MATCH (n:Entity {id: $nodeId}) DETACH DELETE n',
+      parameters: {
+        nodeId: nodeId
+      }
+    }
+  }
+
+  /**
+   * Build a secure query for deleting an edge
+   */
+  buildDeleteEdgeQuery(edgeId: string): SecureQuery {
+    return {
+      statement: 'MATCH ()-[r:Relationship {id: $edgeId}]-() DELETE r',
+      parameters: {
+        edgeId: edgeId
+      }
+    }
+  }
+
+  /**
    * Prepare and execute a secure query
    */
   async executeSecureQuery(secureQuery: SecureQuery): Promise<any> {
