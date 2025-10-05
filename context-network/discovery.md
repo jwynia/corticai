@@ -1,5 +1,15 @@
 # Software Project Context Network Navigation Guide
 
+## 🔥 Critical Documents (Start Here)
+
+**New to the project or encountering issues?**
+
+- 🚨 **[Architecture: Testability Issues](./architecture/testability-issues.md)** - Why integration tests indicate design problems
+- 📋 **[Process: Testing Strategy](./processes/testing-strategy.md)** - Unit-test-first philosophy and practices
+- 📝 **[Planning: Groomed Backlog](./planning/groomed-backlog.md)** - Prioritized, ready-to-implement tasks
+- 🏗️ **[Architecture Index](./architecture/index.md)** - All architectural documentation
+- ⚙️ **[Process Index](./processes/index.md)** - All development processes
+
 ## Overview
 
 This context network contains all planning documents, architecture decisions, design discussions, and team coordination information for software development projects. It is organized into a hierarchical structure specifically designed to support the unique knowledge management needs of software projects.

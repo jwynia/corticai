@@ -1,12 +1,22 @@
-# Testing Strategy
+# Testing Strategy (LEGACY - See testing-strategy.md)
+
+⚠️ **This document is outdated. See [testing-strategy.md](./testing-strategy.md) for current testing philosophy.**
+
+**Key Changes**:
+- Integration tests are now considered a code smell
+- All tests should be unit tests
+- Colocated tests moved to `/tests/unit/` structure
+- Architecture must support unit testing
+
+---
 
 ## Classification
 - **Domain**: Development Process
-- **Stability**: Evolving
+- **Stability**: ~~Evolving~~ **DEPRECATED**
 - **Abstraction**: Process
-- **Confidence**: Established
+- **Confidence**: ~~Established~~ **SUPERSEDED**
 
-## Purpose
+## Purpose (Historical)
 Document testing patterns, standards, and decisions for CorticAI development to ensure consistent test quality and coverage across all components.
 
 ## Core Testing Principles

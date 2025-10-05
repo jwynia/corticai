@@ -1,8 +1,20 @@
 # Testing Guide for CorticAI
 
-## Philosophy: Unit Tests First, Integration Tests Second
+## Philosophy: Unit Tests Only (Integration Tests Are a Code Smell)
 
-This project follows a **unit-test-first** approach with clear separation between unit and integration tests.
+**Core Principle**: If you need integration tests to test business logic, your architecture is wrong.
+
+### Why Integration Tests Indicate Bad Design
+
+Integration tests are often a symptom of:
+- ❌ Business logic embedded in infrastructure (storage adapters, I/O)
+- ❌ Tight coupling to database implementations
+- ❌ Violation of single responsibility principle
+- ❌ No dependency inversion (concrete dependencies instead of abstractions)
+
+**The Solution**: Refactor code to be inherently unit testable, not write integration tests to work around bad architecture.
+
+> See `ARCHITECTURE-ISSUES.md` for detailed analysis of architectural problems and solutions.
 
 ### The Problem We Solved
 
@@ -431,12 +443,91 @@ npm run test:unit  # Only run fast unit tests
 - Create files in non-temp directories during tests
 - Leave connections open after tests
 
+## What to Do Instead of Integration Tests
+
+### 1. **Refactor for Testability**
+Extract business logic from infrastructure:
+```typescript
+// ❌ Untestable without database
+class Adapter {
+  async analyze() {
+    const data = await this.db.query(...);
+    // 100 lines of business logic
+  }
+}
+
+// ✅ Testable without any I/O
+class Analyzer {
+  analyze(data: Data) {
+    // 100 lines of pure business logic
+    // Easily unit tested
+  }
+}
+```
+
+### 2. **Use Dependency Injection**
+```typescript
+// ✅ Inject storage, don't create it
+class Service {
+  constructor(private storage: IStorage) {}
+}
+
+// Unit test with mock
+const service = new Service(new MockStorage());
+```
+
+### 3. **Keep I/O at the Edges**
+- **Domain layer**: Pure business logic (no I/O)
+- **Application layer**: Orchestration (minimal I/O)
+- **Infrastructure layer**: All I/O (thin, minimal logic)
+
+### 4. **If You Think You Need Integration Tests**
+
+**STOP.** Instead:
+
+1. **Identify what you're really testing**
+   - Business logic? → Extract it, unit test it
+   - Database queries work? → That's testing Kuzu/DuckDB, not your code
+   - Data format? → Unit test serialization/deserialization
+
+2. **Refactor the code**
+   - Separate concerns
+   - Add interfaces/abstractions
+   - Use dependency injection
+
+3. **Write unit tests for the logic**
+   - Mock all I/O
+   - Test behavior, not implementation
+   - Fast, deterministic, reliable
+
+### Manual Verification Instead
+
+For truly verifying database interactions (rare):
+- **Manual testing** in development
+- **Contract tests** (run manually, not in CI)
+- **Canary deployments** in production
+- **Feature flags** to test in production safely
+
+**NOT** in your automated test suite that runs on every commit.
+
+## NPM Scripts
+
+```bash
+# ✅ Default: Only unit tests
+npm test
+
+# ❌ Integration tests (architectural smell)
+npm run verify:integration
+```
+
+Integration tests are deliberately **not** in the standard test command.
+
 ## Questions?
 
-- Unit vs Integration unclear? Ask: "Does this test hit the filesystem or network?"
-- Test too slow? Check: "Am I using real databases?"
-- Worker crashing? Verify: "Are all resources closed in afterEach?"
+- "My test needs a database" → Extract the business logic that doesn't
+- "This is too hard to unit test" → The design is wrong, refactor it
+- "But how do I know it works?" → Unit tests prove logic works, then verify manually once
 
 ---
 
-**Remember**: Fast unit tests enable rapid development. Save integration tests for verifying that components truly work together.
+**Remember**: Integration tests are a crutch. Good architecture makes them unnecessary.

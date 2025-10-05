@@ -221,6 +221,130 @@ ViewMetadata { name, query, createdAt, lastRefreshed? }
 
 ## 🚀 Ready for Implementation (High Value)
 
+### 0. Refactor Storage Layer for Unit Testability (CRITICAL ARCHITECTURE)
+**One-liner**: Extract business logic from storage adapters to eliminate need for integration tests
+**Complexity**: Medium-Large
+**Priority**: CRITICAL - Integration tests indicate architectural problems
+**Effort**: 6-8 hours
+**Impact**: Makes entire codebase properly unit testable
+
+<details>
+<summary>Full Implementation Details</summary>
+
+**Context**: Current architecture embeds business logic in storage adapters (KuzuStorageAdapter, etc.), making them impossible to unit test without real databases. This is a violation of single responsibility and dependency inversion principles.
+
+**Root Cause**: Integration tests exist because:
+- Graph traversal algorithms are inside KuzuStorageAdapter
+- Query building logic mixed with query execution
+- Business logic coupled to database implementation
+- No interfaces/abstractions for dependency injection
+
+**Solution**: Apply hexagonal architecture pattern
+
+**Step 1: Extract Pure Business Logic**
+```typescript
+// New file: src/domain/graph/GraphTraversalAlgorithm.ts
+export class GraphTraversalAlgorithm {
+  execute(
+    startNode: string,
+    maxDepth: number,
+    getNeighbors: (nodeId: string) => Promise<string[]>
+  ): Promise<string[]> {
+    // Pure algorithm - no database coupling
+    // 100% unit testable with mocked getNeighbors
+  }
+}
+```
+
+**Step 2: Create Repository Interfaces**
+```typescript
+// New file: src/domain/interfaces/INodeRepository.ts
+export interface INodeRepository {
+  getNode(id: string): Promise<GraphNode>;
+  getNeighbors(id: string, edgeType?: string): Promise<string[]>;
+  addNode(node: GraphNode): Promise<void>;
+  addEdge(edge: GraphEdge): Promise<void>;
+}
+```
+
+**Step 3: Refactor Storage Adapters to Implement Interfaces**
+```typescript
+// KuzuStorageAdapter becomes thin I/O layer
+export class KuzuNodeRepository implements INodeRepository {
+  async getNode(id: string) {
+    // Only database query, no logic
+    const result = await this.connection.query(...);
+    return result[0];
+  }
+
+  async getNeighbors(id: string, edgeType?: string) {
+    // Only database query
+    const query = `MATCH (n {id: $id})-[r${edgeType ? ':' + edgeType : ''}]->(m) RETURN m.id`;
+    return this.connection.query(query, { id });
+  }
+}
+```
+
+**Step 4: Use Dependency Injection**
+```typescript
+// Application layer orchestrates
+export class GraphAnalysisService {
+  constructor(
+    private algorithm: GraphTraversalAlgorithm,
+    private repository: INodeRepository
+  ) {}
+
+  async analyzeFrom(startNode: string, depth: number) {
+    return this.algorithm.execute(
+      startNode,
+      depth,
+      (id) => this.repository.getNeighbors(id)
+    );
+  }
+}
+
+// Unit test - no database!
+const service = new GraphAnalysisService(
+  new GraphTraversalAlgorithm(),
+  new MockNodeRepository()
+);
+```
+
+**Acceptance Criteria**:
+- [ ] Create domain layer with pure business logic (no I/O)
+- [ ] Define repository interfaces (INodeRepository, IGraphStorage, etc.)
+- [ ] Refactor KuzuStorageAdapter to implement interfaces (thin I/O only)
+- [ ] Extract GraphTraversalAlgorithm as pure class
+- [ ] Extract query building logic as pure functions
+- [ ] Use dependency injection throughout
+- [ ] 100% unit test coverage of business logic (no mocking needed for logic)
+- [ ] Delete integration tests (or mark as manual contract tests)
+- [ ] Document architecture in ADR
+
+**Files to Create**:
+- `src/domain/graph/GraphTraversalAlgorithm.ts`
+- `src/domain/graph/QueryBuilder.ts` (pure functions)
+- `src/domain/interfaces/INodeRepository.ts`
+- `src/domain/interfaces/IGraphStorage.ts`
+- `src/application/services/GraphAnalysisService.ts`
+- `docs/architecture/adr-001-hexagonal-architecture.md`
+
+**Files to Refactor**:
+- `src/storage/adapters/KuzuStorageAdapter.ts` (extract logic, become thin)
+- `src/storage/adapters/DuckDBAnalyticsAdapter.ts` (same)
+- All components that use storage (inject interfaces instead)
+
+**Watch Out For**:
+- Don't just wrap existing code - actually separate concerns
+- Keep domain layer pure (no async if possible, or minimal)
+- Infrastructure should be dumb - just I/O translation
+
+**Success Metric**: No integration tests needed to achieve 100% business logic coverage
+
+</details>
+
+---
+
 ### 1. Implement DocumentationLens
 **One-liner**: Create lens that focuses on documentation, APIs, and public interfaces
 **Complexity**: Medium
