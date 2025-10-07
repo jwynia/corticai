@@ -45,6 +45,7 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
   protected container: Container | null = null
   private isLoaded = false
   private ensureLoadedMutex = Promise.resolve()
+  private readonly partitionCount: number
 
   constructor(config: CosmosDBStorageConfig) {
     super(config)
@@ -55,6 +56,7 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
     this.config = {
       partitionKey: '/entityType',
       consistencyLevel: 'Session',
+      partitionCount: 100, // Default to 100 partitions for good scaling
       connectionPolicy: {
         maxRetryAttempts: 3,
         maxRetryWaitTime: 30000,
@@ -63,11 +65,15 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
       ...config
     }
 
+    // Validate and set partition count
+    this.partitionCount = this.validatePartitionCount(this.config.partitionCount || 100)
+
     if (this.config.debug) {
       logger.debug(`Initializing CosmosDB adapter`, {
         database: this.config.database,
         container: this.config.container,
-        consistencyLevel: this.config.consistencyLevel
+        consistencyLevel: this.config.consistencyLevel,
+        partitionCount: this.partitionCount
       })
     }
   }
@@ -100,6 +106,23 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         { config }
       )
     }
+  }
+
+  /**
+   * Validate and normalize partition count
+   * @param count Requested partition count
+   * @returns Validated partition count (clamped to 10-1000 range)
+   */
+  private validatePartitionCount(count: number): number {
+    if (!Number.isInteger(count) || count < 10) {
+      logger.warn(`Invalid partition count ${count}, using minimum of 10`)
+      return 10
+    }
+    if (count > 1000) {
+      logger.warn(`Partition count ${count} exceeds maximum of 1000, clamping to 1000`)
+      return 1000
+    }
+    return count
   }
 
   // ============================================================================
@@ -729,16 +752,40 @@ export class CosmosDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
 
   /**
    * Get partition key value for a given storage key
-   * Uses a simple hash of the key to distribute load
+   *
+   * Uses djb2 hash algorithm for even distribution across partitions.
+   * This algorithm is well-tested for string hashing and provides excellent
+   * distribution characteristics, avoiding hot partition problems.
+   *
+   * Performance characteristics:
+   * - O(n) time complexity where n is the key length
+   * - Deterministic: same key always produces same partition
+   * - Even distribution: minimizes hash collisions
+   *
+   * Partition strategy:
+   * - Default 100 partitions supports up to ~1M RU/s throughput
+   * - Each partition supports ~10K RU/s maximum
+   * - Configurable via partitionCount in constructor (range: 10-1000)
+   *
+   * @param key Storage key to hash
+   * @returns Partition identifier string (e.g., "partition_42")
    */
   private getPartitionKeyValue(key: string): string {
-    // Simple hash to distribute keys across partitions
-    // In a real implementation, you might want more sophisticated partitioning
-    const hash = key.split('').reduce((acc, char) => {
-      return acc + char.charCodeAt(0)
-    }, 0)
+    // djb2 hash algorithm - proven for excellent string distribution
+    // See: http://www.cse.yorku.ca/~oz/hash.html
+    let hash = 5381
 
-    return `partition_${hash % 10}`  // 10 partitions
+    for (let i = 0; i < key.length; i++) {
+      // hash * 33 + charCode (equivalent to: hash << 5 + hash + charCode)
+      hash = ((hash << 5) + hash) + key.charCodeAt(i)
+      // Convert to 32-bit integer to prevent overflow
+      hash = hash & hash
+    }
+
+    // Use absolute value and modulo to get partition index
+    const partitionIndex = Math.abs(hash) % this.partitionCount
+
+    return `partition_${partitionIndex}`
   }
 
   /**

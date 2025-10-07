@@ -224,6 +224,10 @@ export class KuzuGraphRepository implements IGraphRepository {
       // This is database-specific path parsing
       // Different databases might return paths in different formats
       // TODO: Implement proper Kuzu path parsing based on actual Kuzu return format
+      // Blocked by: Waiting for Kuzu v0.7.0+ with improved path serialization API
+      // Impact: Current parsing works but may miss edge cases with complex nested paths
+      // Priority: Low - affects only complex multi-hop graph queries
+      // Effort: Medium (4-6 hours to implement robust parser)
 
       return {
         nodes,

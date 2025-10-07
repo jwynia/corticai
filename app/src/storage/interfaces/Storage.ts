@@ -196,6 +196,7 @@ export interface CosmosDBStorageConfig extends StorageConfig {
 
   // Partition strategy
   partitionKey?: string      // Partition key path (default: '/entityType')
+  partitionCount?: number    // Number of hash partitions (default: 100, range: 10-1000)
 
   // Connection options
   connectionPolicy?: {

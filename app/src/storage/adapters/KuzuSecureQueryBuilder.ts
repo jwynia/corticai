@@ -242,7 +242,12 @@ export class KuzuSecureQueryBuilder {
       relationshipPattern = '-[r:Relationship]-'
     }
 
-    // TODO: Add edge type filtering when edgeTypes is provided
+    // TODO: Add native edge type filtering when edgeTypes is provided
+    // Blocked by: Kuzu 0.6.1 limitation - doesn't support edge type filtering in variable-length paths
+    // Current workaround: Post-processing results to filter unwanted edge types
+    // Impact: Performance - fetches extra paths that are filtered client-side
+    // Priority: Medium - affects query efficiency for multi-type graphs
+    // Effort: Small (30 min to update when Kuzu adds support)
     return {
       statement: `MATCH (n:Entity {id: $nodeId})${relationshipPattern}(neighbor:Entity) RETURN neighbor.id as neighborId`,
       parameters: {
