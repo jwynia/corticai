@@ -11,6 +11,7 @@
  * - Performance timing integration
  * - Circular reference handling
  * - Configurable log rotation
+ * - Data sanitization for sensitive information (PII, credentials, IDs)
  */
 
 import * as fs from 'fs/promises';
@@ -18,6 +19,7 @@ import * as fsSync from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
 import { promisify } from 'util';
+import { LogSanitizer, SanitizerConfig } from './LogSanitizer';
 
 const gzip = promisify(zlib.gzip);
 
@@ -58,6 +60,17 @@ export interface LogOutput {
 export interface LoggerConfig {
   level?: LogLevel;
   outputs?: LogOutput[];
+  /**
+   * Enable data sanitization for sensitive information
+   * When enabled, sanitizes user IDs, emails, paths, etc. in context
+   * @default false (opt-in for backward compatibility)
+   */
+  sanitize?: boolean;
+  /**
+   * Custom sanitizer configuration
+   * Only used if sanitize is true
+   */
+  sanitizerConfig?: SanitizerConfig;
 }
 
 /**
@@ -114,24 +127,27 @@ export class ConsoleOutput implements LogOutput {
 
   private formatContext(context: Record<string, any>): string {
     try {
-      return JSON.stringify(context, this.replacer, 2);
+      return JSON.stringify(context, this.getReplacer(), 2);
     } catch (error) {
       return '[Context serialization failed]';
     }
   }
 
-  private replacer(key: string, value: any): any {
-    // Handle circular references
-    const seen = new WeakSet();
-    return function(this: any, key: string, val: any) {
-      if (val != null && typeof val === 'object') {
-        if (seen.has(val)) {
+  /**
+   * Create a replacer function with proper circular reference detection
+   * The WeakSet is scoped to this specific serialization operation
+   */
+  private getReplacer(): (key: string, value: any) => any {
+    const seen = new WeakSet<object>();
+    return (key: string, value: any): any => {
+      if (value != null && typeof value === 'object') {
+        if (seen.has(value)) {
           return '[Circular]';
         }
-        seen.add(val);
+        seen.add(value);
       }
-      return val;
-    }.call(this, key, value);
+      return value;
+    };
   }
 }
 
@@ -171,7 +187,9 @@ export class FileOutput implements LogOutput {
         this.currentSize += lineSize;
       }
     } catch (error) {
-      // Silently handle write errors to prevent logging from breaking the application
+      // Intentionally swallow write errors to prevent logging failures
+      // from cascading and breaking the application. Logging should never
+      // cause the application to crash.
     }
   }
 
@@ -199,7 +217,7 @@ export class FileOutput implements LogOutput {
 
     if (entry.context) {
       try {
-        const contextStr = JSON.stringify(entry.context, this.replacer);
+        const contextStr = JSON.stringify(entry.context, this.getReplacer());
         line += ` ${contextStr}`;
       } catch (error) {
         line += ' [Context serialization failed]';
@@ -209,18 +227,21 @@ export class FileOutput implements LogOutput {
     return line + '\n';
   }
 
-  private replacer(key: string, value: any): any {
-    // Handle circular references
-    const seen = new WeakSet();
-    return function(this: any, key: string, val: any) {
-      if (val != null && typeof val === 'object') {
-        if (seen.has(val)) {
+  /**
+   * Create a replacer function with proper circular reference detection
+   * The WeakSet is scoped to this specific serialization operation
+   */
+  private getReplacer(): (key: string, value: any) => any {
+    const seen = new WeakSet<object>();
+    return (key: string, value: any): any => {
+      if (value != null && typeof value === 'object') {
+        if (seen.has(value)) {
           return '[Circular]';
         }
-        seen.add(val);
+        seen.add(value);
       }
-      return val;
-    }.call(this, key, value);
+      return value;
+    };
   }
 
   private ensureDirectoryExists(): void {
@@ -325,7 +346,8 @@ export class JSONOutput implements LogOutput {
         this.currentSize += lineSize;
       }
     } catch (error) {
-      // Silently handle write errors
+      // Intentionally swallow write errors to prevent logging failures
+      // from cascading and breaking the application
     }
   }
 
@@ -356,7 +378,7 @@ export class JSONOutput implements LogOutput {
         ...(entry.context && { context: entry.context })
       };
 
-      return JSON.stringify(jsonEntry, this.replacer) + '\n';
+      return JSON.stringify(jsonEntry, this.getReplacer()) + '\n';
     } catch (error) {
       // Fallback for serialization errors
       return JSON.stringify({
@@ -369,18 +391,21 @@ export class JSONOutput implements LogOutput {
     }
   }
 
-  private replacer(key: string, value: any): any {
-    // Handle circular references
-    const seen = new WeakSet();
-    return function(this: any, key: string, val: any) {
-      if (val != null && typeof val === 'object') {
-        if (seen.has(val)) {
+  /**
+   * Create a replacer function with proper circular reference detection
+   * The WeakSet is scoped to this specific serialization operation
+   */
+  private getReplacer(): (key: string, value: any) => any {
+    const seen = new WeakSet<object>();
+    return (key: string, value: any): any => {
+      if (value != null && typeof value === 'object') {
+        if (seen.has(value)) {
           return '[Circular]';
         }
-        seen.add(val);
+        seen.add(value);
       }
-      return val;
-    }.call(this, key, value);
+      return value;
+    };
   }
 
   private ensureDirectoryExists(): void {
@@ -451,6 +476,8 @@ export class Logger {
   private moduleName: string;
   private level: LogLevel;
   private outputs: LogOutput[];
+  private sanitize: boolean;
+  private sanitizer: LogSanitizer | null;
 
   constructor(moduleName: string, config: LoggerConfig = {}) {
     if (!moduleName || moduleName.trim() === '') {
@@ -460,6 +487,8 @@ export class Logger {
     this.moduleName = moduleName.trim();
     this.level = config.level ?? LogLevel.INFO;
     this.outputs = config.outputs ?? [new ConsoleOutput()];
+    this.sanitize = config.sanitize ?? false;
+    this.sanitizer = this.sanitize ? new LogSanitizer(config.sanitizerConfig) : null;
   }
 
   /**
@@ -558,7 +587,8 @@ export class Logger {
             await output.flush();
           }
         } catch (error) {
-          // Handle flush errors gracefully
+          // Intentionally swallow flush errors to prevent logging failures
+          // from cascading and breaking the application
         }
       })
     );
@@ -572,12 +602,17 @@ export class Logger {
       return; // Skip logging if below configured level
     }
 
+    // Sanitize context if enabled
+    const sanitizedContext = this.sanitize && context && this.sanitizer
+      ? this.sanitizer.sanitizeContext(context)
+      : context;
+
     const entry: LogEntry = {
       level,
       message,
       module: this.moduleName,
       timestamp: new Date(),
-      context
+      context: sanitizedContext
     };
 
     // Write to all outputs
@@ -591,7 +626,8 @@ export class Logger {
           });
         }
       } catch (error) {
-        // Silently handle sync write errors
+        // Intentionally swallow write errors to prevent logging failures
+        // from cascading and breaking the application
       }
     });
   }

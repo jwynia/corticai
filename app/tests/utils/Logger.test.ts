@@ -337,4 +337,260 @@ describe('Logger', () => {
       expect(() => logger.flush()).not.toThrow();
     });
   });
+
+  describe('data sanitization', () => {
+    it('should NOT sanitize by default (backward compatibility)', () => {
+      logger = new Logger('Test', { level: LogLevel.DEBUG, outputs: [mockOutput] });
+
+      const context = {
+        userId: 'user_abc123456',
+        email: 'john@example.com',
+        database: '/Users/john/data.db'
+      };
+
+      logger.info('Test message', context);
+
+      expect(mockOutput.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: {
+            userId: 'user_abc123456',
+            email: 'john@example.com',
+            database: '/Users/john/data.db'
+          }
+        })
+      );
+    });
+
+    it('should sanitize context when sanitization is enabled', () => {
+      logger = new Logger('Test', {
+        level: LogLevel.DEBUG,
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      const context = {
+        userId: 'user_abc123456',
+        email: 'john@example.com',
+        database: '/Users/john/projects/data.db',
+        operation: 'UPDATE'
+      };
+
+      logger.info('Test message', context);
+
+      expect(mockOutput.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: {
+            userId: 'user_***3456',
+            email: '***@example.com',
+            database: '/***/**/data.db',
+            operation: 'UPDATE' // Not sensitive, preserved
+          }
+        })
+      );
+    });
+
+    it('should sanitize user IDs in context', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('User action', { userId: 'user_abc123456', action: 'login' });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.userId).toBe('user_***3456');
+      expect(call.context.action).toBe('login');
+    });
+
+    it('should sanitize emails in context', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('Email sent', { userEmail: 'john.doe@example.com' });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.userEmail).toBe('***@example.com');
+    });
+
+    it('should sanitize file paths in context', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('File accessed', { filePath: '/Users/john/projects/myapp/data.db' });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.filePath).toBe('/***/**/data.db');
+    });
+
+    it('should redact sensitive field names completely', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('Auth attempt', {
+        username: 'john',
+        password: 'secret123',
+        apiKey: 'key_abc123',
+        token: 'Bearer xyz789'
+      });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.username).toBe('john');
+      expect(call.context.password).toBe('[REDACTED]');
+      expect(call.context.apiKey).toBe('[REDACTED]');
+      expect(call.context.token).toBe('[REDACTED]');
+    });
+
+    it('should sanitize nested context objects', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      const context = {
+        user: {
+          id: 'user_123456',
+          email: 'test@example.com',
+          profile: {
+            phone: '+1-555-123-4567'
+          }
+        }
+      };
+
+      logger.info('User data', context);
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.user.id).toBe('user_***3456');
+      expect(call.context.user.email).toBe('***@example.com');
+      expect(call.context.user.profile.phone).toBe('+***-***-***-4567');
+    });
+
+    it('should sanitize arrays in context', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('Batch operation', {
+        userIds: ['user_123456', 'user_789012']
+      });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.userIds).toEqual(['user_***3456', 'user_***9012']);
+    });
+
+    it('should handle undefined context with sanitization enabled', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('No context');
+
+      expect(mockOutput.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'No context',
+          context: undefined
+        })
+      );
+    });
+
+    it('should not sanitize log messages, only context', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('User user_abc123456 logged in from /home/user/path');
+
+      const call = mockOutput.write.mock.calls[0][0];
+      // Message should NOT be sanitized
+      expect(call.message).toBe('User user_abc123456 logged in from /home/user/path');
+    });
+
+    it('should respect custom sanitizer configuration', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true,
+        sanitizerConfig: {
+          idSuffixLength: 6,
+          sensitiveFields: ['customSecret']
+        }
+      });
+
+      logger.info('Custom sanitization', {
+        userId: 'user_abc123456',
+        customSecret: 'my-secret',
+        password: 'pass123' // Should still be redacted (default)
+      });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.userId).toBe('user_***123456'); // 6 chars suffix
+      expect(call.context.customSecret).toBe('[REDACTED]');
+      expect(call.context.password).toBe('[REDACTED]');
+    });
+
+    it('should preserve primitives during sanitization', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      logger.info('Mixed types', {
+        count: 42,
+        isActive: true,
+        ratio: 3.14,
+        status: 'active'
+      });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.count).toBe(42);
+      expect(call.context.isActive).toBe(true);
+      expect(call.context.ratio).toBe(3.14);
+      expect(call.context.status).toBe('active');
+    });
+
+    it('should work with all log levels when sanitization is enabled', () => {
+      logger = new Logger('Test', {
+        level: LogLevel.DEBUG,
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      const context = { userId: 'user_abc123456' };
+
+      logger.debug('Debug', context);
+      logger.info('Info', context);
+      logger.warn('Warn', context);
+      logger.error('Error', context);
+
+      expect(mockOutput.write).toHaveBeenCalledTimes(4);
+      mockOutput.write.mock.calls.forEach((call: any) => {
+        expect(call[0].context.userId).toBe('user_***3456');
+      });
+    });
+
+    it('should sanitize context in performance timing logs', () => {
+      logger = new Logger('Test', {
+        outputs: [mockOutput],
+        sanitize: true
+      });
+
+      const startTime = Date.now();
+      logger.timing('Operation', startTime, {
+        userId: 'user_abc123456',
+        operation: 'query'
+      });
+
+      const call = mockOutput.write.mock.calls[0][0];
+      expect(call.context.userId).toBe('user_***3456');
+      expect(call.context.operation).toBe('query');
+      expect(call.context.durationMs).toBeGreaterThanOrEqual(0);
+    });
+  });
 });
