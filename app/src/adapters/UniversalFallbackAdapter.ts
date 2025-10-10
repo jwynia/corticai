@@ -16,7 +16,6 @@ import type {
  * across all domains (hierarchies, references, containers, etc.)
  */
 export class UniversalFallbackAdapter implements DomainAdapter {
-  private entityCounter = 0;
   private entityCounts: Record<string, number> = {};
   
   // Constants for line counting
@@ -24,10 +23,11 @@ export class UniversalFallbackAdapter implements DomainAdapter {
   private static readonly NEXT_LINE_OFFSET = 2;
   
   /**
-   * Generate a unique ID for an entity
+   * Generate a unique ID for an entity using crypto.randomUUID()
+   * for collision-free ID generation
    */
   private generateId(): string {
-    return `entity_${Date.now()}_${++this.entityCounter}`;
+    return `entity_${crypto.randomUUID()}`;
   }
 
   /**
@@ -35,9 +35,8 @@ export class UniversalFallbackAdapter implements DomainAdapter {
    */
   extract(content: string, metadata: FileMetadata): Entity[] {
     const entities: Entity[] = [];
-    
+
     // Reset counters for each extraction
-    this.entityCounter = 0;
     this.entityCounts = {};
     
     // Create document entity (root container)

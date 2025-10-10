@@ -117,7 +117,7 @@ class PrimaryCosmosDBAdapter<T = any> extends CosmosDBStorageAdapter<T> implemen
    * Add entity with graph metadata
    */
   async addEntity(entity: T): Promise<void> {
-    const id = (entity as any).id || `entity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const id = (entity as any).id || `entity_${crypto.randomUUID()}`
 
     // Add graph metadata
     const enhancedEntity = {
@@ -135,7 +135,7 @@ class PrimaryCosmosDBAdapter<T = any> extends CosmosDBStorageAdapter<T> implemen
    * Add relationship between entities
    */
   async addRelationship(from: string, to: string, type: string, properties?: any): Promise<void> {
-    const relationshipId = `rel_${from}_${type}_${to}_${Date.now()}`
+    const relationshipId = `rel_${from}_${type}_${to}_${crypto.randomUUID()}`
     const relationship = {
       id: relationshipId,
       from,

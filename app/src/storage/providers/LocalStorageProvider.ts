@@ -98,7 +98,7 @@ class EnhancedKuzuAdapter extends KuzuStorageAdapter {
    */
   async addEntity(entity: any): Promise<void> {
     // Extract ID from entity or generate one
-    const id = hasId(entity) ? entity.id : `entity_${Date.now()}`
+    const id = hasId(entity) ? entity.id : `entity_${crypto.randomUUID()}`
 
     // Convert entity to GraphEntity format expected by KuzuStorageAdapter
     const graphEntity: GraphEntity = {
