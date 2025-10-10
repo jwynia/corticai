@@ -1,0 +1,117 @@
+[
+  {
+    "id": "bluebottle-mint",
+    "name": "Blue Bottle Coffee",
+    "type": "cafe",
+    "address": "66 Mint St, San Francisco, CA 94103",
+    "coordinates": {
+      "lat": 37.7821,
+      "lng": -122.4093
+    },
+    "hours": {
+      "monday": { "open": "07:00", "close": "18:00" },
+      "tuesday": { "open": "07:00", "close": "18:00" },
+      "wednesday": { "open": "07:00", "close": "18:00" },
+      "thursday": { "open": "07:00", "close": "18:00" },
+      "friday": { "open": "07:00", "close": "18:00" },
+      "saturday": { "open": "08:00", "close": "18:00" },
+      "sunday": { "open": "08:00", "close": "18:00" }
+    },
+    "services": ["wifi", "outdoor-seating"],
+    "tags": ["specialty-coffee", "minimalist", "popular"],
+    "rating": 4.5,
+    "priceLevel": 2
+  },
+  {
+    "id": "dolores-park",
+    "name": "Dolores Park",
+    "type": "park",
+    "address": "Dolores St & 19th St, San Francisco, CA 94114",
+    "coordinates": {
+      "lat": 37.7596,
+      "lng": -122.4269
+    },
+    "hours": {
+      "monday": { "open": "06:00", "close": "22:00" },
+      "tuesday": { "open": "06:00", "close": "22:00" },
+      "wednesday": { "open": "06:00", "close": "22:00" },
+      "thursday": { "open": "06:00", "close": "22:00" },
+      "friday": { "open": "06:00", "close": "22:00" },
+      "saturday": { "open": "06:00", "close": "22:00" },
+      "sunday": { "open": "06:00", "close": "22:00" }
+    },
+    "services": ["playground", "tennis-courts", "basketball-court"],
+    "tags": ["outdoor", "family-friendly", "scenic-views", "popular"],
+    "rating": 4.7
+  },
+  {
+    "id": "ferry-building",
+    "name": "Ferry Building Marketplace",
+    "type": "market",
+    "address": "1 Ferry Building, San Francisco, CA 94111",
+    "coordinates": {
+      "lat": 37.7956,
+      "lng": -122.3935
+    },
+    "hours": {
+      "monday": { "open": "10:00", "close": "19:00" },
+      "tuesday": { "open": "10:00", "close": "19:00" },
+      "wednesday": { "open": "10:00", "close": "19:00" },
+      "thursday": { "open": "10:00", "close": "19:00" },
+      "friday": { "open": "10:00", "close": "19:00" },
+      "saturday": { "open": "08:00", "close": "18:00" },
+      "sunday": { "open": "11:00", "close": "17:00" }
+    },
+    "services": ["parking", "accessible", "farmers-market"],
+    "tags": ["food", "shopping", "waterfront", "historic", "popular"],
+    "rating": 4.6,
+    "priceLevel": 2
+  },
+  {
+    "id": "golden-gate-bridge",
+    "name": "Golden Gate Bridge",
+    "type": "landmark",
+    "address": "Golden Gate Bridge, San Francisco, CA 94129",
+    "coordinates": {
+      "lat": 37.8199,
+      "lng": -122.4783
+    },
+    "tags": ["landmark", "scenic-views", "iconic", "photography"],
+    "rating": 4.8
+  },
+  {
+    "id": "pizzeria-delfina",
+    "name": "Pizzeria Delfina",
+    "type": "restaurant",
+    "address": "3611 18th St, San Francisco, CA 94110",
+    "coordinates": {
+      "lat": 37.7615,
+      "lng": -122.4256
+    },
+    "hours": {
+      "monday": { "open": "11:30", "close": "22:00" },
+      "tuesday": { "open": "11:30", "close": "22:00" },
+      "wednesday": { "open": "11:30", "close": "22:00" },
+      "thursday": { "open": "11:30", "close": "22:00" },
+      "friday": { "open": "11:30", "close": "23:00" },
+      "saturday": { "open": "11:30", "close": "23:00" },
+      "sunday": { "open": "11:30", "close": "22:00" }
+    },
+    "services": ["takeout", "delivery", "reservations"],
+    "tags": ["pizza", "italian", "casual-dining"],
+    "rating": 4.4,
+    "priceLevel": 2
+  },
+  {
+    "id": "mission-district",
+    "name": "Mission District",
+    "type": "neighborhood",
+    "bounds": {
+      "north": 37.7699,
+      "south": 37.7499,
+      "east": -122.4000,
+      "west": -122.4300
+    },
+    "tags": ["neighborhood", "vibrant", "murals", "food", "nightlife"]
+  }
+]
