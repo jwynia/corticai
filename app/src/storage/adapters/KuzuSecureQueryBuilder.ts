@@ -8,6 +8,9 @@
 import { Connection, PreparedStatement } from 'kuzu'
 import { Logger } from '../../utils/Logger'
 
+// Module-level logger for external functions
+const queryExecutionLogger = Logger.createConsoleLogger('KuzuQueryExecution')
+
 // Constants for validation limits
 const MAX_STRING_PARAMETER_LENGTH = 1000000 // 1MB limit for string parameters
 const MAX_DEPTH_LIMIT = 50 // Maximum depth for graph traversal to prevent performance issues
@@ -31,10 +34,10 @@ export interface SecureQuery {
 
 export class KuzuSecureQueryBuilder {
   private connection: Connection
-  public logger: Logger
+  private readonly logger: Logger
 
   constructor(connection: Connection) {
-    this.logger = Logger.createConsoleLogger('KuzuSecureQueryBuilder');
+    this.logger = Logger.createConsoleLogger('KuzuSecureQueryBuilder')
     this.connection = connection
   }
 
@@ -80,18 +83,13 @@ export class KuzuSecureQueryBuilder {
   }
 
   /**
-   * Build a secure query for finding edges from a node
-   * Returns both incoming and outgoing relationships (bidirectional)
-   *
-   * Uses UNION to combine outgoing and incoming edges while preserving direction
+   * Build a secure query for finding outgoing edges from a node
+   * Returns only outgoing relationships where the node is the source
    */
   buildGetEdgesQuery(nodeId: string): SecureQuery {
     return {
       statement: `
         MATCH (a:Entity {id: $nodeId})-[r:Relationship]->(b:Entity)
-        RETURN a.id, b.id, r.type, r.data
-        UNION ALL
-        MATCH (a:Entity)-[r:Relationship]->(b:Entity {id: $nodeId})
         RETURN a.id, b.id, r.type, r.data
       `.trim(),
       parameters: {
@@ -102,12 +100,12 @@ export class KuzuSecureQueryBuilder {
 
   /**
    * Build a secure query for graph traversal
-   * With Kuzu 0.11.2, we can use proper variable-length paths
+   * With Kuzu 0.11.3, we can use proper variable-length paths with query-level edge type filtering
    *
    * @param startNodeId - The ID of the starting node
    * @param relationshipPattern - The relationship pattern (e.g., '-[r*1..2]->')
    * @param maxDepth - Maximum depth for traversal
-   * @param edgeTypes - Optional array of edge types to filter (handled in post-processing)
+   * @param edgeTypes - Optional array of edge types to filter at query level
    * @param options - Optional query options including resultLimit
    * @returns SecureQuery object with statement and parameters
    */
@@ -124,14 +122,20 @@ export class KuzuSecureQueryBuilder {
     // Get validated result limit
     const resultLimit = this.getResultLimit(options, DEFAULT_TRAVERSAL_LIMIT)
 
-    // Kuzu 0.11.2 supports variable-length paths with literal depth values
-    // Note: 'start' and 'end' might be reserved, so using 'source' and 'target'
-    // Normalize relationship pattern to include :Relationship if not specified
+    // Build edge type filter string
+    // Default to :Relationship if no edge types specified
+    let typeFilter = ':Relationship'
+    if (edgeTypes && edgeTypes.length > 0) {
+      // Use Cypher standard multi-type syntax: :TYPE1|TYPE2|TYPE3
+      typeFilter = `:${edgeTypes.join('|')}`
+    }
+
+    // Normalize relationship pattern to include edge type filter
     let normalizedPattern = relationshipPattern
     if (normalizedPattern.includes('[') && !normalizedPattern.includes(':')) {
-      // Add :Relationship type to patterns like -[r*1..2]- or -[*1..2]-
-      // Type must come before the variable-length spec: -[r:Relationship*1..2]-
-      normalizedPattern = normalizedPattern.replace(/\[([a-z]*)\*/, '[$1:Relationship*')
+      // Add type filter to patterns like -[r*1..2]- or -[*1..2]-
+      // Type must come before the variable-length spec: -[r:TYPE1|TYPE2*1..2]-
+      normalizedPattern = normalizedPattern.replace(/\[([a-z]*)\*/, `[$1${typeFilter}*`)
     }
 
     // Use the normalized relationshipPattern to respect direction
@@ -139,14 +143,6 @@ export class KuzuSecureQueryBuilder {
     const parameters: QueryParameters = {
       startNodeId: startNodeId
     }
-
-    // For now, implement variable-length traversal without edge type filtering
-    // Edge type filtering will be done in post-processing
-    // NOTE: Edge type filtering for variable-length paths is tracked in tech-debt backlog
-    // Currently handled in post-processing for performance reasons
-    // Will implement when Kuzu adds better variable-length path filtering support
-
-    // Note: edgeTypes are handled in post-processing, not as query parameters
 
     // For single-hop relationships, path length is always 1
     // For variable-length paths, we would use length(r)
@@ -232,22 +228,23 @@ export class KuzuSecureQueryBuilder {
     edgeTypes?: string[],
     direction: 'outgoing' | 'incoming' | 'both' = 'outgoing'
   ): SecureQuery {
+    // Build edge type filter string
+    let typeFilter = ':Relationship'
+    if (edgeTypes && edgeTypes.length > 0) {
+      // Use Cypher standard multi-type syntax: :TYPE1|TYPE2|TYPE3
+      typeFilter = `:${edgeTypes.join('|')}`
+    }
+
     let relationshipPattern = ''
 
     if (direction === 'outgoing') {
-      relationshipPattern = '-[r:Relationship]->'
+      relationshipPattern = `-[r${typeFilter}]->`
     } else if (direction === 'incoming') {
-      relationshipPattern = '<-[r:Relationship]-'
+      relationshipPattern = `<-[r${typeFilter}]-`
     } else {
-      relationshipPattern = '-[r:Relationship]-'
+      relationshipPattern = `-[r${typeFilter}]-`
     }
 
-    // TODO: Add native edge type filtering when edgeTypes is provided
-    // Blocked by: Kuzu 0.6.1 limitation - doesn't support edge type filtering in variable-length paths
-    // Current workaround: Post-processing results to filter unwanted edge types
-    // Impact: Performance - fetches extra paths that are filtered client-side
-    // Priority: Medium - affects query efficiency for multi-type graphs
-    // Effort: Small (30 min to update when Kuzu adds support)
     return {
       statement: `MATCH (n:Entity {id: $nodeId})${relationshipPattern}(neighbor:Entity) RETURN neighbor.id as neighborId`,
       parameters: {
@@ -445,8 +442,8 @@ export async function executeSecureQueryWithMonitoring(
     }
 
     if (debugMode) {
-      queryBuilder.logger.info(`[SecureQuery] Executing: ${secureQuery.statement}`)
-      queryBuilder.logger.info(`[SecureQuery] Parameters: ${Object.keys(secureQuery.parameters).length} params`)
+      queryExecutionLogger.info(`[SecureQuery] Executing: ${secureQuery.statement}`)
+      queryExecutionLogger.info(`[SecureQuery] Parameters: ${Object.keys(secureQuery.parameters).length} params`)
     }
 
     const result = await queryBuilder.executeSecureQuery(secureQueryToExecute)

@@ -84,6 +84,22 @@ Evaluating specific technologies for functionality rather than performance.
 - [File Monitoring Solutions](./technology/file_monitoring_solutions.md)
 - [Parser Comparison](./technology/parser_comparison.md)
 
+### Performance Optimization
+Research into optimizing system performance while maintaining functionality.
+
+**Key Questions:**
+- What are the performance bottlenecks in graph operations?
+- How can query-level filtering improve graph traversal?
+- What are the trade-offs between different optimization approaches?
+
+**Documents:**
+- **[Edge Filtering Optimization (2025-10-12)](./2025-10-12-edge-filtering-optimization/overview.md)** - Comprehensive research on optimizing edge type filtering in variable-length graph paths
+  - [Detailed Findings](./2025-10-12-edge-filtering-optimization/findings.md)
+  - [Implementation Guide](./2025-10-12-edge-filtering-optimization/implementation.md)
+  - [Source Analysis](./2025-10-12-edge-filtering-optimization/sources.md)
+  - [Research Gaps](./2025-10-12-edge-filtering-optimization/gaps.md)
+- [Kuzu Parameterized Queries (2025-10-10)](./2025-10-10-kuzu-parameterized-queries/README.md) - Security and performance research for secure query construction
+
 ### Integration Strategies
 How to meaningfully connect with external systems.
 
