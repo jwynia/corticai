@@ -153,15 +153,39 @@ export class KuzuGraphOperations {
 
         for (const row of rows) {
           // Row should contain: a.id, b.id, r.type, r.data
-          // Parse properties from r.data field
+          // Parse properties from r.data field with explicit structure validation
           let properties = {}
           try {
             const dataField = row['r.data']
             if (dataField) {
               // r.data contains the full edge object as JSON string
               const parsed = typeof dataField === 'string' ? JSON.parse(dataField) : dataField
-              // Extract properties from the parsed edge object
-              properties = parsed.properties || parsed || {}
+
+              // More explicit structure validation
+              if (parsed && typeof parsed === 'object') {
+                if ('properties' in parsed) {
+                  // Check if properties field is actually an object
+                  if (typeof parsed.properties === 'object' && parsed.properties !== null) {
+                    // Standard case: parsed is the full edge object with valid properties field
+                    properties = parsed.properties
+                  } else {
+                    // properties field exists but is not a valid object (e.g., string, number)
+                    if (this.deps.config.debug && this.deps.logWarn) {
+                      this.deps.logWarn(`Unexpected edge data structure: properties field is ${typeof parsed.properties}, not object`)
+                    }
+                    properties = {}
+                  }
+                } else if (!('from' in parsed) && !('to' in parsed) && !('type' in parsed)) {
+                  // Edge case: parsed is the properties object directly (no edge metadata)
+                  properties = parsed
+                } else {
+                  // Unexpected structure - has edge metadata but no properties field
+                  if (this.deps.config.debug && this.deps.logWarn) {
+                    this.deps.logWarn(`Unexpected edge data structure: ${JSON.stringify(Object.keys(parsed))}`)
+                  }
+                  properties = {}
+                }
+              }
             }
           } catch (error) {
             if (this.deps.config.debug && this.deps.logWarn) {
