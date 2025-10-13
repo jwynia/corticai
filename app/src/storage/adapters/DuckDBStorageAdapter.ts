@@ -330,31 +330,8 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
   // UTILITY METHODS
   // ============================================================================
   
-  /**
-   * Process BigInt values in query results, converting them to regular numbers
-   * for JSON compatibility and test expectations
-   */
-  private processBigIntValues(rows: any[]): any[] {
-    return rows.map(row => {
-      if (row && typeof row === 'object') {
-        const processed: any = {}
-        for (const [key, value] of Object.entries(row)) {
-          if (typeof value === 'bigint') {
-            // Convert BigInt to number only if it's within safe integer range
-            if (value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER) {
-              processed[key] = Number(value)
-            } else {
-              processed[key] = value.toString()
-            }
-          } else {
-            processed[key] = value
-          }
-        }
-        return processed
-      }
-      return row
-    })
-  }
+  // Note: processBigIntValues() has been moved to DuckDBTypeMapper
+  // Use DuckDBTypeMapper.processBigIntValues() instead
   
   // ============================================================================
   // DUCKDB-SPECIFIC FEATURES
@@ -362,66 +339,11 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
   
   /**
    * Execute raw SQL query
+   * Delegates to DuckDBSQLGenerator for consistent query execution
    */
   async query<R = any>(sql: string, params: any[] = []): Promise<R[]> {
-    try {
-      const connection = await this.getConnection()
-      
-      if (this.config.debug) {
-        this.log(`Executing query: ${sql}`)
-      }
-      
-      // For parameterized queries, we need to use prepared statements  
-      if (params && params.length > 0) {
-        // Convert ? placeholders to $1, $2, etc. for DuckDB
-        let paramIndex = 1
-        const convertedSql = sql.replace(/\?/g, () => `$${paramIndex++}`)
-        
-        const prepared = await connection.prepare(convertedSql)
-        
-        // Bind parameters by type
-        for (let i = 0; i < params.length; i++) {
-          const param = params[i]
-          const paramNum = i + 1
-          
-          if (param === null || param === undefined) {
-            prepared.bindNull(paramNum)
-          } else if (typeof param === 'string') {
-            prepared.bindVarchar(paramNum, param)
-          } else if (typeof param === 'number') {
-            if (Number.isInteger(param)) {
-              prepared.bindInteger(paramNum, param)
-            } else {
-              prepared.bindDouble(paramNum, param)
-            }
-          } else if (typeof param === 'boolean') {
-            prepared.bindBoolean(paramNum, param)
-          } else {
-            // For complex objects, convert to string
-            prepared.bindVarchar(paramNum, JSON.stringify(param))
-          }
-        }
-        
-        const reader = await prepared.runAndReadAll()
-        const rows = reader.getRowObjectsJS()
-        // Convert BigInt values to regular numbers for JSON compatibility
-        const processedRows = this.processBigIntValues(rows)
-        return processedRows as R[]
-      } else {
-        const reader = await connection.runAndReadAll(sql)
-        const rows = reader.getRowObjectsJS()
-        // Convert BigInt values to regular numbers for JSON compatibility
-        const processedRows = this.processBigIntValues(rows)
-        return processedRows as R[]
-      }
-      
-    } catch (error) {
-      throw new StorageError(
-        `Query execution failed: ${(error as Error).message}`,
-        StorageErrorCode.CONNECTION_FAILED,
-        { sql, params, originalError: error }
-      )
-    }
+    const connection = await this.getConnection()
+    return DuckDBSQLGenerator.executeQuery<R>(connection, sql, params, this.config.debug)
   }
   
   /**
@@ -498,6 +420,7 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
   
   /**
    * Query Parquet file directly without importing
+   * Delegates to DuckDBSQLGenerator for consistent query execution
    */
   async queryParquet<R = any>(filePath: string, sql: string, params: any[] = []): Promise<R[]> {
     if (!this.config.enableParquet) {
@@ -507,68 +430,9 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         { enableParquet: this.config.enableParquet }
       )
     }
-    
-    try {
-      const connection = await this.getConnection()
-      
-      if (this.config.debug) {
-        this.log(`Querying Parquet file: ${filePath}`)
-      }
-      
-      // Replace the first parameter with the file path for read_parquet
-      // Escape single quotes to prevent SQL injection
-      const safePath = filePath.replace(/'/g, "''")
-      const finalSQL = sql.replace(/\?/, `'${safePath}'`)
-      
-      // Handle remaining parameters like in the regular query method
-      if (params && params.length > 0) {
-        // Convert remaining ? placeholders to $1, $2, etc. for DuckDB
-        let paramIndex = 1
-        const convertedSql = finalSQL.replace(/\?/g, () => `$${paramIndex++}`)
-        
-        const prepared = await connection.prepare(convertedSql)
-        
-        // Bind parameters by type
-        for (let i = 0; i < params.length; i++) {
-          const param = params[i]
-          const paramNum = i + 1
-          
-          if (param === null || param === undefined) {
-            prepared.bindNull(paramNum)
-          } else if (typeof param === 'string') {
-            prepared.bindVarchar(paramNum, param)
-          } else if (typeof param === 'number') {
-            if (Number.isInteger(param)) {
-              prepared.bindInteger(paramNum, param)
-            } else {
-              prepared.bindDouble(paramNum, param)
-            }
-          } else if (typeof param === 'boolean') {
-            prepared.bindBoolean(paramNum, param)
-          } else {
-            // For complex objects, convert to string
-            prepared.bindVarchar(paramNum, JSON.stringify(param))
-          }
-        }
-        
-        const reader = await prepared.runAndReadAll()
-        const rows = reader.getRowObjectsJS()
-        const processedRows = this.processBigIntValues(rows)
-        return processedRows as R[]
-      } else {
-        const reader = await connection.runAndReadAll(finalSQL)
-        const rows = reader.getRowObjectsJS()
-        const processedRows = this.processBigIntValues(rows)
-        return processedRows as R[]
-      }
-      
-    } catch (error) {
-      throw new StorageError(
-        `Parquet query failed: ${(error as Error).message}`,
-        StorageErrorCode.CONNECTION_FAILED,
-        { filePath, sql, params, originalError: error }
-      )
-    }
+
+    const connection = await this.getConnection()
+    return DuckDBSQLGenerator.queryParquet<R>(connection, filePath, sql, params, this.config.debug)
   }
   
   /**
