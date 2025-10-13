@@ -1,10 +1,10 @@
 # CorticAI Groomed Backlog
 
 ## 📊 Project Status Summary
-**Last Synced**: 2025-10-11
-**Last Groomed**: 2025-10-12 (Post-refactoring update - Kuzu adapter successfully split)
+**Last Synced**: 2025-10-13
+**Last Groomed**: 2025-10-13 (Post-DuckDB refactoring - both adapters now refactored)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
-**Test Status**: ✅ Core tests passing (50/50 unit tests, entity ID, lens, security, logging)
+**Test Status**: ✅ All tests passing (75/75 DuckDB + 60/60 unit tests)
 **Current Phase**: Foundation Complete - Quality Improvements & Feature Expansion
 **Foundation**: ✅ Phases 1-3 complete + Hexagonal architecture
 **Architecture**: ✅ Hexagonal architecture, 100% unit testable business logic
@@ -12,26 +12,25 @@
 **Security**: ✅ Parameterized queries, 7/7 injection protection tests passing
 **Logging**: ✅ Comprehensive logging with PII sanitization, 115/115 tests passing
 **Logger Encapsulation**: ✅ COMPLETE - Module-level logger pattern, 50/50 tests passing
-**Kuzu Adapter Refactoring**: ✅ COMPLETE - Split into 4 focused modules (597 lines from 1121)
+**Kuzu Adapter Refactoring**: ✅ COMPLETE - Split into 4 focused modules (597 lines from 1121, 2025-10-12)
+**DuckDB Adapter Refactoring**: ✅ COMPLETE - Removed duplication, leveraged existing modules (541 lines from 677, 2025-10-13)
 **Edge Testing**: ✅ COMPLETE - 16 comprehensive tests, 2 bugs fixed (2025-10-12)
 **Edge Filtering**: ✅ COMPLETE - Query-level filtering with Kuzu 0.11.3 (2025-10-12)
 **Property Parsing Validation**: ✅ COMPLETE - Explicit validation with 10 comprehensive tests (2025-10-12)
-**Next Priority**: DuckDB adapter refactoring and graph operations enhancement
+**Next Priority**: Graph operations enhancement and TypeScript analyzer refactoring
 
 ---
 
 ## 🚀 Ready for Implementation (High Value Quick Wins)
 
-### 1. Split DuckDBStorageAdapter into Focused Modules
-**One-liner**: Refactor 677-line DuckDBStorageAdapter into 3-4 focused modules using Kuzu refactoring pattern
+### 1. Implement Complete Graph Operations (getEdges Enhancement)
+**One-liner**: Enhance getEdges implementation with better error handling and performance monitoring
 **Complexity**: Medium
-**Effort**: 2-3 hours (proven pattern from Kuzu refactoring)
-**Priority**: MEDIUM - Code quality and maintainability
+**Effort**: 1-2 hours (basic implementation exists, needs enhancement)
+**Priority**: MEDIUM - Core functionality refinement
 
 <details>
-<summary>Full Implementation Details</summary>
-
-**Context**: DuckDBStorageAdapter.ts is 677 lines - should be split using the proven pattern from KuzuStorageAdapter refactoring (completed 2025-10-12).
+<parameter name="summary">Full Implementation Details
 
 **Proven Pattern from Kuzu Refactoring**:
 - Successfully split 1121-line file into 4 focused modules in ~2.5 hours
@@ -315,6 +314,13 @@ export class DuckDBStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 **Details**: Zero test regressions, dependency injection pattern established
 **Task Record**: `/tasks/completed/2025-10-12-kuzu-adapter-refactoring.md`
 
+### ~~DuckDB Adapter Refactoring~~ ✅ COMPLETE
+**Task**: REFACTOR-001
+**Reason**: Successfully removed code duplication by leveraging existing helper modules
+**Completion**: 2025-10-13
+**Details**: 20% file size reduction (677 → 541 lines), removed 3 code duplications, 75/75 tests passing, 0 regressions
+**Task Record**: `/tasks/completed/2025-10-13-duckdb-adapter-refactoring.md`
+
 ### ~~Comprehensive Edge Testing~~ ✅ COMPLETE
 **Reason**: TDD implementation complete with 16 comprehensive tests, 2 bugs fixed
 **Completion**: 2025-10-12
@@ -363,30 +369,31 @@ export class DuckDBStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
 ## 📊 Summary Statistics
 
-**Last Groomed**: 2025-10-12 (Post-refactoring update)
+**Last Groomed**: 2025-10-13 (Post-DuckDB refactoring)
 
 ### Project Health
 - **Build status**: ✅ TypeScript compiling cleanly (0 errors)
-- **File sizes**: KuzuStorageAdapter (597 lines ✅), DuckDBStorageAdapter (677 lines), Analyzer (749 lines)
+- **File sizes**: KuzuStorageAdapter (597 lines ✅), DuckDBStorageAdapter (541 lines ✅), Analyzer (749 lines)
 - **Code quality**: ✅ Zero unsafe `as any` type assertions
-- **Test status**: ✅ Core functionality well-tested (50/50 unit tests passing)
+- **Test status**: ✅ All tests passing (75/75 DuckDB + 60/60 unit tests)
 - **Foundation**: ✅ Phases 1-3 complete + Hexagonal architecture
-- **Refactoring**: ✅ Kuzu adapter successfully split (2025-10-12)
+- **Refactoring**: ✅ Both storage adapters refactored (Kuzu 2025-10-12, DuckDB 2025-10-13)
 
 ### Task Analysis
-- **Total groomed tasks**: 4 actionable tasks
-- **High-impact tasks**: 2 tasks (DuckDB refactoring, graph operations enhancement)
+- **Total groomed tasks**: 3 actionable tasks
+- **High-impact tasks**: 1 task (graph operations enhancement)
 - **Research required**: 1 task (Kuzu 0.11.3 features)
 - **Deferred**: 2 tasks (Azure validation, self-hosting)
-- **Recently completed**: 4 tasks (property validation, Kuzu refactoring, edge testing, edge filtering)
+- **Recently completed**: 5 tasks (DuckDB refactoring, property validation, Kuzu refactoring, edge testing, edge filtering)
 
 ### Backlog Quality
-- **Ready now**: 3 tasks clear and actionable
+- **Ready now**: 2 tasks clear and actionable
 - **Blocked/Research**: 1 task needs research phase
-- **Refactoring**: 2 large file splitting tasks
-- **Archived**: 9 completed major tasks
+- **Refactoring**: 1 large file splitting task remaining
+- **Archived**: 10 completed major tasks
 
 ### Recent Wins (October 2025)
+- ✅ **DuckDB adapter refactoring** (20% reduction, 541 lines from 677, Oct 13)
 - ✅ **Property parsing validation** (10 tests, explicit validation, Oct 12)
 - ✅ **Kuzu adapter refactoring** (4 modules, 597 lines from 1121, Oct 12)
 - ✅ **Edge type filtering** (query-level, 2-10x performance, Oct 12)
@@ -503,6 +510,7 @@ export class DuckDBStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 - **Foundation is solid** - Focus on code quality and maintainability
 
 **Recent Updates**:
+- 2025-10-13: **DuckDB adapter refactoring complete** - Removed duplication, 20% reduction, 75/75 tests passing
 - 2025-10-12: **Property parsing validation verified** - TECH-001 complete with 10 comprehensive tests
 - 2025-10-12: **Major refactoring complete** - Kuzu adapter split, edge testing/filtering done
 - 2025-10-11: **Logger encapsulation complete** - TDD approach, 50 tests passing
@@ -517,6 +525,7 @@ export class DuckDBStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 2. ✅ **Security** - Complete (parameterized queries, injection protection)
 3. ✅ **Quality** - Complete (logging, IDs, type safety, encapsulation)
 4. ✅ **Graph Operations** - Complete (comprehensive edge testing, filtering, refactoring)
-5. **Current Focus** - Code quality improvements (property validation, DuckDB refactoring)
-6. **Next Focus** - Performance optimization, additional refactoring
-7. **Future** - Additional lenses, domain adapters, cloud deployment
+5. ✅ **Storage Adapters** - Complete (both Kuzu and DuckDB refactored)
+6. **Current Focus** - Graph operations enhancement, analyzer refactoring
+7. **Next Focus** - Performance optimization, additional features
+8. **Future** - Additional lenses, domain adapters, cloud deployment
