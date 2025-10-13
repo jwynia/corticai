@@ -15,21 +15,6 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 
 ## Medium Priority
 
-### TECH-001: Property Parsing Validation Enhancement
-**Title**: Add explicit structure validation to getEdges() property parsing
-**Complexity**: Small
-**Effort**: 30-60 minutes
-**Branch**: `feature/property-parsing-validation`
-
-**Why this task**:
-- Quick win building on comprehensive edge testing (completed 2025-10-12)
-- Better debugging and future-proofing
-- No blockers, clear implementation path
-
-**Start with**: `/implement TECH-001`
-
----
-
 ### REFACTOR-001: Split DuckDBStorageAdapter
 **Title**: Refactor 677-line DuckDBStorageAdapter into 3-4 focused modules
 **Complexity**: Medium
@@ -48,16 +33,16 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 ### TECH-002: Complete Graph Operations Enhancement
 **Title**: Enhance getEdges() with better error handling and monitoring
 **Complexity**: Medium
-**Effort**: 1-2 hours (after TECH-001)
+**Effort**: 1-2 hours
 **Branch**: `feature/graph-operations-enhancement`
-**Prerequisite**: TECH-001 (Property Parsing Validation)
+**Prerequisite**: ✅ TECH-001 (Property Parsing Validation) - COMPLETE
 
 **Why this task**:
-- Builds on recent comprehensive testing and property validation
+- Builds on comprehensive testing and property validation (TECH-001 ✅ complete)
 - Production-ready graph operations
 - Clear acceptance criteria
 
-**Start with**: `/implement TECH-002` (after TECH-001 is complete)
+**Start with**: `/implement TECH-002`
 
 ## Low Priority
 
@@ -74,8 +59,8 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 ## Selection Guidelines
 
 **For your next task**:
-1. Start with **TECH-001** (Property Parsing Validation) - Quick win, 30-60 mins
-2. Then consider **REFACTOR-001** (DuckDB Split) - Apply fresh pattern, 2-3 hours
-3. Finally **TECH-002** (Graph Operations) - Requires TECH-001, 1-2 hours
+1. ✅ ~~**TECH-001** (Property Parsing Validation)~~ - COMPLETE (2025-10-12)
+2. Start with **REFACTOR-001** (DuckDB Split) - Apply proven pattern, 2-3 hours
+3. Then **TECH-002** (Graph Operations) - Build on TECH-001 ✅, 1-2 hours
 
-**Estimated sprint**: 4-6 hours total for all medium priority tasks
+**Estimated sprint**: 3-5 hours total for remaining medium priority tasks
