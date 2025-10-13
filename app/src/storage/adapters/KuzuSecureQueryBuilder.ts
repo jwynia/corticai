@@ -85,11 +85,22 @@ export class KuzuSecureQueryBuilder {
   /**
    * Build a secure query for finding outgoing edges from a node
    * Returns only outgoing relationships where the node is the source
+   * @param nodeId - The node ID to get edges from
+   * @param edgeTypes - Optional array of edge types to filter by
    */
-  buildGetEdgesQuery(nodeId: string): SecureQuery {
+  buildGetEdgesQuery(nodeId: string, edgeTypes?: string[]): SecureQuery {
+    // Build edge type filter string
+    // If edgeTypes is provided, filter by those types
+    // Otherwise, return all :Relationship edges
+    let typeFilter = ':Relationship'
+    if (edgeTypes && edgeTypes.length > 0) {
+      // Use Cypher standard multi-type syntax: :TYPE1|TYPE2|TYPE3
+      typeFilter = `:${edgeTypes.join('|')}`
+    }
+
     return {
       statement: `
-        MATCH (a:Entity {id: $nodeId})-[r:Relationship]->(b:Entity)
+        MATCH (a:Entity {id: $nodeId})-[r${typeFilter}]->(b:Entity)
         RETURN a.id, b.id, r.type, r.data
       `.trim(),
       parameters: {

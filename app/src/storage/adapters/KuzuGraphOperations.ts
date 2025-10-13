@@ -131,87 +131,102 @@ export class KuzuGraphOperations {
 
   /**
    * Get all edges from a node
+   * @param nodeId - The node ID to get edges from
+   * @param edgeTypes - Optional array of edge types to filter by
    */
-  async getEdges(nodeId: string): Promise<GraphEdge[]> {
-    try {
-      // Use secure parameterized query for getEdges
-      const secureQuery = this.deps.buildSecureQuery('getEdges', nodeId)
-      const queryResult = await this.deps.executeSecureQuery(secureQuery)
+  async getEdges(nodeId: string, edgeTypes?: string[]): Promise<GraphEdge[]> {
+    // Create mutable metadata object that can be updated with edge count
+    const metadata: { operation: string; nodeId: string; edgeCount: number } = {
+      operation: 'getEdges',
+      nodeId,
+      edgeCount: 0
+    }
 
-      if (!queryResult.success) {
-        if (this.deps.config.debug && this.deps.logWarn) {
-          this.deps.logWarn(`Could not get edges for node ${nodeId}: ${queryResult.error}`)
+    const edges = await this.deps.performanceMonitor.measure('graph.getEdges', async () => {
+      try {
+        // Use secure parameterized query for getEdges
+        const secureQuery = this.deps.buildSecureQuery('getEdges', nodeId, edgeTypes)
+        const queryResult = await this.deps.executeSecureQuery(secureQuery)
+
+        if (!queryResult.success) {
+          if (this.deps.config.debug && this.deps.logWarn) {
+            this.deps.logWarn(`Could not get edges for node ${nodeId}: ${queryResult.error}`)
+          }
+          return []
         }
-        return []
-      }
 
-      // Process the query results to build edge objects
-      const edges: GraphEdge[] = []
+        // Process the query results to build edge objects
+        const edges: GraphEdge[] = []
 
-      if (queryResult.data && typeof queryResult.data.getAll === 'function') {
-        const rows = await queryResult.data.getAll()
+        if (queryResult.data && typeof queryResult.data.getAll === 'function') {
+          const rows = await queryResult.data.getAll()
 
-        for (const row of rows) {
-          // Row should contain: a.id, b.id, r.type, r.data
-          // Parse properties from r.data field with explicit structure validation
-          let properties = {}
-          try {
-            const dataField = row['r.data']
-            if (dataField) {
-              // r.data contains the full edge object as JSON string
-              const parsed = typeof dataField === 'string' ? JSON.parse(dataField) : dataField
+          for (const row of rows) {
+            // Row should contain: a.id, b.id, r.type, r.data
+            // Parse properties from r.data field with explicit structure validation
+            let properties = {}
+            try {
+              const dataField = row['r.data']
+              if (dataField) {
+                // r.data contains the full edge object as JSON string
+                const parsed = typeof dataField === 'string' ? JSON.parse(dataField) : dataField
 
-              // More explicit structure validation
-              if (parsed && typeof parsed === 'object') {
-                if ('properties' in parsed) {
-                  // Check if properties field is actually an object
-                  if (typeof parsed.properties === 'object' && parsed.properties !== null) {
-                    // Standard case: parsed is the full edge object with valid properties field
-                    properties = parsed.properties
+                // More explicit structure validation
+                if (parsed && typeof parsed === 'object') {
+                  if ('properties' in parsed) {
+                    // Check if properties field is actually an object
+                    if (typeof parsed.properties === 'object' && parsed.properties !== null) {
+                      // Standard case: parsed is the full edge object with valid properties field
+                      properties = parsed.properties
+                    } else {
+                      // properties field exists but is not a valid object (e.g., string, number)
+                      if (this.deps.config.debug && this.deps.logWarn) {
+                        this.deps.logWarn(`Unexpected edge data structure: properties field is ${typeof parsed.properties}, not object`)
+                      }
+                      properties = {}
+                    }
+                  } else if (!('from' in parsed) && !('to' in parsed) && !('type' in parsed)) {
+                    // Edge case: parsed is the properties object directly (no edge metadata)
+                    properties = parsed
                   } else {
-                    // properties field exists but is not a valid object (e.g., string, number)
+                    // Unexpected structure - has edge metadata but no properties field
                     if (this.deps.config.debug && this.deps.logWarn) {
-                      this.deps.logWarn(`Unexpected edge data structure: properties field is ${typeof parsed.properties}, not object`)
+                      this.deps.logWarn(`Unexpected edge data structure: ${JSON.stringify(Object.keys(parsed))}`)
                     }
                     properties = {}
                   }
-                } else if (!('from' in parsed) && !('to' in parsed) && !('type' in parsed)) {
-                  // Edge case: parsed is the properties object directly (no edge metadata)
-                  properties = parsed
-                } else {
-                  // Unexpected structure - has edge metadata but no properties field
-                  if (this.deps.config.debug && this.deps.logWarn) {
-                    this.deps.logWarn(`Unexpected edge data structure: ${JSON.stringify(Object.keys(parsed))}`)
-                  }
-                  properties = {}
                 }
               }
+            } catch (error) {
+              if (this.deps.config.debug && this.deps.logWarn) {
+                this.deps.logWarn(`Could not parse edge properties: ${error}`)
+              }
+              properties = {}
             }
-          } catch (error) {
-            if (this.deps.config.debug && this.deps.logWarn) {
-              this.deps.logWarn(`Could not parse edge properties: ${error}`)
-            }
-            properties = {}
-          }
 
-          const edge: GraphEdge = {
-            from: row['a.id'],
-            to: row['b.id'],
-            type: row['r.type'],
-            properties
+            const edge: GraphEdge = {
+              from: row['a.id'],
+              to: row['b.id'],
+              type: row['r.type'],
+              properties
+            }
+            edges.push(edge)
           }
-          edges.push(edge)
         }
-      }
 
-      return edges
-    } catch (error) {
-      // Return empty array instead of throwing to prevent test hangs
-      if (this.deps.config.debug && this.deps.logWarn) {
-        this.deps.logWarn(`Could not get edges for node ${nodeId}: ${error}`)
+        // Update mutable metadata object with actual edge count
+        metadata.edgeCount = edges.length
+        return edges
+      } catch (error) {
+        // Return empty array instead of throwing to prevent test hangs
+        if (this.deps.config.debug && this.deps.logWarn) {
+          this.deps.logWarn(`Could not get edges for node ${nodeId}: ${error}`)
+        }
+        return []
       }
-      return []
-    }
+    }, metadata)
+
+    return edges
   }
 
   /**

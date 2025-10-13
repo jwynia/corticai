@@ -398,15 +398,17 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
 
   /**
    * Get all edges from a node
+   * @param nodeId - The node ID to get edges from
+   * @param edgeTypes - Optional array of edge types to filter by
    */
-  async getEdges(nodeId: string): Promise<GraphEdge[]> {
+  async getEdges(nodeId: string, edgeTypes?: string[]): Promise<GraphEdge[]> {
     await this.ensureLoaded()
 
     if (!this.graphOps) {
       throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
     }
 
-    return await this.graphOps.getEdges(nodeId)
+    return await this.graphOps.getEdges(nodeId, edgeTypes)
   }
 
   /**
