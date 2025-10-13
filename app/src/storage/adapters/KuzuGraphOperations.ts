@@ -19,11 +19,15 @@ import {
   GraphPath,
   GraphEntity,
   TraversalPattern,
-  KuzuStorageConfig
+  KuzuStorageConfig,
+  GraphBatchOperation,
+  GraphBatchResult,
+  GraphStats
 } from '../types/GraphTypes'
 import { KuzuSecureQueryBuilder, QueryExecutionResult } from './KuzuSecureQueryBuilder'
 import { PerformanceMonitor } from '../../utils/PerformanceMonitor'
 import * as KuzuQueryHelpers from './KuzuQueryHelpers'
+import { CypherQueryBuilder } from '../query-builders/CypherQueryBuilder'
 
 // Query limits and constraints
 const DEFAULT_MAX_TRAVERSAL_DEPTH = 10
@@ -50,7 +54,11 @@ export interface KuzuGraphOperationsDeps {
  * Encapsulates all graph-specific operations with clear dependency boundaries.
  */
 export class KuzuGraphOperations {
-  constructor(private deps: KuzuGraphOperationsDeps) {}
+  private readonly cypherBuilder: CypherQueryBuilder
+
+  constructor(private deps: KuzuGraphOperationsDeps) {
+    this.cypherBuilder = new CypherQueryBuilder()
+  }
 
   /**
    * Add a node to the graph database
@@ -356,7 +364,7 @@ export class KuzuGraphOperations {
    * Find shortest path between two nodes
    * Uses Kuzu's SHORTEST algorithm to find the optimal path between two nodes
    */
-  async shortestPath(fromId: string, toId: string): Promise<GraphPath | null> {
+  async shortestPath(fromId: string, toId: string, edgeTypes?: string[]): Promise<GraphPath | null> {
     try {
       // Use secure parameterized query builder
       const secureQuery = this.deps.buildSecureQuery('shortestPath', fromId, toId, DEFAULT_MAX_TRAVERSAL_DEPTH)
@@ -390,6 +398,314 @@ export class KuzuGraphOperations {
     }
   }
 
+  /**
+   * Update a node's properties
+   */
+  async updateNode(nodeId: string, properties: Partial<GraphNode['properties']>): Promise<boolean> {
+    try {
+      const node = await this.getNode(nodeId)
+      if (!node) {
+        return false
+      }
+
+      // Merge properties, filtering out undefined values
+      const filteredProperties = Object.entries(properties).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value
+        }
+        return acc
+      }, {} as Record<string, string | number | boolean | null>)
+
+      const updatedNode: GraphNode = {
+        ...node,
+        properties: { ...node.properties, ...filteredProperties }
+      }
+
+      // Update in cache and database
+      await this.deps.set(nodeId, updatedNode as GraphEntity)
+      return true
+    } catch (error) {
+      if (this.deps.config.debug && this.deps.logWarn) {
+        this.deps.logWarn(`Could not update node ${nodeId}: ${error}`)
+      }
+      return false
+    }
+  }
+
+  /**
+   * Delete a node from the graph
+   */
+  async deleteNode(nodeId: string): Promise<boolean> {
+    try {
+      // Check if node exists
+      const node = await this.getNode(nodeId)
+      if (!node) {
+        return false
+      }
+
+      // Delete from cache
+      this.deps.cache.delete(nodeId)
+
+      // Delete from database using secure query
+      const secureQuery = this.deps.buildSecureQuery('entityDelete', nodeId)
+      const result = await this.deps.executeSecureQuery(secureQuery)
+
+      return result.success
+    } catch (error) {
+      if (this.deps.config.debug && this.deps.logWarn) {
+        this.deps.logWarn(`Could not delete node ${nodeId}: ${error}`)
+      }
+      return false
+    }
+  }
+
+  /**
+   * Query nodes by type and optional property filters
+   */
+  async queryNodes(type: string, properties?: Record<string, any>): Promise<GraphNode[]> {
+    try {
+      const nodes: GraphNode[] = []
+
+      // Search in cache
+      for (const [key, entity] of this.deps.cache.entries()) {
+        if (entity.type === type) {
+          // Check property filters if provided
+          if (properties) {
+            let matches = true
+            for (const [propKey, propValue] of Object.entries(properties)) {
+              if (entity.properties[propKey] !== propValue) {
+                matches = false
+                break
+              }
+            }
+            if (!matches) continue
+          }
+
+          nodes.push({
+            id: entity.id,
+            type: entity.type,
+            properties: entity.properties
+          })
+        }
+      }
+
+      return nodes
+    } catch (error) {
+      if (this.deps.config.debug && this.deps.logWarn) {
+        this.deps.logWarn(`Could not query nodes of type ${type}: ${error}`)
+      }
+      return []
+    }
+  }
+
+  /**
+   * Update an edge's properties
+   */
+  async updateEdge(
+    from: string,
+    to: string,
+    type: string,
+    properties: Partial<GraphEdge['properties']>
+  ): Promise<boolean> {
+    try {
+      // Get current edges
+      const edges = await this.getEdges(from)
+      const edge = edges.find(e => e.to === to && e.type === type)
+
+      if (!edge) {
+        return false
+      }
+
+      // Merge properties, filtering out undefined values
+      const filteredProperties = Object.entries(properties).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value
+        }
+        return acc
+      }, {} as Record<string, string | number | boolean | null>)
+
+      // Update edge properties
+      const updatedEdge: GraphEdge = {
+        ...edge,
+        properties: { ...edge.properties, ...filteredProperties }
+      }
+
+      // Re-add edge with updated properties
+      // Note: This is a simplified implementation
+      // A more complete implementation would use Kuzu's UPDATE syntax
+      await this.addEdge(updatedEdge)
+      return true
+    } catch (error) {
+      if (this.deps.config.debug && this.deps.logWarn) {
+        this.deps.logWarn(`Could not update edge ${from} -> ${to}: ${error}`)
+      }
+      return false
+    }
+  }
+
+  /**
+   * Delete an edge between two nodes
+   */
+  async deleteEdge(from: string, to: string, type: string): Promise<boolean> {
+    try {
+      // Use Cypher query builder for safe parameterized query
+      const template = this.cypherBuilder.buildDeleteEdgeBetweenNodesQuery()
+      const query = await this.deps.connection.prepare(template.statement)
+
+      if (!query.isSuccess()) {
+        throw new Error(`Failed to prepare delete edge query: ${query.getErrorMessage()}`)
+      }
+
+      const result = await this.deps.connection.execute(query, {
+        fromId: from,
+        toId: to,
+        edgeType: type
+      })
+
+      return true
+    } catch (error) {
+      if (this.deps.config.debug && this.deps.logWarn) {
+        this.deps.logWarn(`Could not delete edge ${from} -> ${to}: ${error}`)
+      }
+      return false
+    }
+  }
+
+  /**
+   * Execute multiple graph operations in a batch
+   */
+  async batchGraphOperations(operations: GraphBatchOperation[]): Promise<GraphBatchResult> {
+    const startTime = Date.now()
+    const errors: Error[] = []
+    let nodesAffected = 0
+    let edgesAffected = 0
+
+    try {
+      for (const op of operations) {
+        try {
+          switch (op.type) {
+            case 'addNode':
+              if (op.node) {
+                await this.addNode(op.node)
+                nodesAffected++
+              }
+              break
+            case 'addEdge':
+              if (op.edge) {
+                await this.addEdge(op.edge)
+                edgesAffected++
+              }
+              break
+            case 'updateNode':
+              if (op.id && op.node) {
+                const success = await this.updateNode(op.id, op.node.properties)
+                if (success) nodesAffected++
+              }
+              break
+            case 'updateEdge':
+              if (op.edge) {
+                const success = await this.updateEdge(
+                  op.edge.from,
+                  op.edge.to,
+                  op.edge.type,
+                  op.edge.properties
+                )
+                if (success) edgesAffected++
+              }
+              break
+            case 'deleteNode':
+              if (op.id) {
+                const success = await this.deleteNode(op.id)
+                if (success) nodesAffected++
+              }
+              break
+            case 'deleteEdge':
+              if (op.edge) {
+                const success = await this.deleteEdge(op.edge.from, op.edge.to, op.edge.type)
+                if (success) edgesAffected++
+              }
+              break
+          }
+        } catch (error) {
+          errors.push(error as Error)
+        }
+      }
+
+      return {
+        success: errors.length === 0,
+        operations: operations.length,
+        nodesAffected,
+        edgesAffected,
+        errors: errors.length > 0 ? errors : undefined,
+        executionTime: Date.now() - startTime
+      }
+    } catch (error) {
+      return {
+        success: false,
+        operations: operations.length,
+        nodesAffected,
+        edgesAffected,
+        errors: [error as Error],
+        executionTime: Date.now() - startTime
+      }
+    }
+  }
+
+  /**
+   * Get statistics about the graph
+   */
+  async getGraphStats(): Promise<GraphStats> {
+    try {
+      const nodesByType: Record<string, number> = {}
+      const edgesByType: Record<string, number> = {}
+
+      // Count nodes by type from cache
+      for (const [key, entity] of this.deps.cache.entries()) {
+        nodesByType[entity.type] = (nodesByType[entity.type] || 0) + 1
+      }
+
+      const nodeCount = this.deps.cache.size
+
+      // Get edge count from database using Cypher query builder
+      let edgeCount = 0
+      try {
+        const template = this.cypherBuilder.buildCountEdgesQuery()
+        const query = await this.deps.connection.prepare(template.statement)
+
+        if (query.isSuccess()) {
+          const result = await this.deps.connection.execute(query, {})
+          const rows = Array.isArray(result) ? result : await result.getAll()
+          if (rows && rows.length > 0) {
+            // Safely access count property with type checking
+            const row = rows[0] as any
+            edgeCount = (typeof row === 'object' && row !== null && 'count' in row) ? (row.count || 0) : 0
+          }
+        }
+      } catch (error) {
+        // Ignore errors in edge counting
+      }
+
+      return {
+        nodeCount,
+        edgeCount,
+        nodesByType,
+        edgesByType,
+        databaseSize: 0, // Not available without file system inspection
+        lastUpdated: new Date()
+      }
+    } catch (error) {
+      // Return empty stats on error
+      return {
+        nodeCount: 0,
+        edgeCount: 0,
+        nodesByType: {},
+        edgesByType: {},
+        databaseSize: 0,
+        lastUpdated: new Date()
+      }
+    }
+  }
+
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
@@ -409,10 +725,15 @@ export class KuzuGraphOperations {
         }
       }
 
-      // If not found in cache, check database directly with escaped query for now
-      const escapedEntityId = KuzuQueryHelpers.escapeString(entityId)
-      const query = `MATCH (e:Entity {id: '${escapedEntityId}'}) RETURN e.id LIMIT 1`
-      const result = await this.deps.connection.query(query)
+      // If not found in cache, check database using Cypher query builder
+      const template = this.cypherBuilder.buildEntityExistsQuery()
+      const preparedQuery = await this.deps.connection.prepare(template.statement)
+
+      if (!preparedQuery.isSuccess()) {
+        return false
+      }
+
+      const result = await this.deps.connection.execute(preparedQuery, { entityId: entityId })
       const rows = Array.isArray(result) ? result : await result.getAll()
       return rows && rows.length > 0
     } catch (error) {

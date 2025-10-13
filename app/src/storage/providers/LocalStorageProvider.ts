@@ -10,13 +10,11 @@ import { KuzuStorageAdapter } from '../adapters/KuzuStorageAdapter'
 import { DuckDBStorageAdapter } from '../adapters/DuckDBStorageAdapter'
 import {
   IStorageProvider,
-  PrimaryStorage,
-  SemanticStorage,
   StorageProviderConfig,
-  StorageProviderStatus,
-  SearchOptions,
-  AggregateOperation
+  StorageProviderStatus
 } from './IStorageProvider'
+import { PrimaryStorage } from '../interfaces/PrimaryStorage'
+import { SemanticStorage } from '../interfaces/SemanticStorage'
 import { GraphEntity } from '../types/GraphTypes'
 import { Logger } from '../../utils/Logger'
 
@@ -163,134 +161,13 @@ class EnhancedKuzuAdapter extends KuzuStorageAdapter {
 
 /**
  * Enhanced DuckDBStorageAdapter with semantic operations
+ *
+ * Note: DuckDBStorageAdapter now fully implements SemanticStorage interface,
+ * so this class only adds provider-specific extensions.
  */
-class EnhancedDuckDBAdapter<T = any> extends DuckDBStorageAdapter<T> implements SemanticStorage<T> {
-  /**
-   * Search functionality using SQL queries
-   */
-  async search(query: string, options: SearchOptions = {}): Promise<T[]> {
-    // For now, implement a simple text search
-    const results: T[] = []
-    const limit = options.limit || 100
-    const offset = options.offset || 0
-    let count = 0
-    let skipped = 0
-
-    for await (const [key, value] of this.entries()) {
-      if (skipped < offset) {
-        skipped++
-        continue
-      }
-
-      if (count >= limit) {
-        break
-      }
-
-      // Simple text matching
-      const valueStr = JSON.stringify(value).toLowerCase()
-      if (valueStr.includes(query.toLowerCase())) {
-        results.push(value)
-        count++
-      }
-    }
-
-    return results
-  }
-
-  /**
-   * Aggregate operations
-   */
-  async aggregate(operation: AggregateOperation): Promise<any> {
-    const values: any[] = []
-
-    for await (const value of this.values()) {
-      values.push(value)
-    }
-
-    switch (operation.type) {
-      case 'count':
-        return values.length
-
-      case 'sum':
-        if (!operation.field) throw new Error('Field required for sum operation')
-        return values.reduce((sum, item) => sum + (Number(item[operation.field!]) || 0), 0)
-
-      case 'avg':
-        if (!operation.field) throw new Error('Field required for avg operation')
-        const sum = values.reduce((sum, item) => sum + (Number(item[operation.field!]) || 0), 0)
-        return values.length > 0 ? sum / values.length : 0
-
-      case 'min':
-        if (!operation.field) throw new Error('Field required for min operation')
-        return Math.min(...values.map(item => Number(item[operation.field!]) || 0))
-
-      case 'max':
-        if (!operation.field) throw new Error('Field required for max operation')
-        return Math.max(...values.map(item => Number(item[operation.field!]) || 0))
-
-      default:
-        throw new Error(`Unsupported aggregate operation: ${operation.type}`)
-    }
-  }
-
-  /**
-   * Create materialized view (simplified implementation)
-   */
-  async createView(name: string, query: string): Promise<void> {
-    // Store view definition
-    const viewMetadata: ViewMetadata = {
-      name,
-      query,
-      createdAt: new Date().toISOString()
-    }
-    await this.set(`__view_${name}`, viewMetadata as T)
-  }
-
-  /**
-   * Refresh materialized view
-   */
-  async refreshView(name: string): Promise<void> {
-    // In a full implementation, this would re-execute the view query
-    // For now, just update the timestamp
-    const view = await this.get(`__view_${name}`)
-    if (view && typeof view === 'object' && view !== null) {
-      // Create updated view with lastRefreshed
-      const updatedView = {
-        ...view,
-        lastRefreshed: new Date().toISOString()
-      }
-      await this.set(`__view_${name}`, updatedView as T)
-    }
-  }
-
-  /**
-   * Get materialized view data
-   */
-  async getView(name: string): Promise<T[]> {
-    // For now, return empty array
-    // In a full implementation, this would return the view's computed data
-    return []
-  }
-
-  /**
-   * Create index (no-op for DuckDB adapter)
-   */
-  async createIndex(fields: string[]): Promise<void> {
-    // DuckDB handles indexing automatically
-    if (this.config.debug) {
-      logger.debug(`Index creation requested for fields: ${fields.join(', ')}`)
-    }
-  }
-
-  /**
-   * Drop index (no-op for DuckDB adapter)
-   */
-  async dropIndex(fields: string[]): Promise<void> {
-    // DuckDB handles indexing automatically
-    if (this.config.debug) {
-      logger.debug(`Index removal requested for fields: ${fields.join(', ')}`)
-    }
-  }
+class EnhancedDuckDBAdapter<T = any> extends DuckDBStorageAdapter<T> {
+  // DuckDBStorageAdapter now implements SemanticStorage interface
+  // No additional overrides needed
 }
 
 /**

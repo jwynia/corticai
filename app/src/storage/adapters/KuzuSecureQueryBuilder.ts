@@ -3,10 +3,16 @@
  *
  * Provides parameterized query construction to prevent SQL injection
  * vulnerabilities while working with Kuzu's Cypher-like query language.
+ *
+ * This class delegates query language syntax to CypherQueryBuilder and focuses on:
+ * - Parameter validation and sanitization
+ * - Query execution with Kuzu connection
+ * - Error handling and monitoring
  */
 
 import { Connection, PreparedStatement } from 'kuzu'
 import { Logger } from '../../utils/Logger'
+import { CypherQueryBuilder } from '../query-builders/CypherQueryBuilder'
 
 // Module-level logger for external functions
 const queryExecutionLogger = Logger.createConsoleLogger('KuzuQueryExecution')
@@ -35,18 +41,21 @@ export interface SecureQuery {
 export class KuzuSecureQueryBuilder {
   private connection: Connection
   private readonly logger: Logger
+  private readonly cypherBuilder: CypherQueryBuilder
 
   constructor(connection: Connection) {
     this.logger = Logger.createConsoleLogger('KuzuSecureQueryBuilder')
     this.connection = connection
+    this.cypherBuilder = new CypherQueryBuilder()
   }
 
   /**
    * Build a secure query for storing/updating an entity
    */
   buildEntityStoreQuery(key: string, entityId: string, type: string, data: string): SecureQuery {
+    const template = this.cypherBuilder.buildEntityStoreQuery()
     return {
-      statement: 'MERGE (e:Entity {id: $id}) SET e.type = $type, e.data = $data',
+      statement: template.statement,
       parameters: {
         id: entityId,
         type: type,
@@ -59,8 +68,9 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for deleting an entity
    */
   buildEntityDeleteQuery(entityId: string): SecureQuery {
+    const template = this.cypherBuilder.buildEntityDeleteQuery()
     return {
-      statement: 'MATCH (e:Entity {id: $id}) DETACH DELETE e',
+      statement: template.statement,
       parameters: {
         id: entityId
       }
@@ -71,8 +81,9 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for creating an edge between entities
    */
   buildEdgeCreateQuery(fromId: string, toId: string, edgeType: string, edgeData: string): SecureQuery {
+    const template = this.cypherBuilder.buildEdgeCreateQuery()
     return {
-      statement: 'MATCH (a:Entity), (b:Entity) WHERE a.id = $fromId AND b.id = $toId CREATE (a)-[:Relationship {type: $edgeType, data: $edgeData}]->(b)',
+      statement: template.statement,
       parameters: {
         fromId: fromId,
         toId: toId,
@@ -89,20 +100,14 @@ export class KuzuSecureQueryBuilder {
    * @param edgeTypes - Optional array of edge types to filter by
    */
   buildGetEdgesQuery(nodeId: string, edgeTypes?: string[]): SecureQuery {
-    // Build edge type filter string
-    // If edgeTypes is provided, filter by those types
-    // Otherwise, return all :Relationship edges
-    let typeFilter = ':Relationship'
-    if (edgeTypes && edgeTypes.length > 0) {
-      // Use Cypher standard multi-type syntax: :TYPE1|TYPE2|TYPE3
-      typeFilter = `:${edgeTypes.join('|')}`
-    }
+    const template = this.cypherBuilder.buildGetEdgesQuery()
+
+    // Build edge type filter and inject into query
+    const typeFilter = this.cypherBuilder.buildEdgeTypeFilter(edgeTypes)
+    const statement = template.statement.replace(':Relationship', typeFilter)
 
     return {
-      statement: `
-        MATCH (a:Entity {id: $nodeId})-[r${typeFilter}]->(b:Entity)
-        RETURN a.id, b.id, r.type, r.data
-      `.trim(),
+      statement,
       parameters: {
         nodeId: nodeId
       }
@@ -133,39 +138,18 @@ export class KuzuSecureQueryBuilder {
     // Get validated result limit
     const resultLimit = this.getResultLimit(options, DEFAULT_TRAVERSAL_LIMIT)
 
-    // Build edge type filter string
-    // Default to :Relationship if no edge types specified
-    let typeFilter = ':Relationship'
-    if (edgeTypes && edgeTypes.length > 0) {
-      // Use Cypher standard multi-type syntax: :TYPE1|TYPE2|TYPE3
-      typeFilter = `:${edgeTypes.join('|')}`
-    }
+    // Build edge type filter and inject into relationship pattern
+    const typeFilter = this.cypherBuilder.buildEdgeTypeFilter(edgeTypes)
+    const normalizedPattern = this.cypherBuilder.injectTypeFilterIntoPattern(relationshipPattern, typeFilter)
 
-    // Normalize relationship pattern to include edge type filter
-    let normalizedPattern = relationshipPattern
-    if (normalizedPattern.includes('[') && !normalizedPattern.includes(':')) {
-      // Add type filter to patterns like -[r*1..2]- or -[*1..2]-
-      // Type must come before the variable-length spec: -[r:TYPE1|TYPE2*1..2]-
-      normalizedPattern = normalizedPattern.replace(/\[([a-z]*)\*/, `[$1${typeFilter}*`)
-    }
-
-    // Use the normalized relationshipPattern to respect direction
-    let statement = `MATCH path = (source:Entity {id: $startNodeId})${normalizedPattern}(target:Entity)`
-    const parameters: QueryParameters = {
-      startNodeId: startNodeId
-    }
-
-    // For single-hop relationships, path length is always 1
-    // For variable-length paths, we would use length(r)
-    if (statement.includes('*')) {
-      statement += ` RETURN path, length(r) as pathLength LIMIT ${resultLimit}`
-    } else {
-      statement += ` RETURN path, 1 as pathLength LIMIT ${resultLimit}`
-    }
+    // Get query template from Cypher builder
+    const template = this.cypherBuilder.buildTraversalQuery(normalizedPattern, maxDepth, resultLimit)
 
     return {
-      statement,
-      parameters
+      statement: template.statement,
+      parameters: {
+        startNodeId: startNodeId
+      }
     }
   }
 
@@ -185,8 +169,11 @@ export class KuzuSecureQueryBuilder {
     // Get validated result limit
     const resultLimit = this.getResultLimit(options, DEFAULT_SEARCH_LIMIT)
 
+    // Get query template from Cypher builder
+    const template = this.cypherBuilder.buildFindConnectedQuery(depth, resultLimit)
+
     return {
-      statement: `MATCH (source:Entity {id: $nodeId})-[*1..${depth}]-(connected:Entity) WHERE connected.id <> $nodeId RETURN DISTINCT connected.id as id, connected.type as type, connected.data as data LIMIT ${resultLimit}`,
+      statement: template.statement,
       parameters: {
         nodeId: nodeId
       }
@@ -210,8 +197,11 @@ export class KuzuSecureQueryBuilder {
     // Get validated result limit
     const resultLimit = this.getResultLimit(options, DEFAULT_SHORTEST_PATH_LIMIT)
 
+    // Get query template from Cypher builder
+    const template = this.cypherBuilder.buildShortestPathQuery(maxDepth, resultLimit)
+
     return {
-      statement: `MATCH path = (sourceNode:Entity {id: $fromId})-[r* SHORTEST 1..${maxDepth}]-(targetNode:Entity {id: $toId}) RETURN path, length(r) as pathLength LIMIT ${resultLimit}`,
+      statement: template.statement,
       parameters: {
         fromId: fromId,
         toId: toId
@@ -223,8 +213,9 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for getting a single node by ID
    */
   buildGetNodeQuery(nodeId: string): SecureQuery {
+    const template = this.cypherBuilder.buildGetNodeQuery()
     return {
-      statement: 'MATCH (n:Entity {id: $nodeId}) RETURN n.id as id, n.type as type, n.data as properties, n.metadata as metadata',
+      statement: template.statement,
       parameters: {
         nodeId: nodeId
       }
@@ -239,25 +230,15 @@ export class KuzuSecureQueryBuilder {
     edgeTypes?: string[],
     direction: 'outgoing' | 'incoming' | 'both' = 'outgoing'
   ): SecureQuery {
-    // Build edge type filter string
-    let typeFilter = ':Relationship'
-    if (edgeTypes && edgeTypes.length > 0) {
-      // Use Cypher standard multi-type syntax: :TYPE1|TYPE2|TYPE3
-      typeFilter = `:${edgeTypes.join('|')}`
-    }
+    // Get query template from Cypher builder
+    const template = this.cypherBuilder.buildGetNeighborsQuery(direction)
 
-    let relationshipPattern = ''
-
-    if (direction === 'outgoing') {
-      relationshipPattern = `-[r${typeFilter}]->`
-    } else if (direction === 'incoming') {
-      relationshipPattern = `<-[r${typeFilter}]-`
-    } else {
-      relationshipPattern = `-[r${typeFilter}]-`
-    }
+    // Build edge type filter and inject into query
+    const typeFilter = this.cypherBuilder.buildEdgeTypeFilter(edgeTypes)
+    const statement = template.statement.replace(':Relationship', typeFilter)
 
     return {
-      statement: `MATCH (n:Entity {id: $nodeId})${relationshipPattern}(neighbor:Entity) RETURN neighbor.id as neighborId`,
+      statement,
       parameters: {
         nodeId: nodeId
       }
@@ -268,8 +249,9 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for adding a node
    */
   buildAddNodeQuery(node: { id: string; type: string; properties?: any; metadata?: any }): SecureQuery {
+    const template = this.cypherBuilder.buildAddNodeQuery()
     return {
-      statement: 'CREATE (n:Entity {id: $id, type: $type, data: $properties, metadata: $metadata})',
+      statement: template.statement,
       parameters: {
         id: node.id,
         type: node.type,
@@ -283,14 +265,16 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for adding an edge
    */
   buildAddEdgeQuery(edge: { id: string; type: string; source: string; target: string; properties?: any }): SecureQuery {
+    const template = this.cypherBuilder.buildEdgeCreateQuery()
     return {
-      statement: 'MATCH (a:Entity {id: $source}), (b:Entity {id: $target}) CREATE (a)-[r:Relationship {id: $id, type: $type, data: $properties}]->(b)',
+      statement: template.statement,
       parameters: {
         id: edge.id,
         type: edge.type,
-        source: edge.source,
-        target: edge.target,
-        properties: JSON.stringify(edge.properties || {})
+        fromId: edge.source,
+        toId: edge.target,
+        edgeType: edge.type,
+        edgeData: JSON.stringify(edge.properties || {})
       }
     }
   }
@@ -299,8 +283,9 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for deleting a node
    */
   buildDeleteNodeQuery(nodeId: string): SecureQuery {
+    const template = this.cypherBuilder.buildDeleteNodeQuery()
     return {
-      statement: 'MATCH (n:Entity {id: $nodeId}) DETACH DELETE n',
+      statement: template.statement,
       parameters: {
         nodeId: nodeId
       }
@@ -311,8 +296,9 @@ export class KuzuSecureQueryBuilder {
    * Build a secure query for deleting an edge
    */
   buildDeleteEdgeQuery(edgeId: string): SecureQuery {
+    const template = this.cypherBuilder.buildDeleteEdgeQuery()
     return {
-      statement: 'MATCH ()-[r:Relationship {id: $edgeId}]-() DELETE r',
+      statement: template.statement,
       parameters: {
         edgeId: edgeId
       }

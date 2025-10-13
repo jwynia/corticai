@@ -304,9 +304,12 @@ export enum StorageErrorCode {
   INVALID_KEY = 'INVALID_KEY',
   INVALID_VALUE = 'INVALID_VALUE',
   SERIALIZATION_FAILED = 'SERIALIZATION_FAILED',
-  
+
   // I/O errors
-  IO_ERROR = 'IO_ERROR'
+  IO_ERROR = 'IO_ERROR',
+
+  // Feature errors
+  NOT_IMPLEMENTED = 'NOT_IMPLEMENTED'
 }
 
 /**

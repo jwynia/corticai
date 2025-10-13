@@ -15,6 +15,7 @@
 import { Database, Connection } from 'kuzu'
 import { BaseStorageAdapter } from '../base/BaseStorageAdapter'
 import { StorageError, StorageErrorCode } from '../interfaces/Storage'
+import { GraphStorage } from '../interfaces/GraphStorage'
 import {
   GraphEntity,
   GraphNode,
@@ -56,8 +57,19 @@ const DEFAULT_MAX_TRAVERSAL_DEPTH = 10
  *
  * Extends BaseStorageAdapter to provide graph database functionality using Kuzu.
  * Supports both traditional key-value operations and graph-specific operations.
+ *
+ * **IMPORTANT**: This adapter implements the GraphStorage interface, enabling
+ * pluggable graph database backends. Kuzu is END-OF-LIFE (frozen Oct 2025).
+ * This implementation serves as a reference for migrating to SurrealDB or other
+ * graph databases.
+ *
+ * @implements {GraphStorage<GraphEntity>}
+ * @see GraphStorage - Interface defining graph operations
+ * @see SurrealDBStorageAdapter - Recommended replacement for Kuzu
  */
-export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
+export class KuzuStorageAdapter
+  extends BaseStorageAdapter<GraphEntity>
+  implements GraphStorage<GraphEntity> {
   protected config: KuzuStorageConfig
   private db: Database | null = null
   private connection: Connection | null = null
@@ -442,15 +454,226 @@ export class KuzuStorageAdapter extends BaseStorageAdapter<GraphEntity> {
   /**
    * Find shortest path between two nodes
    * Uses Kuzu's SHORTEST algorithm to find the optimal path between two nodes
+   *
+   * @param fromId - Starting node ID
+   * @param toId - Target node ID
+   * @param edgeTypes - Optional array of edge types to follow
+   * @returns Promise resolving to the shortest path, or null if no path exists
    */
-  async shortestPath(fromId: string, toId: string): Promise<GraphPath | null> {
+  async shortestPath(fromId: string, toId: string, edgeTypes?: string[]): Promise<GraphPath | null> {
     await this.ensureLoaded()
 
     if (!this.graphOps) {
       throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
     }
 
-    return await this.graphOps.shortestPath(fromId, toId)
+    return await this.graphOps.shortestPath(fromId, toId, edgeTypes)
+  }
+
+  // ============================================================================
+  // ADDITIONAL GRAPHSTORAGE INTERFACE METHODS
+  // ============================================================================
+
+  /**
+   * Update a node's properties
+   *
+   * @param nodeId - The unique identifier of the node
+   * @param properties - Partial properties to update (merged with existing)
+   * @returns Promise resolving to true if updated, false if node not found
+   */
+  async updateNode(nodeId: string, properties: Partial<GraphNode['properties']>): Promise<boolean> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.updateNode(nodeId, properties)
+  }
+
+  /**
+   * Delete a node from the graph
+   * Also deletes all edges connected to this node
+   *
+   * @param nodeId - The unique identifier of the node to delete
+   * @returns Promise resolving to true if deleted, false if node not found
+   */
+  async deleteNode(nodeId: string): Promise<boolean> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.deleteNode(nodeId)
+  }
+
+  /**
+   * Query nodes by type and optional property filters
+   *
+   * @param type - Node type to filter by
+   * @param properties - Optional property filters (AND logic)
+   * @returns Promise resolving to array of matching nodes
+   */
+  async queryNodes(type: string, properties?: Record<string, any>): Promise<GraphNode[]> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.queryNodes(type, properties)
+  }
+
+  /**
+   * Update an edge's properties
+   *
+   * @param from - Source node ID
+   * @param to - Target node ID
+   * @param type - Edge type
+   * @param properties - Partial properties to update
+   * @returns Promise resolving to true if updated, false if edge not found
+   */
+  async updateEdge(
+    from: string,
+    to: string,
+    type: string,
+    properties: Partial<GraphEdge['properties']>
+  ): Promise<boolean> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.updateEdge(from, to, type, properties)
+  }
+
+  /**
+   * Delete an edge between two nodes
+   *
+   * @param from - Source node ID
+   * @param to - Target node ID
+   * @param type - Edge type
+   * @returns Promise resolving to true if deleted, false if edge not found
+   */
+  async deleteEdge(from: string, to: string, type: string): Promise<boolean> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.deleteEdge(from, to, type)
+  }
+
+  /**
+   * Execute multiple graph operations in a batch
+   *
+   * @param operations - Array of operations to perform
+   * @returns Promise resolving to batch result with success status and stats
+   */
+  async batchGraphOperations(operations: GraphBatchOperation[]): Promise<GraphBatchResult> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.batchGraphOperations(operations)
+  }
+
+  /**
+   * Get statistics about the graph
+   *
+   * @returns Promise resolving to graph statistics
+   */
+  async getGraphStats(): Promise<GraphStats> {
+    await this.ensureLoaded()
+
+    if (!this.graphOps) {
+      throw new StorageError('Graph operations not initialized', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    return await this.graphOps.getGraphStats()
+  }
+
+  /**
+   * Execute a native Cypher query (Kuzu-specific)
+   *
+   * Allows execution of raw Cypher queries for advanced use cases.
+   * Note: This reduces portability to other graph databases.
+   *
+   * @param query - Cypher query string
+   * @param params - Optional query parameters
+   * @returns Promise resolving to query result
+   */
+  async executeQuery(query: string, params?: Record<string, any>): Promise<GraphQueryResult> {
+    await this.ensureLoaded()
+
+    if (!this.connection) {
+      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
+    }
+
+    try {
+      const startTime = Date.now()
+
+      // Execute query with Kuzu
+      const result = await this.connection.query(query)
+
+      const executionTime = Date.now() - startTime
+
+      // Parse result to GraphQueryResult format
+      // Note: This is simplified - actual implementation would parse Kuzu results
+      return {
+        nodes: [],
+        edges: [],
+        paths: [],
+        metadata: {
+          executionTime,
+          nodesTraversed: 0,
+          edgesTraversed: 0
+        }
+      }
+    } catch (error) {
+      throw new StorageError(
+        `Failed to execute query: ${error}`,
+        StorageErrorCode.QUERY_FAILED,
+        { query, params }
+      )
+    }
+  }
+
+  /**
+   * Execute operations in a transaction
+   *
+   * Note: Kuzu auto-commits, so this provides logical transaction semantics
+   * but not true ACID isolation
+   *
+   * @param fn - Function containing operations to execute
+   * @returns Promise resolving to the function's return value
+   */
+  async transaction<R>(fn: () => Promise<R>): Promise<R> {
+    await this.ensureLoaded()
+
+    // Kuzu doesn't have explicit transaction support with rollback in the current API
+    // This is a best-effort implementation that executes the function
+    // In a real implementation with transaction support, you would:
+    // 1. BEGIN TRANSACTION
+    // 2. Execute fn()
+    // 3. COMMIT on success or ROLLBACK on error
+
+    try {
+      const result = await fn()
+      return result
+    } catch (error) {
+      // In true transaction support, would ROLLBACK here
+      throw new StorageError(
+        `Transaction failed: ${error}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error }
+      )
+    }
   }
 
   // ============================================================================

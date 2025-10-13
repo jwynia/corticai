@@ -1,9 +1,11 @@
 /**
  * DuckDB Storage Adapter
- * 
+ *
  * Implementation of storage adapter using DuckDB as the backend.
  * Provides high-performance columnar storage with SQL query capabilities,
  * transaction support, and Parquet import/export functionality.
+ *
+ * Implements SemanticStorage interface for analytics and aggregation operations.
  */
 
 import { DuckDBInstance, DuckDBConnection } from '@duckdb/node-api'
@@ -13,18 +15,34 @@ import { DuckDBConnectionManager } from './DuckDBConnectionManager'
 import { DuckDBTableValidator } from './DuckDBTableValidator'
 import { DuckDBTypeMapper } from './DuckDBTypeMapper'
 import { DuckDBSQLGenerator } from './DuckDBSQLGenerator'
+import {
+  SemanticStorage,
+  SemanticQuery,
+  SemanticQueryResult,
+  Aggregation,
+  AggregationOperator,
+  QueryFilter,
+  MaterializedView,
+  SearchOptions,
+  SearchResult
+} from '../interfaces/SemanticStorage'
 
 /**
  * DuckDB Storage Adapter
- * 
+ *
  * Features:
  * - Columnar storage for analytics workloads
  * - SQL query support for complex operations
  * - Transaction support for atomicity
  * - Parquet import/export capabilities
  * - Connection pooling and resource management
+ *
+ * Implements SemanticStorage interface for OLAP operations.
  */
-export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
+export class DuckDBStorageAdapter<T = any>
+  extends BaseStorageAdapter<T>
+  implements SemanticStorage<T>
+{
   protected config: DuckDBStorageConfig
   private isLoaded = false
   private transactionDepth = 0
@@ -334,22 +352,311 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
   // Use DuckDBTypeMapper.processBigIntValues() instead
   
   // ============================================================================
+  // SEMANTIC STORAGE INTERFACE IMPLEMENTATION
+  // ============================================================================
+
+  /**
+   * Execute a semantic query with filters, aggregations, and sorting
+   * Implements SemanticStorage.query()
+   */
+  async query<R = T>(semanticQuery: SemanticQuery): Promise<SemanticQueryResult<R>> {
+    const startTime = Date.now()
+    let rowsScanned = 0
+
+    try {
+      const connection = await this.getConnection()
+
+      // Build SQL from semantic query
+      let sql = `SELECT ${semanticQuery.select && semanticQuery.select.length > 0 ? semanticQuery.select.join(', ') : '*'} FROM ${semanticQuery.from}`
+      const params: any[] = []
+
+      // WHERE clause
+      if (semanticQuery.where && semanticQuery.where.length > 0) {
+        const whereClauses = semanticQuery.where.map((filter, index) => {
+          params.push(filter.value)
+          return `${filter.field} ${filter.operator} $${params.length}`
+        })
+        sql += ` WHERE ${whereClauses.join(' AND ')}`
+      }
+
+      // GROUP BY clause
+      if (semanticQuery.groupBy && semanticQuery.groupBy.length > 0) {
+        sql += ` GROUP BY ${semanticQuery.groupBy.join(', ')}`
+      }
+
+      // Aggregations
+      if (semanticQuery.aggregations && semanticQuery.aggregations.length > 0) {
+        const aggSelects = semanticQuery.aggregations.map(agg => {
+          const alias = agg.as || `${agg.operator}_${agg.field}`
+          return `${agg.operator.toUpperCase()}(${agg.field}) AS ${alias}`
+        })
+
+        if (semanticQuery.select && semanticQuery.select.length > 0) {
+          sql = sql.replace(`SELECT ${semanticQuery.select.join(', ')}`, `SELECT ${semanticQuery.select.join(', ')}, ${aggSelects.join(', ')}`)
+        } else {
+          sql = sql.replace('SELECT *', `SELECT ${aggSelects.join(', ')}`)
+        }
+      }
+
+      // ORDER BY clause
+      if (semanticQuery.orderBy && semanticQuery.orderBy.length > 0) {
+        const orderClauses = semanticQuery.orderBy.map(order => `${order.field} ${order.direction.toUpperCase()}`)
+        sql += ` ORDER BY ${orderClauses.join(', ')}`
+      }
+
+      // LIMIT and OFFSET
+      if (semanticQuery.limit !== undefined) {
+        sql += ` LIMIT ${semanticQuery.limit}`
+      }
+      if (semanticQuery.offset !== undefined) {
+        sql += ` OFFSET ${semanticQuery.offset}`
+      }
+
+      // Execute query
+      const data = await DuckDBSQLGenerator.executeQuery<R>(connection, sql, params, this.config.debug)
+      rowsScanned = data.length
+
+      const executionTime = Date.now() - startTime
+
+      return {
+        data,
+        metadata: {
+          executionTime,
+          rowsScanned,
+          fromCache: false
+        }
+      }
+    } catch (error) {
+      return {
+        data: [],
+        metadata: {
+          executionTime: Date.now() - startTime,
+          rowsScanned,
+          fromCache: false
+        },
+        errors: [(error as Error).message]
+      }
+    }
+  }
+
+  /**
+   * Execute raw SQL query
+   * Implements SemanticStorage.executeSQL()
+   */
+  async executeSQL<R = any>(sql: string, params: any[] = []): Promise<SemanticQueryResult<R>> {
+    const startTime = Date.now()
+
+    try {
+      const connection = await this.getConnection()
+      const data = await DuckDBSQLGenerator.executeQuery<R>(connection, sql, params, this.config.debug)
+
+      return {
+        data,
+        metadata: {
+          executionTime: Date.now() - startTime,
+          rowsScanned: data.length,
+          fromCache: false
+        }
+      }
+    } catch (error) {
+      return {
+        data: [],
+        metadata: {
+          executionTime: Date.now() - startTime,
+          rowsScanned: 0,
+          fromCache: false
+        },
+        errors: [(error as Error).message]
+      }
+    }
+  }
+
+  /**
+   * Perform aggregation on a field
+   * Implements SemanticStorage.aggregate()
+   */
+  async aggregate(
+    table: string,
+    operator: AggregationOperator,
+    field: string,
+    filters?: QueryFilter[]
+  ): Promise<number> {
+    const query: SemanticQuery = {
+      from: table,
+      aggregations: [{ operator, field, as: 'result' }],
+      where: filters
+    }
+
+    const result = await this.query<{ result: number }>(query)
+    return result.data[0]?.result || 0
+  }
+
+  /**
+   * Group by field and perform aggregations
+   * Implements SemanticStorage.groupBy()
+   */
+  async groupBy(
+    table: string,
+    groupBy: string[],
+    aggregations: Aggregation[],
+    filters?: QueryFilter[]
+  ): Promise<Record<string, any>[]> {
+    const query: SemanticQuery = {
+      from: table,
+      select: groupBy,
+      groupBy,
+      aggregations,
+      where: filters
+    }
+
+    const result = await this.query<Record<string, any>>(query)
+    return result.data as Record<string, any>[]
+  }
+
+  /**
+   * Create a materialized view
+   * Implements SemanticStorage.createMaterializedView()
+   */
+  async createMaterializedView(view: MaterializedView): Promise<void> {
+    throw new StorageError(
+      'Materialized views not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { view }
+    )
+  }
+
+  /**
+   * Refresh a materialized view
+   * Implements SemanticStorage.refreshMaterializedView()
+   */
+  async refreshMaterializedView(viewName: string): Promise<void> {
+    throw new StorageError(
+      'Materialized views not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { viewName }
+    )
+  }
+
+  /**
+   * Query a materialized view
+   * Implements SemanticStorage.queryMaterializedView()
+   */
+  async queryMaterializedView<R = any>(
+    viewName: string,
+    filters?: QueryFilter[]
+  ): Promise<SemanticQueryResult<R>> {
+    throw new StorageError(
+      'Materialized views not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { viewName }
+    )
+  }
+
+  /**
+   * Drop a materialized view
+   * Implements SemanticStorage.dropMaterializedView()
+   */
+  async dropMaterializedView(viewName: string): Promise<void> {
+    throw new StorageError(
+      'Materialized views not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { viewName }
+    )
+  }
+
+  /**
+   * List all materialized views
+   * Implements SemanticStorage.listMaterializedViews()
+   */
+  async listMaterializedViews(): Promise<MaterializedView[]> {
+    return []
+  }
+
+  /**
+   * Perform full-text search
+   * Implements SemanticStorage.search()
+   */
+  async search<R = T>(
+    table: string,
+    searchText: string,
+    options: SearchOptions
+  ): Promise<SearchResult<R>[]> {
+    throw new StorageError(
+      'Full-text search not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { table, searchText, options }
+    )
+  }
+
+  /**
+   * Create full-text search index
+   * Implements SemanticStorage.createSearchIndex()
+   */
+  async createSearchIndex(table: string, fields: string[]): Promise<void> {
+    throw new StorageError(
+      'Full-text search not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { table, fields }
+    )
+  }
+
+  /**
+   * Drop full-text search index
+   * Implements SemanticStorage.dropSearchIndex()
+   */
+  async dropSearchIndex(table: string): Promise<void> {
+    throw new StorageError(
+      'Full-text search not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { table }
+    )
+  }
+
+  /**
+   * Define a typed schema for a table
+   * Implements SemanticStorage.defineSchema()
+   */
+  async defineSchema(table: string, schema: Record<string, any>): Promise<void> {
+    throw new StorageError(
+      'Schema definition not yet implemented for DuckDB adapter',
+      StorageErrorCode.NOT_IMPLEMENTED,
+      { table, schema }
+    )
+  }
+
+  /**
+   * Get schema definition for a table
+   * Implements SemanticStorage.getSchema()
+   */
+  async getSchema(table: string): Promise<Record<string, any> | null> {
+    try {
+      const connection = await this.getConnection()
+      const sql = `DESCRIBE ${table}`
+      const columns = await DuckDBSQLGenerator.executeQuery(connection, sql, [], this.config.debug)
+
+      const schema: Record<string, any> = {}
+      for (const col of columns) {
+        schema[col.column_name] = {
+          type: col.column_type,
+          nullable: col.null === 'YES'
+        }
+      }
+
+      return schema
+    } catch (error) {
+      return null
+    }
+  }
+
+  // ============================================================================
   // DUCKDB-SPECIFIC FEATURES
   // ============================================================================
   
   /**
-   * Execute raw SQL query
-   * Delegates to DuckDBSQLGenerator for consistent query execution
+   * Export query results to Parquet format
+   * Implements SemanticStorage.exportToParquet()
    */
-  async query<R = any>(sql: string, params: any[] = []): Promise<R[]> {
-    const connection = await this.getConnection()
-    return DuckDBSQLGenerator.executeQuery<R>(connection, sql, params, this.config.debug)
-  }
-  
-  /**
-   * Export data to Parquet file
-   */
-  async exportParquet(filePath: string): Promise<void> {
+  async exportToParquet(query: SemanticQuery | string, outputPath: string): Promise<void> {
     if (!this.config.enableParquet) {
       throw new StorageError(
         'Parquet support not enabled. Set enableParquet: true in configuration',
@@ -357,33 +664,43 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         { enableParquet: this.config.enableParquet }
       )
     }
-    
+
     try {
       const connection = await this.getConnection()
-      const tableName = this.config.tableName!
-      
-      // Escape single quotes in file path to prevent SQL injection
-      const safePath = filePath.replace(/'/g, "''")
-      const exportSQL = `COPY (SELECT * FROM ${tableName}) TO '${safePath}' (FORMAT PARQUET)`
-      await connection.run(exportSQL)
-      
-      if (this.config.debug) {
-        this.log(`Exported data to Parquet file: ${filePath}`)
+
+      // Build the export SQL based on query type
+      let exportSQL: string
+      if (typeof query === 'string') {
+        // Raw SQL query
+        const safePath = outputPath.replace(/'/g, "''")
+        exportSQL = `COPY (${query}) TO '${safePath}' (FORMAT PARQUET)`
+      } else {
+        // Semantic query - convert to SQL
+        const result = await this.query(query)
+        // For now, use the table name from the semantic query
+        const safePath = outputPath.replace(/'/g, "''")
+        exportSQL = `COPY (SELECT * FROM ${query.from}) TO '${safePath}' (FORMAT PARQUET)`
       }
-      
+
+      await connection.run(exportSQL)
+
+      if (this.config.debug) {
+        this.log(`Exported data to Parquet file: ${outputPath}`)
+      }
     } catch (error) {
       throw new StorageError(
         `Parquet export failed: ${(error as Error).message}`,
         StorageErrorCode.CONNECTION_FAILED,
-        { filePath, originalError: error }
+        { outputPath, originalError: error }
       )
     }
   }
-  
+
   /**
    * Import data from Parquet file
+   * Implements SemanticStorage.importFromParquet()
    */
-  async importParquet(filePath: string): Promise<void> {
+  async importFromParquet(table: string, inputPath: string): Promise<number> {
     if (!this.config.enableParquet) {
       throw new StorageError(
         'Parquet support not enabled. Set enableParquet: true in configuration',
@@ -391,31 +708,85 @@ export class DuckDBStorageAdapter<T = any> extends BaseStorageAdapter<T> {
         { enableParquet: this.config.enableParquet }
       )
     }
-    
+
     try {
       const connection = await this.getConnection()
-      const tableName = this.config.tableName!
-      
+
+      // Get count before import
+      const countBefore = await this.aggregate(table, 'count', '*')
+
       // Import from Parquet file - escape single quotes to prevent SQL injection
-      const safePath = filePath.replace(/'/g, "''")
-      const importSQL = `INSERT INTO ${tableName} SELECT * FROM read_parquet('${safePath}')`
+      const safePath = inputPath.replace(/'/g, "''")
+      const importSQL = `INSERT INTO ${table} SELECT * FROM read_parquet('${safePath}')`
       await connection.run(importSQL)
-      
-      // Reload data into memory cache
-      this.isLoaded = false
-      await this.ensureLoaded()
-      
-      if (this.config.debug) {
-        this.log(`Imported data from Parquet file: ${filePath}`)
+
+      // Get count after import
+      const countAfter = await this.aggregate(table, 'count', '*')
+      const imported = countAfter - countBefore
+
+      // Reload data into memory cache if this is our main table
+      if (table === this.config.tableName) {
+        this.isLoaded = false
+        await this.ensureLoaded()
       }
-      
+
+      if (this.config.debug) {
+        this.log(`Imported ${imported} rows from Parquet file: ${inputPath}`)
+      }
+
+      return imported
     } catch (error) {
       throw new StorageError(
         `Parquet import failed: ${(error as Error).message}`,
         StorageErrorCode.CONNECTION_FAILED,
-        { filePath, originalError: error }
+        { inputPath, originalError: error }
       )
     }
+  }
+
+  /**
+   * Get query execution plan for optimization
+   * Implements SemanticStorage.explainQuery()
+   */
+  async explainQuery(query: SemanticQuery | string): Promise<any> {
+    try {
+      const connection = await this.getConnection()
+
+      let sql: string
+      if (typeof query === 'string') {
+        sql = `EXPLAIN ${query}`
+      } else {
+        // Convert semantic query to SQL first
+        const result = await this.query(query)
+        // For now, just explain the from table
+        sql = `EXPLAIN SELECT * FROM ${query.from}`
+      }
+
+      const plan = await DuckDBSQLGenerator.executeQuery(connection, sql, [], this.config.debug)
+      return plan
+    } catch (error) {
+      throw new StorageError(
+        `Query explain failed: ${(error as Error).message}`,
+        StorageErrorCode.CONNECTION_FAILED,
+        { query, originalError: error }
+      )
+    }
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use exportToParquet() instead
+   */
+  async exportParquet(filePath: string): Promise<void> {
+    return this.exportToParquet(this.config.tableName!, filePath)
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use importFromParquet() instead
+   */
+  async importParquet(filePath: string): Promise<void> {
+    await this.importFromParquet(this.config.tableName!, filePath)
   }
   
   /**
