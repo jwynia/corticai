@@ -84,6 +84,7 @@ Read these files to understand current plans:
 - /context-network/planning/sprint-next.md
 - /context-network/planning/backlog.md
 - /context-network/planning/implementation-tracker.md
+- /context-network/backlog/by-status/ready.md
 ```
 
 **Create Comparison Matrix** (in memory, will write to sync report):
@@ -126,6 +127,7 @@ Example: If task in groomed-backlog.md is complete:
 - `sprint-next.md` - Update sprint task checkboxes
 - `implementation-tracker.md` - Add to completed implementations
 - `backlog.md` - Mark phase tasks as complete
+- `backlog/by-status/ready.md` - Remove completed tasks from ready list
 
 #### 4.2 Create Sync Report File
 
@@ -230,8 +232,9 @@ Document:
    e. Use Edit to update groomed-backlog.md (move completed tasks)
    f. Use Edit to update sprint-next.md (check boxes)
    g. Use Edit to update implementation-tracker.md (add completions)
-   h. Use Write to create sync-report-2025-10-11.md
-   i. Report to user: "Updated 4 files, created 1 sync report"
+   h. Use Edit to update backlog/by-status/ready.md (remove completed tasks)
+   i. Use Write to create sync-report-2025-10-11.md
+   j. Report to user: "Updated 5 files, created 1 sync report"
 
 3. NEVER just say "You should update X" - DO IT.
 ```
@@ -279,6 +282,7 @@ Before reporting sync complete, verify:
 - [ ] Updated groomed-backlog.md with completions
 - [ ] Updated sprint-next.md task checkboxes
 - [ ] Updated implementation-tracker.md with achievements
+- [ ] Updated backlog/by-status/ready.md (removed completed tasks)
 - [ ] Created discovery records for undocumented work (if any)
 - [ ] Reported summary of files updated to user
 

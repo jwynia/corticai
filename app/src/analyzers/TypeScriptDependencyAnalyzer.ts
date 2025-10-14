@@ -1,20 +1,16 @@
-import * as ts from 'typescript';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import {
   FileAnalysis,
   DependencyGraph,
-  Cycle,
-  Import,
-  Export,
   ProjectAnalysis,
   Report,
-  Node,
-  Edge,
-  AnalysisError,
   ModuleImportInfo,
   AnalyzerOptions
 } from './types';
+import { TSImportResolver } from './TSImportResolver';
+import { TSASTParser } from './TSASTParser';
+import { TSDependencyGraph } from './TSDependencyGraph';
 
 // Constants
 const DEFAULT_MAX_DEPTH = 10;
@@ -23,11 +19,25 @@ const DEFAULT_EXCLUDE_DIRS = ['node_modules', '.git', 'dist', 'build'];
 
 /**
  * TypeScript Dependency Analyzer
- * Extracts and analyzes import/export relationships in TypeScript projects
+ *
+ * Main orchestrator for TypeScript dependency analysis.
+ * Coordinates between specialized modules to analyze TypeScript projects.
+ *
+ * Architecture:
+ * - TSImportResolver: Resolves import paths to absolute file paths
+ * - TSASTParser: Parses TypeScript AST to extract imports/exports
+ * - TSDependencyGraph: Builds dependency graphs and detects cycles
+ *
+ * This class handles:
+ * - Directory scanning and file discovery
+ * - Coordination between modules
+ * - Report generation and export formats
  */
 export class TypeScriptDependencyAnalyzer {
   private options: AnalyzerOptions;
-  private compilerOptions: ts.CompilerOptions;
+  private importResolver: TSImportResolver;
+  private astParser: TSASTParser;
+  private graphBuilder: TSDependencyGraph;
 
   constructor(options: AnalyzerOptions = {}) {
     this.options = {
@@ -40,344 +50,22 @@ export class TypeScriptDependencyAnalyzer {
       ...options
     };
 
-    // Set up TypeScript compiler options
-    this.compilerOptions = {
-      target: ts.ScriptTarget.ESNext,
-      module: ts.ModuleKind.CommonJS,
-      jsx: ts.JsxEmit.React,
-      allowJs: this.options.includeJavaScript,
-      resolveJsonModule: true,
-      esModuleInterop: true,
-      moduleResolution: ts.ModuleResolutionKind.NodeJs
-    };
+    // Initialize modules with dependency injection
+    this.importResolver = new TSImportResolver();
+    this.astParser = new TSASTParser({
+      importResolver: this.importResolver,
+      log: this.options.verbose ? (msg: string) => console.log(msg) : undefined
+    });
+    this.graphBuilder = new TSDependencyGraph();
   }
 
   /**
    * Analyze a single TypeScript file
+   *
+   * Delegates to TSASTParser for AST parsing and analysis
    */
   async analyzeFile(filePath: string): Promise<FileAnalysis> {
-    // Validate input
-    if (filePath === null || filePath === undefined) {
-      throw new Error('Invalid file path: must be a string');
-    }
-    if (typeof filePath !== 'string') {
-      throw new Error('Invalid file path: must be a string');
-    }
-    if (filePath === '') {
-      throw new Error('Invalid file path: must be a string');
-    }
-    
-    try {
-      // Check if file exists
-      try {
-        await fs.access(filePath);
-      } catch {
-        throw new Error(`File not found: ${filePath}`);
-      }
-
-      // Read file content
-      let content: string;
-      try {
-        content = await fs.readFile(filePath, 'utf-8');
-        // Check for binary content (null bytes or other control characters)
-        if (content.includes('\0') || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content)) {
-          throw new Error(`File encoding error: ${filePath}`);
-        }
-      } catch (error) {
-        // Re-throw encoding errors
-        if (error instanceof Error && error.message.includes('File encoding error')) {
-          throw error;
-        }
-        // Handle other read errors
-        if (error instanceof Error && (error.message.includes('Invalid') || error.message.includes('byte'))) {
-          throw new Error(`File encoding error: ${filePath}`);
-        }
-        throw error;
-      }
-      
-      // Create source file
-      const sourceFile = ts.createSourceFile(
-        filePath,
-        content,
-        ts.ScriptTarget.ESNext,
-        true
-      );
-
-      const imports: Import[] = [];
-      const exports: Export[] = [];
-      const dependencies: string[] = [];
-      const errors: AnalysisError[] = [];
-
-      // Parse the AST
-      const visit = (node: ts.Node) => {
-        try {
-          // Handle import declarations
-          if (ts.isImportDeclaration(node)) {
-            const moduleSpecifier = node.moduleSpecifier;
-            if (ts.isStringLiteral(moduleSpecifier)) {
-              const source = moduleSpecifier.text;
-              const importInfo = this.extractImportInfo(node, source);
-              imports.push(importInfo);
-              
-              // Resolve dependency path
-              const resolvedPath = this.resolveDependencyPath(filePath, source);
-              this.addDependencyIfNew(dependencies, resolvedPath);
-            }
-          }
-
-          // Handle require() calls (CommonJS)
-          if (ts.isCallExpression(node) && 
-              node.expression.getText() === 'require' &&
-              node.arguments.length > 0) {
-            const firstArg = node.arguments[0];
-            if (ts.isStringLiteral(firstArg)) {
-              const source = firstArg.text;
-              
-              // Determine the import type based on parent
-              let specifiers: string[] = [];
-              const parent = node.parent;
-              
-              if (ts.isVariableDeclaration(parent)) {
-                const name = parent.name;
-                if (ts.isIdentifier(name)) {
-                  specifiers = [name.text];
-                } else if (ts.isObjectBindingPattern(name)) {
-                  specifiers = name.elements
-                    .filter(e => ts.isBindingElement(e) && e.name && ts.isIdentifier(e.name))
-                    .map(e => e.name && ts.isIdentifier(e.name) ? e.name.text : '')
-                    .filter(Boolean);
-                }
-              }
-
-              imports.push({
-                source,
-                type: 'commonjs',
-                specifiers
-              });
-
-              const resolvedPath = this.resolveDependencyPath(filePath, source);
-              this.addDependencyIfNew(dependencies, resolvedPath);
-            }
-          }
-
-          // Handle export declarations
-          if (ts.isExportDeclaration(node)) {
-            if (node.exportClause && ts.isNamedExports(node.exportClause)) {
-              node.exportClause.elements.forEach(element => {
-                exports.push({
-                  name: element.name.text,
-                  type: node.moduleSpecifier ? 're-export' : 'named'
-                });
-              });
-            } else if (node.moduleSpecifier) {
-              // export * from '...'
-              exports.push({
-                name: '*',
-                type: 're-export'
-              });
-            }
-          }
-
-          // Handle export assignments (export default)
-          if (ts.isExportAssignment(node)) {
-            exports.push({
-              name: 'default',
-              type: 'default'
-            });
-          }
-
-          // Handle exported declarations
-          if (ts.canHaveModifiers(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
-            if (ts.isFunctionDeclaration(node) || 
-                ts.isClassDeclaration(node) ||
-                ts.isVariableStatement(node)) {
-              
-              // Check for default export
-              const hasDefault = node.modifiers?.some(m => m.kind === ts.SyntaxKind.DefaultKeyword) || false;
-              
-              if (hasDefault) {
-                exports.push({
-                  name: 'default',
-                  type: 'default'
-                });
-              } else {
-                // Named exports
-                if (ts.isFunctionDeclaration(node) && node.name) {
-                  exports.push({
-                    name: node.name.text,
-                    type: 'named'
-                  });
-                } else if (ts.isClassDeclaration(node) && node.name) {
-                  exports.push({
-                    name: node.name.text,
-                    type: 'named'
-                  });
-                } else if (ts.isVariableStatement(node)) {
-                  node.declarationList.declarations.forEach(decl => {
-                    if (ts.isIdentifier(decl.name)) {
-                      exports.push({
-                        name: decl.name.text,
-                        type: 'named'
-                      });
-                    }
-                  });
-                }
-              }
-            }
-          }
-        } catch (error) {
-          errors.push({
-            type: 'parse',
-            message: error instanceof Error ? error.message : 'Unknown parsing error',
-            location: {
-              line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-              column: sourceFile.getLineAndCharacterOfPosition(node.getStart()).character + 1
-            }
-          });
-        }
-
-        ts.forEachChild(node, visit);
-      };
-
-      // Check for syntax errors
-      const diagnostics = ts.getPreEmitDiagnostics(
-        ts.createProgram([filePath], this.compilerOptions)
-      );
-      
-      if (diagnostics.length > 0) {
-        diagnostics.forEach(diagnostic => {
-          if (diagnostic.file && diagnostic.start !== undefined) {
-            const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
-            errors.push({
-              type: 'parse',
-              message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-              location: { line: line + 1, column: character + 1 }
-            });
-          }
-        });
-      }
-
-      // Visit AST unless there are critical syntax errors
-      // We still parse if there are minor diagnostic issues (like missing files)
-      // but skip if there are actual syntax problems
-      const hasCriticalError = diagnostics.some(d => 
-        d.category === ts.DiagnosticCategory.Error && 
-        d.code >= 1000 && d.code < 2000 // Syntax error codes
-      );
-      
-      if (!hasCriticalError) {
-        visit(sourceFile);
-      }
-
-      return {
-        path: filePath,
-        imports,
-        exports,
-        dependencies,
-        dependents: [], // Will be filled during graph building
-        ...(errors.length > 0 && { errors })
-      };
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('File not found')) {
-        throw error;
-      }
-      
-      // Handle encoding errors
-      if (error instanceof Error && error.message.includes('Unknown encoding')) {
-        throw new Error(`File encoding error: ${filePath}`);
-      }
-      
-      throw new Error(`Failed to parse file ${filePath}: ${error}`);
-    }
-  }
-
-  /**
-   * Add dependency to list if it's new
-   */
-  private addDependencyIfNew(dependencies: string[], path: string | null): void {
-    if (path && !dependencies.includes(path)) {
-      dependencies.push(path);
-    }
-  }
-
-  /**
-   * Extract import information from an import declaration
-   */
-  private extractImportInfo(node: ts.ImportDeclaration, source: string): Import {
-    const importClause = node.importClause;
-    
-    if (!importClause) {
-      // import 'module'; (side-effect import)
-      return { source, type: 'named', specifiers: [] };
-    }
-
-    const specifiers: string[] = [];
-    let type: Import['type'] = 'named';
-
-    // Check for type-only import
-    if (node.importClause?.isTypeOnly) {
-      type = 'type';
-    }
-
-    // Default import
-    if (importClause.name) {
-      specifiers.push(importClause.name.text);
-      type = type === 'type' ? 'type' : 'default';
-    }
-
-    // Named imports
-    if (importClause.namedBindings) {
-      if (ts.isNamespaceImport(importClause.namedBindings)) {
-        // import * as name from 'module'
-        specifiers.push(importClause.namedBindings.name.text);
-        type = type === 'type' ? 'type' : 'namespace';
-      } else if (ts.isNamedImports(importClause.namedBindings)) {
-        // import { a, b } from 'module'
-        importClause.namedBindings.elements.forEach(element => {
-          specifiers.push(element.name.text);
-        });
-        if (!importClause.name) {
-          type = type === 'type' ? 'type' : 'named';
-        }
-      }
-    }
-
-    return { source, type, specifiers };
-  }
-
-  /**
-   * Resolve dependency path from import source
-   */
-  private resolveDependencyPath(fromFile: string, importSource: string): string | null {
-    // Skip node_modules unless explicitly included
-    if (!this.options.includeNodeModules && !importSource.startsWith('.')) {
-      return null;
-    }
-
-    const dir = path.dirname(fromFile);
-    
-    // Handle relative imports
-    if (importSource.startsWith('.')) {
-      const basePath = path.resolve(dir, importSource);
-      
-      // Check if it already has an extension
-      const extensions = this.options.extensions || DEFAULT_EXTENSIONS;
-      for (const ext of extensions) {
-        if (basePath.endsWith(ext)) {
-          return basePath;
-        }
-      }
-      
-      // For files without extension, append .ts by default (TypeScript priority)
-      // This matches TypeScript's module resolution
-      if (!path.extname(basePath)) {
-        return basePath + '.ts';
-      }
-      
-      return basePath;
-    }
-
-    return null;
+    return await this.astParser.parseFile(filePath);
   }
 
   /**
@@ -463,145 +151,20 @@ export class TypeScriptDependencyAnalyzer {
 
   /**
    * Build dependency graph from file analyses
+   *
+   * Delegates to TSDependencyGraph for graph construction and cycle detection
    */
   buildDependencyGraph(files: FileAnalysis[]): DependencyGraph {
-    // Validate input
-    if (!Array.isArray(files)) {
-      throw new Error('Files must be an array');
-    }
-    
-    const nodes = new Map<string, Node>();
-    const edges = new Map<string, Edge[]>();
-
-    // Create nodes
-    for (const file of files) {
-      // Validate file object structure
-      if (!file || typeof file !== 'object') {
-        continue; // Skip invalid files
-      }
-      if (!file.path || typeof file.path !== 'string') {
-        continue; // Skip files without valid paths
-      }
-      if (!Array.isArray(file.imports)) {
-        continue; // Skip files with invalid imports
-      }
-      if (!Array.isArray(file.exports)) {
-        continue; // Skip files with invalid exports
-      }
-      nodes.set(file.path, {
-        path: file.path,
-        imports: file.imports.length,
-        exports: file.exports.length
-      });
-    }
-
-    // Create edges and update dependents
-    for (const file of files) {
-      const fileEdges: Edge[] = [];
-      
-      for (const dep of file.dependencies) {
-        // Find the dependent file in our analysis
-        // Need to handle path matching with/without extensions
-        const dependentFile = files.find(f => {
-          // Exact match
-          if (f.path === dep) return true;
-          // Match without extension
-          const depWithoutExt = dep.replace(/\.(ts|tsx|js|jsx)$/, '');
-          const fPathWithoutExt = f.path.replace(/\.(ts|tsx|js|jsx)$/, '');
-          return depWithoutExt === fPathWithoutExt;
-        });
-        
-        if (dependentFile) {
-          // Update dependents array
-          if (!dependentFile.dependents.includes(file.path)) {
-            dependentFile.dependents.push(file.path);
-          }
-          
-          // Add edge to the actual file path
-          fileEdges.push({
-            from: file.path,
-            to: dependentFile.path,
-            type: 'import'
-          });
-          
-          // Also add this file as a node if it doesn't exist
-          if (!nodes.has(dependentFile.path)) {
-            nodes.set(dependentFile.path, {
-              path: dependentFile.path,
-              imports: dependentFile.imports.length,
-              exports: dependentFile.exports.length
-            });
-          }
-        }
-      }
-
-      if (fileEdges.length > 0) {
-        edges.set(file.path, fileEdges);
-      }
-    }
-
-    // Detect cycles
-    const cycles = this.detectCycles({ nodes, edges, cycles: [] });
-
-    return { nodes, edges, cycles };
+    return this.graphBuilder.buildGraph(files);
   }
 
   /**
-   * Detect circular dependencies using Tarjan's algorithm
+   * Detect circular dependencies
+   *
+   * Delegates to TSDependencyGraph for cycle detection using DFS
    */
-  detectCycles(graph: DependencyGraph): Cycle[] {
-    const cycles: Cycle[] = [];
-    const visited = new Set<string>();
-    const recursionStack = new Set<string>();
-    const pathStack: string[] = [];
-
-    const dfs = (node: string) => {
-      visited.add(node);
-      recursionStack.add(node);
-      pathStack.push(node);
-
-      const nodeEdges = graph.edges.get(node) || [];
-      for (const edge of nodeEdges) {
-        if (!visited.has(edge.to)) {
-          dfs(edge.to);
-        } else if (recursionStack.has(edge.to)) {
-          // Found a cycle
-          const cycleStartIndex = pathStack.indexOf(edge.to);
-          const cycleNodes = pathStack.slice(cycleStartIndex);
-          
-          // Build cycle edges
-          const cycleEdges: Edge[] = [];
-          for (let i = 0; i < cycleNodes.length; i++) {
-            const from = cycleNodes[i];
-            const to = cycleNodes[(i + 1) % cycleNodes.length];
-            cycleEdges.push({ from, to, type: 'import' });
-          }
-
-          // Check if this cycle is already recorded (in different order)
-          const cycleSet = new Set(cycleNodes);
-          const isNewCycle = !cycles.some(c => 
-            c.nodes.length === cycleNodes.length &&
-            c.nodes.every(n => cycleSet.has(n))
-          );
-
-          if (isNewCycle) {
-            cycles.push({ nodes: cycleNodes, edges: cycleEdges });
-          }
-        }
-      }
-
-      recursionStack.delete(node);
-      pathStack.pop();
-    };
-
-    // Run DFS from each unvisited node
-    for (const node of graph.nodes.keys()) {
-      if (!visited.has(node)) {
-        dfs(node);
-      }
-    }
-
-    return cycles;
+  detectCycles(graph: DependencyGraph): typeof graph.cycles {
+    return this.graphBuilder.detectCycles(graph);
   }
 
   /**
