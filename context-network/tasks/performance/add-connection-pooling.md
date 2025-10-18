@@ -1,4 +1,24 @@
-# Task: Add Connection Pooling to KuzuStorageAdapter
+# Task: Add Connection Pooling to Database Adapters (PERF-001)
+
+**Status**: 🚫 BLOCKED - Awaiting Scope & Priority Decisions
+**Last Updated**: 2025-10-18
+
+## Scope Clarification Questions (BLOCKING)
+
+### Question 1: Adapter Scope
+- **Original task document**: KuzuStorageAdapter only
+- **Backlog description**: "Database Adapters" (plural) - implies both Kuzu AND DuckDB
+- **Decision needed**: Should this implement pooling for both adapters, or just Kuzu?
+
+### Question 2: Performance Priority
+- **Current assessment**: Performance is not a current concern
+- **Original priority**: Low - "Single connection works for current usage patterns"
+- **Decision needed**: Should this remain in backlog or be archived as "not needed now"?
+
+### Recommended Resolution Options
+1. **Archive task** - Not needed for current usage patterns, revisit when scaling
+2. **Narrow scope** - Kuzu only, as per original detailed design
+3. **Broaden scope** - Both adapters with generic reusable pool design
 
 ## Context
 The current KuzuStorageAdapter implementation uses a single connection to the Kuzu database. For production use with multiple concurrent operations, connection pooling would improve performance and reliability.
@@ -6,7 +26,7 @@ The current KuzuStorageAdapter implementation uses a single connection to the Ku
 ## Current State
 - Single connection created in `initializeDatabase()`
 - No connection reuse or pooling
-- Potential bottleneck for concurrent operations
+- Potential bottleneck for concurrent operations (theoretical - not observed in practice)
 
 ## Requirements
 

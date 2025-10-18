@@ -1,7 +1,7 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-10-14 (Post-REFACTOR-002, comprehensive reality check)
+**Last Groomed**: 2025-10-18 (PERF-001 deprioritized & blocked)
 **Last Synced**: 2025-10-11 (Sync score: 9.5/10)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
 **Test Status**: ✅ All tests passing (150/150 unit tests + 75/75 DuckDB tests)
@@ -20,9 +20,25 @@
 
 ---
 
-## 🎉 Recently Completed (2025-10-13)
+## 🎉 Recently Completed (2025-10-14)
 
-### ~~1. Split TypeScriptDependencyAnalyzer~~ ✅ COMPLETE (2025-10-13)
+### ~~1. Implement Pattern Detection System~~ ✅ COMPLETE (2025-10-14)
+**Task**: FEAT-001
+**Status**: ✅ COMPLETE - 43 new pattern detection tests, 193/193 total passing
+**Implementation**: Full TDD approach with circular dependency, orphaned node, and hub node detection
+**Tests**: 19 circular dependency + 18 orphaned node + 6 hub node = 43 new tests
+**Completion Record**: [2025-10-14-pattern-detection-feat-001-complete.md](../tasks/completed/2025-10-14-pattern-detection-feat-001-complete.md)
+
+**Files Created**:
+- PatternTypes.ts - Type definitions and interfaces
+- CircularDependencyDetector.ts - DFS-based cycle detection
+- OrphanedNodeDetector.ts - Isolation detection
+- HubNodeDetector.ts - Connection threshold detection
+- PatternDetectionService.ts - Orchestration service
+
+**Key Achievement**: Domain-agnostic pattern detection system with comprehensive remediation suggestions
+
+### ~~2. Split TypeScriptDependencyAnalyzer~~ ✅ COMPLETE (2025-10-13)
 **Task**: REFACTOR-002
 **Status**: ✅ COMPLETE - 58% reduction (749 → 312 lines)
 **Implementation**: Test-First Development (TDD) approach, extracted 3 focused modules
@@ -36,14 +52,14 @@
 
 **Key Achievement**: Established Test-First Refactoring Pattern as standard for large file refactorings
 
-### ~~2. Complete Kuzu Graph Operations - getEdges Enhancement~~ ✅ COMPLETE (2025-10-13)
+### ~~3. Complete Kuzu Graph Operations - getEdges Enhancement~~ ✅ COMPLETE (2025-10-13)
 **Task**: TECH-002
 **Status**: ✅ COMPLETE - All acceptance criteria met
 **Implementation**: Performance monitoring, edge type filtering, enhanced error handling
 **Tests**: 17 new tests + 77/77 passing total
 **Completion Record**: [2025-10-13-tech-002-getedges-enhancement-complete.md](../tasks/completed/2025-10-13-tech-002-getedges-enhancement-complete.md)
 
-### ~~3. DuckDB Adapter Refactoring~~ ✅ COMPLETE (2025-10-13)
+### ~~4. DuckDB Adapter Refactoring~~ ✅ COMPLETE (2025-10-13)
 **Task**: REFACTOR-001
 **Status**: ✅ COMPLETE - 20% reduction (677 → 541 lines)
 **Implementation**: Removed code duplication by leveraging existing helper modules
@@ -54,87 +70,7 @@
 
 ## 🚀 Ready for Implementation
 
-### 1. ~~Add Connection Pooling for Database Adapters~~ ✅ IMPLEMENTED + CODE REVIEW COMPLETE (2025-10-17)
-**One-liner**: Implement connection pooling to improve performance under load
-**Complexity**: Medium
-**Priority**: Address tech debt findings
-**Status**: ✅ Implementation complete, code review identifies 6 improvement opportunities
-
-<details>
-<summary>Implementation Status & Code Review Findings</summary>
-
-**Implementation Status**: ✅ COMPLETE (2025-10-17)
-- [x] Implement connection pool for Kuzu adapter
-- [x] Implement connection pool for DuckDB adapter
-- [x] Configurable pool size (min/max connections)
-- [x] Connection health checks
-- [x] Graceful shutdown handling
-- [x] Comprehensive test suite (41/41 tests passing)
-
-**Files Created**:
-- ✅ `app/src/storage/pool/ConnectionPool.ts` (142 lines) - Interfaces and types
-- ✅ `app/src/storage/pool/GenericConnectionPool.ts` (468 lines) - Core implementation
-- ✅ `app/src/storage/pool/DuckDBConnectionPool.ts` (216 lines) - DuckDB-specific
-- ✅ `app/src/storage/pool/KuzuConnectionPool.ts` (194 lines) - Kuzu-specific
-- ✅ `app/tests/unit/storage/GenericConnectionPool.test.ts` (818 lines) - Comprehensive tests
-
-**Code Review** (2025-10-17):
-- ✅ **No security issues** - No hardcoded credentials, injection risks, or unsafe operations
-- ✅ **Quality**: Well-architected with excellent documentation and TypeScript typing
-- ✅ **Tests**: 41/41 tests passing, comprehensive coverage
-- ⚠️ **Tech Debt Identified**: 6 items documented in [connection-pool-code-review-findings.md](../tasks/tech-debt/connection-pool-code-review-findings.md)
-
-**Immediate Fixes Applied** (2025-10-17):
-- ✅ Improved Kuzu health check (now executes actual query)
-- ✅ Replaced magic number with named constant
-- ✅ Fixed comment placement for clarity
-
-**Tech Debt Items** (See detailed document):
-1. **High Priority**: Fix connection-pooled mapping race condition (WeakMap pattern)
-2. **High Priority**: Resolve generic pool interface mismatch
-3. **Medium Priority**: Simplify mutex implementation (use async-mutex library)
-4. **Medium Priority**: Add connection error tracking & circuit-breaking
-5. **Medium Priority**: Implement typed error hierarchy
-6. **Low Priority**: Improve debug logging structure
-
-**Next Actions**:
-- Review detailed findings: `context-network/tasks/tech-debt/connection-pool-code-review-findings.md`
-- Schedule Task #1 (Connection Mapping Fix) for next sprint
-- Consider Task #2 (Interface Redesign) for next major version
-
-</details>
-
----
-
-### 2. Implement Pattern Detection System
-**One-liner**: Build universal pattern detection for circular dependencies, orphaned nodes
-**Complexity**: Medium
-**Priority**: MEDIUM
-**Effort**: 5-6 hours
-
-<details>
-<summary>Implementation Details</summary>
-
-**Context**: Foundation for Phase 5 intelligence features
-
-**Acceptance Criteria**:
-- [ ] Detect circular dependencies
-- [ ] Identify orphaned nodes
-- [ ] Find "god object" patterns
-- [ ] Provide remediation suggestions
-- [ ] Domain-agnostic pattern definitions
-
-**Patterns to Detect**:
-1. **Circular Dependencies**: A → B → C → A
-2. **Orphaned Nodes**: Nodes with no incoming/outgoing edges
-3. **Hub Nodes**: Nodes with >20 connections (configurable)
-4. **Dead Code**: Nodes never traversed in actual usage
-
-</details>
-
----
-
-### 3. Optimize KuzuStorageAdapter Large File
+### 1. Optimize KuzuStorageAdapter Large File
 **One-liner**: Apply further refactoring to reduce KuzuStorageAdapter from 822 lines
 **Complexity**: Medium
 **Priority**: LOW
@@ -160,7 +96,7 @@
 
 ---
 
-### 4. Optimize DuckDBStorageAdapter Large File
+### 2. Optimize DuckDBStorageAdapter Large File
 **One-liner**: Apply further refactoring to reduce DuckDBStorageAdapter from 912 lines
 **Complexity**: Medium
 **Priority**: LOW
@@ -188,7 +124,40 @@
 
 ## ⏳ Blocked or Needs Decision
 
-### 5. Implement PlaceDomainAdapter (Phase 4)
+### 3. Add Connection Pooling for Database Adapters (PERF-001)
+**One-liner**: Implement connection pooling to improve performance under load
+**Complexity**: Medium
+**Priority**: LOW (Deprioritized 2025-10-18)
+**Effort**: 4-5 hours
+**Blocker**: 🚫 Awaiting scope & priority decisions
+
+<details>
+<summary>Blocking Questions</summary>
+
+**Status**: Performance is not a current concern. Task needs decisions before implementation.
+
+**Question 1: Adapter Scope**
+- Original task document: KuzuStorageAdapter only
+- Backlog description: "Database Adapters" (plural) - implies both Kuzu AND DuckDB
+- **Decision needed**: Should this implement pooling for both adapters, or just Kuzu?
+
+**Question 2: Performance Priority**
+- Current assessment: Performance is not a current concern
+- Original priority: Low - "Single connection works for current usage patterns"
+- **Decision needed**: Should this remain in backlog or be archived as "not needed now"?
+
+**Recommended Resolution Options**:
+1. **Archive task** - Not needed for current usage patterns, revisit when scaling
+2. **Narrow scope** - Kuzu only, as per original detailed design
+3. **Broaden scope** - Both adapters with generic reusable pool design
+
+**Task Details**: [add-connection-pooling.md](../tasks/performance/add-connection-pooling.md)
+
+</details>
+
+---
+
+### 4. Implement PlaceDomainAdapter (Phase 4)
 **One-liner**: Domain adapter for location-based context (second proof of concept)
 **Complexity**: Large
 **Priority**: HIGH (Phase 4 priority)
@@ -216,7 +185,7 @@
 
 ## 🔧 Tech Debt & Refactoring
 
-### 6. Add Recursive Depth Limit to Prevent Stack Overflow
+### 5. Add Recursive Depth Limit to Prevent Stack Overflow
 **One-liner**: Implement configurable recursion depth limits in graph traversal
 **Complexity**: Trivial
 **Priority**: MEDIUM
@@ -238,7 +207,7 @@
 
 ---
 
-### 7. Optimize File Lookups in TypeScript Dependency Analyzer
+### 6. Optimize File Lookups in TypeScript Dependency Analyzer
 **One-liner**: Improve performance of file path resolution in dependency analysis
 **Complexity**: Small
 **Priority**: LOW
@@ -262,7 +231,7 @@
 
 ---
 
-### 8. Mock File System Operations in Tests
+### 7. Mock File System Operations in Tests
 **One-liner**: Replace real file system operations with mocks for better test isolation
 **Complexity**: Small
 **Priority**: LOW
@@ -272,7 +241,7 @@
 
 ---
 
-### 9. Improve Performance Test Robustness
+### 8. Improve Performance Test Robustness
 **One-liner**: Make timing-based tests less sensitive to machine performance
 **Complexity**: Trivial
 **Priority**: LOW
@@ -284,7 +253,7 @@
 
 ## 📝 Documentation Tasks
 
-### 10. Document Universal Fallback Adapter Patterns
+### 9. Document Universal Fallback Adapter Patterns
 **One-liner**: Create guide for extending the UniversalFallbackAdapter
 **Complexity**: Trivial
 **Priority**: LOW
@@ -294,7 +263,7 @@
 
 ---
 
-### 11. Create Cross-Domain Query Examples
+### 10. Create Cross-Domain Query Examples
 **One-liner**: Documentation showing how to query across multiple domains
 **Complexity**: Small
 **Priority**: LOW
@@ -373,37 +342,37 @@
 
 ## 📊 Summary Statistics
 
-- **Total active tasks**: 11
-- **Ready for work**: 4
-- **Blocked/Needs decision**: 1
+- **Total active tasks**: 10
+- **Ready for work**: 2
+- **Blocked/Needs decision**: 2
 - **Tech debt items**: 4
 - **Documentation tasks**: 2
-- **Completed since last groom (2025-10-13)**: 3 major tasks (TypeScript analyzer, getEdges, DuckDB adapter)
-- **Completed since October began**: 16 major tasks
-- **Test coverage**: 225+ tests passing (150/150 unit + 75/75 DuckDB)
+- **Completed since last groom (2025-10-14)**: 1 major task (Pattern Detection System)
+- **Completed since October began**: 17 major tasks
+- **Test coverage**: 193+ tests passing (including 43 new pattern detection tests)
 - **Build status**: ✅ PASSING (0 TypeScript errors)
 
 ---
 
 ## 🎯 Top 3 Immediate Priorities
 
-### 1. **Connection Pooling** (Task #1)
-- **Why**: Performance improvement for concurrent operations
-- **Effort**: 4-5 hours
-- **No blockers**: Start immediately
-- **Impact**: MEDIUM - improves throughput under load
-
-### 2. **Pattern Detection System** (Task #2)
-- **Why**: Foundation for Phase 5 intelligence features
-- **Effort**: 5-6 hours
-- **No blockers**: Start immediately
-- **Impact**: HIGH - enables advanced analysis capabilities
-
-### 3. **Phase 4 Decision: PlaceDomainAdapter** (Task #5)
+### 1. **Phase 4 Decision: PlaceDomainAdapter** (Task #4)
 - **Why**: Proves domain-agnostic design with second adapter
 - **Effort**: 8-10 hours
 - **Needs**: Kickoff decision
 - **Impact**: HIGH - validates core architecture hypothesis
+
+### 2. **Recursive Depth Limit** (Task #5)
+- **Why**: Prevent stack overflow in graph traversal
+- **Effort**: 1-2 hours
+- **No blockers**: Start immediately
+- **Impact**: MEDIUM - reliability improvement
+
+### 3. **Kuzu Adapter Optimization** (Task #1)
+- **Why**: Reduce file size from 822 lines, maintain Test-First pattern
+- **Effort**: 3-4 hours
+- **No blockers**: Start immediately
+- **Impact**: LOW - code quality improvement
 
 ---
 
@@ -416,12 +385,13 @@
 - **Linting**: ✅ 8 minor issues (non-blocking)
 
 ### Recent Velocity ⚡
-- **Tasks completed (Oct)**: 16 major completions
-- **Code quality**: Zero test regressions across all refactorings
+- **Tasks completed (Oct)**: 17 major completions
+- **Code quality**: Zero test regressions across all refactorings and new features
 - **Lines improved**: Significant reductions through refactoring (58% for TypeScript analyzer)
+- **New capabilities**: Pattern detection system (43 new tests, domain-agnostic design)
 
 ### Documentation Quality ✅
-- **Completion records**: 16 comprehensive records in Oct
+- **Completion records**: 17 comprehensive records in Oct
 - **Planning sync**: 9.5/10 alignment (per 2025-10-11 sync report)
 - **Architecture docs**: Up-to-date with implementation
 
@@ -430,11 +400,12 @@
 ## 🔄 Process Notes
 
 ### Recent Wins 🏆
-1. **Test-First Refactoring Excellence**: TypeScript analyzer refactored with TDD approach, 95% test coverage increase
-2. **Three Major Refactorings**: Kuzu (47%), DuckDB (20%), TypeScript (58%) all with zero regressions
-3. **Test-Driven Approach**: Every feature has comprehensive tests (150 unit tests, 75 DuckDB tests)
-4. **Documentation Discipline**: All completions documented same-day
-5. **Modular Architecture**: Helper module pattern proven extremely effective
+1. **Pattern Detection System**: Full TDD implementation with 43 comprehensive tests, domain-agnostic design
+2. **Test-First Development**: Pattern detection built entirely with RED-GREEN-REFACTOR cycle
+3. **Three Major Refactorings**: Kuzu (47%), DuckDB (20%), TypeScript (58%) all with zero regressions
+4. **Test-Driven Approach**: Every feature has comprehensive tests (193 total tests passing)
+5. **Documentation Discipline**: All completions documented same-day
+6. **Modular Architecture**: Helper module pattern proven extremely effective
 
 ### Patterns to Continue
 - ✅ Test-First Development for all refactorings
@@ -445,7 +416,7 @@
 
 ### Grooming Frequency
 - **Current cadence**: Weekly (working well)
-- **Next groom**: 2025-10-21 or after 3+ task completions
+- **Next groom**: 2025-10-25 or after 2+ task completions
 - **Sync reports**: Continue weekly reality checks
 
 ---
@@ -470,15 +441,15 @@
 
 ## 📅 Next Steps
 
-### This Week (2025-10-14 to 2025-10-20)
+### This Week (2025-10-18 to 2025-10-25)
 1. Make Phase 4 decision: Approve PlaceDomainAdapter scope
-2. Begin Task #1: Connection Pooling (if Phase 4 not approved)
-3. Begin Task #2: Pattern Detection (if Phase 4 not approved)
+2. Begin Task #5: Recursive Depth Limit (if Phase 4 not approved) - 1-2 hours
+3. Begin Task #1: Kuzu Adapter Optimization (if time allows) - 3-4 hours
 
-### Next Sprint (2025-10-21+)
+### Next Sprint (2025-10-25+)
 1. Complete PlaceDomainAdapter implementation (if approved)
-2. Continue tech debt reduction (connection pooling, pattern detection)
-3. Consider further storage adapter optimizations
+2. Continue storage adapter optimizations
+3. Address tech debt items (file lookup optimization, performance tests)
 
 ### Phase 4 Planning
 - Review PlaceDomainAdapter requirements
@@ -537,11 +508,11 @@
 ---
 
 ## Metadata
-- **Generated**: 2025-10-14
-- **Grooming Type**: Comprehensive - Reality check after 3 major completions
-- **Previous Grooming**: 2025-10-13 (Status update after DuckDB refactoring)
+- **Generated**: 2025-10-18
+- **Grooming Type**: Focused - Archive FEAT-001 completion, update priorities
+- **Previous Grooming**: 2025-10-18 (PERF-001 deprioritization)
 - **Task Files Analyzed**: 86 active task files
-- **Completion Records**: 16 since October began
+- **Completion Records**: 17 since October began
 - **Project Phase**: Phase 3 Complete → Phase 4 Ready
 - **Confidence**: HIGH - Clear path forward
-- **Next Review**: 2025-10-21 or after 3+ completions
+- **Next Review**: 2025-10-25 or after 2+ completions

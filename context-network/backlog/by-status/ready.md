@@ -1,6 +1,6 @@
 # Ready Tasks
 
-**Last Updated**: 2025-10-14
+**Last Updated**: 2025-10-18
 **Source**: [groomed-backlog.md](../../planning/groomed-backlog.md)
 
 Tasks that are fully groomed, unblocked, and ready for immediate implementation.
@@ -15,33 +15,7 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 
 ## Medium Priority
 
-### PERF-001: Add Connection Pooling for Database Adapters
-**Title**: Implement connection pooling to improve performance under load
-**Complexity**: Medium
-**Effort**: 4-5 hours
-**Branch**: `feature/connection-pooling`
-
-**Why this task**:
-- Improves concurrent operation performance
-- Better resource utilization
-- Production-ready performance optimization
-
-**Start with**: `/implement PERF-001`
-
----
-
-### FEAT-001: Implement Pattern Detection System
-**Title**: Build universal pattern detection for circular dependencies, orphaned nodes
-**Complexity**: Medium
-**Effort**: 5-6 hours
-**Branch**: `feature/pattern-detection`
-
-**Why this task**:
-- Foundation for Phase 5 intelligence features
-- High-value analysis capabilities
-- Domain-agnostic implementation
-
-**Start with**: `/implement FEAT-001`
+*No medium priority tasks at this time*
 
 ---
 
@@ -77,7 +51,33 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 
 ---
 
+## Blocked Tasks
+
+### PERF-001: Add Connection Pooling for Database Adapters
+**Title**: Implement connection pooling to improve performance under load
+**Complexity**: Medium
+**Effort**: 4-5 hours
+**Branch**: `feature/connection-pooling`
+**Status**: 🚫 BLOCKED - Awaiting scope & priority decisions (2025-10-18)
+
+**Blocking Issues**:
+- **Scope unclear**: Original plan (Kuzu only) vs backlog description (both adapters)
+- **Priority unclear**: Performance not a current concern
+- **Decision needed**: Archive, narrow scope, or broaden scope?
+
+**See**: [add-connection-pooling.md](../../tasks/performance/add-connection-pooling.md)
+
+---
+
 ## Completed Tasks Archive
+
+### ~~TASK-DOC-001: Move Performance Alternatives to Documentation~~ - COMPLETE (2025-10-18)
+**Status**: ✅ COMPLETE - Removed 60+ lines of commented code, created research docs, 234/234 tests passing
+**Completion**: [2025-10-18-task-doc-001-performance-docs.md](../../tasks/completed/2025-10-18-task-doc-001-performance-docs.md)
+
+### ~~FEAT-001: Implement Pattern Detection System~~ - COMPLETE (2025-10-14)
+**Status**: ✅ COMPLETE - 43 new tests, 193/193 total passing
+**Completion**: [2025-10-14-pattern-detection-feat-001-complete.md](../../tasks/completed/2025-10-14-pattern-detection-feat-001-complete.md)
 
 ### ~~REFACTOR-002: Split TypeScriptDependencyAnalyzer~~ - COMPLETE (2025-10-13)
 **Status**: ✅ COMPLETE - 58% reduction (749 → 312 lines), 150/150 tests passing
@@ -104,22 +104,26 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 2. ✅ ~~**REFACTOR-001** (DuckDB Split)~~ - COMPLETE (2025-10-13)
 3. ✅ ~~**TECH-002** (Graph Operations Enhancement)~~ - COMPLETE (2025-10-13)
 4. ✅ ~~**REFACTOR-002** (TypeScript Analyzer)~~ - COMPLETE (2025-10-13)
-5. Start with **PERF-001** (Connection Pooling) - 4-5 hours
-6. Or **FEAT-001** (Pattern Detection) - 5-6 hours
+5. ✅ ~~**FEAT-001** (Pattern Detection)~~ - COMPLETE (2025-10-14)
+6. 🚫 ~~**PERF-001** (Connection Pooling)~~ - BLOCKED (2025-10-18, awaiting decisions)
+7. ✅ ~~**TASK-DOC-001** (Performance Documentation)~~ - COMPLETE (2025-10-18)
+8. Start with **REFACTOR-003** (Kuzu optimization) - 3-4 hours
+9. Or **REFACTOR-004** (DuckDB optimization) - 3-4 hours
 
-**Estimated sprint**: 4-6 hours for high-impact tasks
+**Estimated sprint**: 3-4 hours for refactoring tasks
 
 ---
 
 ## Task Inventory
 
-- **Ready Medium Priority**: 2 tasks (Connection Pooling, Pattern Detection)
+- **Ready Medium Priority**: 0 tasks
 - **Ready Low Priority**: 2 tasks (Kuzu optimization, DuckDB optimization)
-- **Blocked**: 1 task (PlaceDomainAdapter - needs Phase 4 decision)
-- **Completed (Oct 2025)**: 16 major tasks
+- **Blocked**: 2 tasks (PERF-001 - awaiting decisions, PlaceDomainAdapter - needs Phase 4 decision)
+- **Completed (Oct 2025)**: 18 major tasks
 
 **Project Health**:
-- ✅ 225+ tests passing (150 unit + 75 DuckDB)
+- ✅ 234 tests passing (all unit tests)
 - ✅ 0 TypeScript errors
-- ✅ Zero test regressions across 3 major refactorings (Oct 13)
+- ✅ Zero test regressions across all refactorings
 - ✅ Test-First pattern established
+- ✅ Code review practices integrated

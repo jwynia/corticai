@@ -214,32 +214,30 @@ export class DuckDBStorageAdapter<T = any>
         const insertSQL = `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`
         
         if (this.data.size > 0) {
-          // BATCH OPTIMIZATION: Three implementation strategies tested
-          // Strategy 1: Prepared Statements (current implementation)
-          // Strategy 2: DuckDB Appender API (commented alternative)
-          // Strategy 3: Batch INSERT with VALUES clause (commented alternative)
-          
-          // Use prepared statement for batch operations (best balance of performance and compatibility)
+          // BATCH OPTIMIZATION: Using prepared statements for best balance of performance and compatibility
+          // For alternative strategies (Appender API, Batch VALUES), see:
+          // context-network/research/duckdb-performance-experiments.md
+
           const prepared = await connection.prepare(insertSQL)
-          
+
           try {
             // Process data in chunks to manage memory usage and prevent timeout
             const BATCH_SIZE = 1000 // Optimal chunk size for DuckDB
             const dataEntries = Array.from(this.data.entries())
-            
+
             for (let i = 0; i < dataEntries.length; i += BATCH_SIZE) {
               const chunk = dataEntries.slice(i, i + BATCH_SIZE)
-              
+
               // Batch execute the prepared statement for this chunk
               for (const [key, value] of chunk) {
                 try {
                   const serializedValue = JSON.stringify(value)
-                  
+
                   // Bind parameters and execute
                   prepared.bindVarchar(1, key)
                   prepared.bindVarchar(2, serializedValue)
                   await prepared.run()
-                  
+
                 } catch (serializeError) {
                   throw new StorageError(
                     `Failed to serialize value for key "${key}": ${serializeError}`,
@@ -248,7 +246,7 @@ export class DuckDBStorageAdapter<T = any>
                   )
                 }
               }
-              
+
               // Log progress for large datasets
               if (this.config.debug && dataEntries.length > 5000) {
                 this.log(`Batch processed ${Math.min(i + BATCH_SIZE, dataEntries.length)}/${dataEntries.length} records`)
@@ -258,67 +256,6 @@ export class DuckDBStorageAdapter<T = any>
             // Prepared statement cleanup is handled automatically by DuckDB
             // No manual close() required for @duckdb/node-api
           }
-          
-          // ALTERNATIVE IMPLEMENTATION 2: DuckDB Appender API 
-          // (Potentially faster for very large datasets)
-          /*
-          try {
-            const appender = await connection.createAppender(tableName)
-            
-            for (const [key, value] of this.data) {
-              try {
-                const serializedValue = JSON.stringify(value)
-                
-                // Append row to the table
-                appender.appendVarchar(key)
-                appender.appendVarchar(serializedValue)
-                appender.appendTimestamp(new Date()) // updated_at
-                appender.endRow()
-                
-              } catch (serializeError) {
-                throw new StorageError(
-                  `Failed to serialize value for key "${key}": ${serializeError}`,
-                  StorageErrorCode.SERIALIZATION_FAILED,
-                  { key, value, originalError: serializeError }
-                )
-              }
-            }
-            
-            await appender.flush()
-            appender.close()
-          } catch (appenderError) {
-            // Fallback to prepared statements if Appender API fails
-            this.logWarn(`Appender API failed, falling back to prepared statements: ${appenderError}`)
-            // ... prepared statement implementation as above
-          }
-          */
-          
-          // ALTERNATIVE IMPLEMENTATION 3: Batch INSERT with VALUES
-          // (Good for medium-sized datasets, simpler than prepared statements)
-          /*
-          const BATCH_SIZE = 500 // Smaller batch size for VALUES clause
-          const dataEntries = Array.from(this.data.entries())
-          
-          for (let i = 0; i < dataEntries.length; i += BATCH_SIZE) {
-            const chunk = dataEntries.slice(i, i + BATCH_SIZE)
-            const valuesClauses: string[] = []
-            const params: string[] = []
-            
-            chunk.forEach(([key, value], index) => {
-              const serializedValue = JSON.stringify(value)
-              valuesClauses.push(`($${index * 2 + 1}, $${index * 2 + 2}, CURRENT_TIMESTAMP)`)
-              params.push(key, serializedValue)
-            })
-            
-            const batchSQL = `INSERT OR REPLACE INTO ${tableName} (key, value, updated_at) VALUES ${valuesClauses.join(', ')}`
-            
-            const prepared = await connection.prepare(batchSQL)
-            for (let j = 0; j < params.length; j++) {
-              prepared.bindVarchar(j + 1, params[j])
-            }
-            await prepared.run()
-          }
-          */
         }
       } else {
         // If no data in memory, clear the table
