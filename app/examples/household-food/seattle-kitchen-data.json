@@ -1,0 +1,282 @@
+{
+  "pantry": [
+    {
+      "name": "pasta",
+      "amount": 3,
+      "unit": "lbs",
+      "category": "grain",
+      "location": "cabinet",
+      "purchasedAt": "2025-10-10"
+    },
+    {
+      "name": "olive oil",
+      "amount": 1,
+      "unit": "liter",
+      "category": "oil",
+      "location": "cabinet",
+      "purchasedAt": "2025-09-15"
+    },
+    {
+      "name": "canned tomatoes",
+      "amount": 5,
+      "unit": "count",
+      "category": "canned",
+      "location": "cabinet",
+      "purchasedAt": "2025-10-05",
+      "expiresAt": "2026-10-05"
+    },
+    {
+      "name": "garlic",
+      "amount": 6,
+      "unit": "cloves",
+      "category": "vegetable",
+      "location": "counter",
+      "purchasedAt": "2025-10-08"
+    },
+    {
+      "name": "basil",
+      "amount": 1,
+      "unit": "bunch",
+      "category": "herb",
+      "location": "refrigerator",
+      "purchasedAt": "2025-10-18",
+      "expiresAt": "2025-10-25"
+    },
+    {
+      "name": "chicken breast",
+      "amount": 2,
+      "unit": "lbs",
+      "category": "protein",
+      "location": "freezer",
+      "purchasedAt": "2025-09-20",
+      "expiresAt": "2025-12-20"
+    },
+    {
+      "name": "broccoli",
+      "amount": 2,
+      "unit": "heads",
+      "category": "vegetable",
+      "location": "refrigerator",
+      "purchasedAt": "2025-10-17",
+      "expiresAt": "2025-10-24"
+    },
+    {
+      "name": "rice",
+      "amount": 5,
+      "unit": "lbs",
+      "category": "grain",
+      "location": "cabinet",
+      "purchasedAt": "2025-08-01"
+    },
+    {
+      "name": "butter",
+      "amount": 1,
+      "unit": "lb",
+      "category": "dairy",
+      "location": "refrigerator",
+      "purchasedAt": "2025-10-12",
+      "expiresAt": "2025-11-12"
+    },
+    {
+      "name": "milk",
+      "amount": 0.5,
+      "unit": "gallon",
+      "category": "dairy",
+      "location": "refrigerator",
+      "purchasedAt": "2025-10-19",
+      "expiresAt": "2025-10-26"
+    }
+  ],
+  "recipes": [
+    {
+      "name": "Quick Pasta Marinara",
+      "type": "recipe",
+      "prepTime": 5,
+      "cookTime": 15,
+      "servings": 4,
+      "difficulty": "easy",
+      "cuisine": "Italian",
+      "dietary": ["vegetarian"],
+      "ingredients": [
+        {
+          "name": "pasta",
+          "amount": 1,
+          "unit": "lb",
+          "category": "grain"
+        },
+        {
+          "name": "canned tomatoes",
+          "amount": 2,
+          "unit": "count",
+          "category": "canned"
+        },
+        {
+          "name": "garlic",
+          "amount": 3,
+          "unit": "cloves",
+          "category": "vegetable"
+        },
+        {
+          "name": "olive oil",
+          "amount": 3,
+          "unit": "tbsp",
+          "category": "oil"
+        },
+        {
+          "name": "basil",
+          "amount": 2,
+          "unit": "tbsp",
+          "category": "herb",
+          "substitutes": ["oregano", "parsley"]
+        }
+      ]
+    },
+    {
+      "name": "Chicken and Broccoli Stir Fry",
+      "type": "recipe",
+      "prepTime": 10,
+      "cookTime": 15,
+      "servings": 3,
+      "difficulty": "medium",
+      "cuisine": "Asian",
+      "dietary": ["gluten-free"],
+      "ingredients": [
+        {
+          "name": "chicken breast",
+          "amount": 1.5,
+          "unit": "lbs",
+          "category": "protein"
+        },
+        {
+          "name": "broccoli",
+          "amount": 1,
+          "unit": "head",
+          "category": "vegetable"
+        },
+        {
+          "name": "olive oil",
+          "amount": 2,
+          "unit": "tbsp",
+          "category": "oil",
+          "substitutes": ["sesame oil", "vegetable oil"]
+        },
+        {
+          "name": "garlic",
+          "amount": 2,
+          "unit": "cloves",
+          "category": "vegetable"
+        },
+        {
+          "name": "rice",
+          "amount": 2,
+          "unit": "cups",
+          "category": "grain"
+        }
+      ]
+    },
+    {
+      "name": "Creamy Pasta Alfredo",
+      "type": "recipe",
+      "prepTime": 5,
+      "cookTime": 20,
+      "servings": 2,
+      "difficulty": "easy",
+      "cuisine": "Italian",
+      "dietary": ["vegetarian"],
+      "ingredients": [
+        {
+          "name": "pasta",
+          "amount": 0.5,
+          "unit": "lb",
+          "category": "grain"
+        },
+        {
+          "name": "butter",
+          "amount": 4,
+          "unit": "tbsp",
+          "category": "dairy"
+        },
+        {
+          "name": "milk",
+          "amount": 1,
+          "unit": "cup",
+          "category": "dairy",
+          "substitutes": ["cream", "almond milk"]
+        },
+        {
+          "name": "garlic",
+          "amount": 1,
+          "unit": "clove",
+          "category": "vegetable"
+        }
+      ]
+    },
+    {
+      "name": "Simple Garlic Rice",
+      "type": "recipe",
+      "prepTime": 2,
+      "cookTime": 20,
+      "servings": 4,
+      "difficulty": "easy",
+      "cuisine": "Asian",
+      "dietary": ["vegan", "gluten-free"],
+      "ingredients": [
+        {
+          "name": "rice",
+          "amount": 2,
+          "unit": "cups",
+          "category": "grain"
+        },
+        {
+          "name": "olive oil",
+          "amount": 1,
+          "unit": "tbsp",
+          "category": "oil"
+        },
+        {
+          "name": "garlic",
+          "amount": 4,
+          "unit": "cloves",
+          "category": "vegetable"
+        }
+      ]
+    }
+  ],
+  "mealPlan": [
+    {
+      "day": "Monday",
+      "meal": "Quick Pasta Marinara",
+      "type": "dinner"
+    },
+    {
+      "day": "Tuesday",
+      "meal": "Chicken and Broccoli Stir Fry",
+      "type": "dinner"
+    },
+    {
+      "day": "Wednesday",
+      "meal": "Creamy Pasta Alfredo",
+      "type": "dinner"
+    },
+    {
+      "day": "Thursday",
+      "meal": "Quick Pasta Marinara",
+      "type": "dinner"
+    },
+    {
+      "day": "Friday",
+      "meal": "Chicken and Broccoli Stir Fry",
+      "type": "dinner"
+    },
+    {
+      "day": "Saturday",
+      "meal": "Simple Garlic Rice",
+      "type": "lunch"
+    },
+    {
+      "day": "Sunday",
+      "meal": "Creamy Pasta Alfredo",
+      "type": "dinner"
+    }
+  ]
+}

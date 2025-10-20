@@ -40,6 +40,8 @@ import * as path from 'path'
 import * as KuzuQueryHelpers from './KuzuQueryHelpers'
 import { KuzuStorageOperations } from './KuzuStorageOperations'
 import { KuzuGraphOperations } from './KuzuGraphOperations'
+import { KuzuSchemaManager } from './KuzuSchemaManager'
+import { KuzuQueryExecutor } from './KuzuQueryExecutor'
 
 // Default configuration constants
 const DEFAULT_BUFFER_SIZE = 64 * 1024 * 1024 // 64MB in bytes
@@ -76,6 +78,8 @@ export class KuzuStorageAdapter
   private secureQueryBuilder: KuzuSecureQueryBuilder | null = null
   private storageOps: KuzuStorageOperations | null = null
   private graphOps: KuzuGraphOperations | null = null
+  private schemaManager: KuzuSchemaManager
+  private queryExecutor: KuzuQueryExecutor | null = null
   private performanceMonitor: PerformanceMonitor
   private isLoaded = false
   private initMutex = Promise.resolve()
@@ -116,6 +120,13 @@ export class KuzuStorageAdapter
       maxMetricsHistory: this.config.performanceMonitoring?.maxMetricsHistory ?? 1000
     })
 
+    // Initialize schema manager
+    this.schemaManager = new KuzuSchemaManager({
+      config: this.config,
+      log: this.log.bind(this),
+      logWarn: this.logWarn.bind(this)
+    })
+
     if (this.config.debug) {
       this.log(`Initializing Kuzu adapter with database: ${this.config.database}`)
       this.log(`Performance monitoring: ${this.performanceMonitor.isEnabled() ? 'enabled' : 'disabled'}`)
@@ -137,9 +148,30 @@ export class KuzuStorageAdapter
       }
 
       try {
-        await this.initializeDatabase()
-        await this.createSchema()
-        await this.loadExistingData()
+        // Use schema manager for initialization
+        const { db, connection } = await this.schemaManager.initialize()
+        this.db = db
+        this.connection = connection
+
+        // Create schema
+        await this.schemaManager.createSchema(connection)
+
+        // Initialize secure query builder
+        this.secureQueryBuilder = new KuzuSecureQueryBuilder(connection)
+
+        // Initialize query executor
+        this.queryExecutor = new KuzuQueryExecutor({
+          connection,
+          secureQueryBuilder: this.secureQueryBuilder,
+          debug: this.config.debug
+        })
+
+        // Load existing data
+        const existingData = await this.schemaManager.loadExistingData(connection)
+        // Populate cache with existing data
+        for (const [key, value] of existingData) {
+          this.data.set(key, value)
+        }
 
         // Initialize storage operations module
         if (this.connection && this.secureQueryBuilder) {
@@ -148,7 +180,7 @@ export class KuzuStorageAdapter
             secureQueryBuilder: this.secureQueryBuilder,
             cache: this.data,
             config: this.config,
-            executeSecureQuery: this.executeSecureQuery.bind(this),
+            executeSecureQuery: (sq) => this.queryExecutor!.executeSecureQuery(sq),
             log: this.log.bind(this),
             logWarn: this.logWarn.bind(this)
           })
@@ -159,8 +191,8 @@ export class KuzuStorageAdapter
             cache: this.data,
             config: this.config,
             performanceMonitor: this.performanceMonitor,
-            executeSecureQuery: this.executeSecureQuery.bind(this),
-            buildSecureQuery: this.buildSecureQuery.bind(this),
+            executeSecureQuery: (sq) => this.queryExecutor!.executeSecureQuery(sq),
+            buildSecureQuery: (qt, ...args) => this.queryExecutor!.buildSecureQuery(qt, ...args),
             set: this.set.bind(this),
             log: this.log.bind(this),
             logWarn: this.logWarn.bind(this)
@@ -196,120 +228,6 @@ export class KuzuStorageAdapter
     }
   }
 
-  // ============================================================================
-  // DATABASE INITIALIZATION
-  // ============================================================================
-
-  /**
-   * Initialize the Kuzu database instance and connection
-   */
-  private async initializeDatabase(): Promise<void> {
-    try {
-      // Ensure database directory exists
-      if (this.config.autoCreate) {
-        const dbDir = path.dirname(this.config.database)
-        if (!fs.existsSync(dbDir)) {
-          fs.mkdirSync(dbDir, { recursive: true })
-        }
-      }
-
-      // Create database instance
-      this.db = new Database(this.config.database, this.config.bufferPoolSize)
-
-      // Create connection
-      this.connection = new Connection(this.db)
-
-      // Initialize secure query builder
-      this.secureQueryBuilder = new KuzuSecureQueryBuilder(this.connection)
-
-      if (this.config.debug) {
-        this.log('Database and connection created')
-      }
-    } catch (error) {
-      throw new StorageError(
-        `Failed to create Kuzu database: ${error}`,
-        StorageErrorCode.CONNECTION_FAILED,
-        { database: this.config.database, error }
-      )
-    }
-  }
-
-  /**
-   * Create the database schema for storing graph entities
-   */
-  private async createSchema(): Promise<void> {
-    if (!this.connection) {
-      throw new StorageError('Database connection not initialized', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    try {
-      // For now, use a simpler schema to get the basic tests working
-      // We'll enhance this once we have the basic functionality working
-
-      // Create node table for storing entities
-      try {
-        await this.connection.query(`CREATE NODE TABLE Entity(id STRING, type STRING, data STRING, PRIMARY KEY (id))`)
-      } catch (error: any) {
-        // If table exists, that's fine
-        if (error?.message?.includes('already exists') || error?.message?.includes('duplicate')) {
-          if (this.config.debug) {
-            this.log('Entity table already exists')
-          }
-        } else {
-          throw error
-        }
-      }
-
-      // Create relationship table for graph edges
-      try {
-        await this.connection.query(`CREATE REL TABLE Relationship(FROM Entity TO Entity, type STRING, data STRING)`)
-      } catch (error: any) {
-        // If table exists, that's fine
-        if (error?.message?.includes('already exists') || error?.message?.includes('duplicate')) {
-          if (this.config.debug) {
-            this.log('Relationship table already exists')
-          }
-        } else {
-          throw error
-        }
-      }
-
-      if (this.config.debug) {
-        this.log('Database schema created')
-      }
-    } catch (error) {
-      throw new StorageError(
-        `Failed to create database schema: ${error}`,
-        StorageErrorCode.IO_ERROR,
-        { error }
-      )
-    }
-  }
-
-  /**
-   * Load existing data from the database into memory cache
-   */
-  private async loadExistingData(): Promise<void> {
-    if (!this.connection) {
-      return
-    }
-
-    try {
-      const result = await this.connection.query('MATCH (e:Entity) RETURN e.id, e.type, e.data')
-
-      // Note: Kuzu result handling may need to be adjusted based on actual API
-      // For now, we'll skip loading existing data to get basic tests passing
-
-      if (this.config.debug) {
-        this.log(`Database query executed for loading existing data`)
-      }
-    } catch (error) {
-      if (this.config.debug) {
-        this.logWarn(`Could not load existing data (database might be empty): ${error}`)
-      }
-      // Don't throw - empty database is valid
-    }
-  }
 
   // ============================================================================
   // UTILITY METHODS (Delegated to KuzuQueryHelpers)
@@ -611,37 +529,11 @@ export class KuzuStorageAdapter
   async executeQuery(query: string, params?: Record<string, any>): Promise<GraphQueryResult> {
     await this.ensureLoaded()
 
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
+    if (!this.queryExecutor) {
+      throw new StorageError('Query executor not initialized', StorageErrorCode.CONNECTION_FAILED)
     }
 
-    try {
-      const startTime = Date.now()
-
-      // Execute query with Kuzu
-      const result = await this.connection.query(query)
-
-      const executionTime = Date.now() - startTime
-
-      // Parse result to GraphQueryResult format
-      // Note: This is simplified - actual implementation would parse Kuzu results
-      return {
-        nodes: [],
-        edges: [],
-        paths: [],
-        metadata: {
-          executionTime,
-          nodesTraversed: 0,
-          edgesTraversed: 0
-        }
-      }
-    } catch (error) {
-      throw new StorageError(
-        `Failed to execute query: ${error}`,
-        StorageErrorCode.QUERY_FAILED,
-        { query, params }
-      )
-    }
+    return this.queryExecutor.executeQuery(query, params)
   }
 
   /**
@@ -656,24 +548,11 @@ export class KuzuStorageAdapter
   async transaction<R>(fn: () => Promise<R>): Promise<R> {
     await this.ensureLoaded()
 
-    // Kuzu doesn't have explicit transaction support with rollback in the current API
-    // This is a best-effort implementation that executes the function
-    // In a real implementation with transaction support, you would:
-    // 1. BEGIN TRANSACTION
-    // 2. Execute fn()
-    // 3. COMMIT on success or ROLLBACK on error
-
-    try {
-      const result = await fn()
-      return result
-    } catch (error) {
-      // In true transaction support, would ROLLBACK here
-      throw new StorageError(
-        `Transaction failed: ${error}`,
-        StorageErrorCode.QUERY_FAILED,
-        { error }
-      )
+    if (!this.queryExecutor) {
+      throw new StorageError('Query executor not initialized', StorageErrorCode.CONNECTION_FAILED)
     }
+
+    return this.queryExecutor.transaction(fn)
   }
 
   // ============================================================================
@@ -684,25 +563,10 @@ export class KuzuStorageAdapter
    * Close database connection
    */
   async close(): Promise<void> {
-    try {
-      if (this.connection) {
-        await this.connection.close()
-        this.connection = null
-      }
-
-      if (this.db) {
-        await this.db.close()
-        this.db = null
-      }
-
-      this.isLoaded = false
-
-      if (this.config.debug) {
-        this.log('Database connection closed')
-      }
-    } catch (error) {
-      this.logWarn(`Error closing database: ${error}`)
-    }
+    await this.schemaManager.close()
+    this.connection = null
+    this.db = null
+    this.isLoaded = false
   }
 
   // ============================================================================
@@ -710,114 +574,10 @@ export class KuzuStorageAdapter
   // ============================================================================
 
   /**
-   * Get performance metrics for all operations
+   * Get the performance monitor instance for direct access
    */
-  getPerformanceMetrics() {
-    return this.performanceMonitor.getAllMetrics()
+  getPerformanceMonitor(): PerformanceMonitor {
+    return this.performanceMonitor
   }
 
-  /**
-   * Get performance metrics for a specific operation
-   */
-  getOperationMetrics(operationName: string) {
-    return this.performanceMonitor.getMetrics(operationName)
-  }
-
-  /**
-   * Clear performance metrics
-   */
-  clearPerformanceMetrics(operationName?: string) {
-    this.performanceMonitor.clearMetrics(operationName)
-  }
-
-  /**
-   * Enable or disable performance monitoring
-   */
-  setPerformanceMonitoring(enabled: boolean) {
-    if (enabled) {
-      this.performanceMonitor.enable()
-    } else {
-      this.performanceMonitor.disable()
-    }
-  }
-
-  /**
-   * Check if performance monitoring is enabled
-   */
-  isPerformanceMonitoringEnabled(): boolean {
-    return this.performanceMonitor.isEnabled()
-  }
-
-  // ============================================================================
-  // SECURE QUERY METHODS (Required by security tests)
-  // ============================================================================
-
-  /**
-   * Build secure query using parameterized statements
-   * @private - Used internally for secure query construction
-   */
-  private buildSecureQuery(queryType: string, ...args: any[]): any {
-    if (!this.secureQueryBuilder) {
-      throw new StorageError('Secure query builder not initialized', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    switch (queryType) {
-      case 'entityStore':
-        return this.secureQueryBuilder.buildEntityStoreQuery(args[0], args[1], args[2], args[3])
-      case 'entityDelete':
-        return this.secureQueryBuilder.buildEntityDeleteQuery(args[0])
-      case 'edgeCreate':
-        return this.secureQueryBuilder.buildEdgeCreateQuery(args[0], args[1], args[2], args[3])
-      case 'getEdges':
-        return this.secureQueryBuilder.buildGetEdgesQuery(args[0])
-      case 'traversal':
-        return this.secureQueryBuilder.buildTraversalQuery(args[0], args[1], args[2], args[3])
-      case 'findConnected':
-        return this.secureQueryBuilder.buildFindConnectedQuery(args[0], args[1])
-      case 'shortestPath':
-        return this.secureQueryBuilder.buildShortestPathQuery(args[0], args[1], args[2])
-      default:
-        throw new StorageError(`Unknown query type: ${queryType}`, StorageErrorCode.INVALID_VALUE)
-    }
-  }
-
-  /**
-   * Prepare a statement for execution
-   * @private - Used internally for secure query preparation
-   */
-  private async prepareStatement(statement: string): Promise<any> {
-    if (!this.connection) {
-      throw new StorageError('Database connection not available', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    try {
-      const prepared = await this.connection.prepare(statement)
-      if (!prepared.isSuccess()) {
-        throw new Error(prepared.getErrorMessage())
-      }
-      return prepared
-    } catch (error) {
-      throw new StorageError(
-        `Failed to prepare statement: ${error}`,
-        StorageErrorCode.QUERY_FAILED,
-        { statement }
-      )
-    }
-  }
-
-  /**
-   * Execute a secure query with monitoring
-   * @private - Used internally for secure query execution
-   */
-  private async executeSecureQuery(secureQuery: any): Promise<QueryExecutionResult> {
-    if (!this.secureQueryBuilder) {
-      throw new StorageError('Secure query builder not initialized', StorageErrorCode.CONNECTION_FAILED)
-    }
-
-    return executeSecureQueryWithMonitoring(
-      this.secureQueryBuilder,
-      secureQuery,
-      this.config.debug || false
-    )
-  }
 }
