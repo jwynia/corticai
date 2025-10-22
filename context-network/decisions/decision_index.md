@@ -50,6 +50,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md) - Use DuckDB for analytics and materialized views
 - [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md) - Implement working/semantic/episodic memory tiers
 - [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md) - Implement 5-level depth-based progressive entity loading
+- [ADR-006: NPM-Centric Distribution Architecture](./adr_006_npm_centric_distribution.md) - NPM package as core with thin wrapper integrations
 
 #### Deprecated
 - *None yet*
@@ -66,6 +67,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
 - [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
 - [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md)
+- [ADR-006: NPM-Centric Distribution Architecture](./adr_006_npm_centric_distribution.md)
 
 #### Technology
 - [ADR-002: Kuzu for Graph Storage](./adr_002_kuzu_graph_database.md)
@@ -90,6 +92,7 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 - August 28: [ADR-003: DuckDB for Analytics](./adr_003_duckdb_analytics.md)
 - August 28: [ADR-004: Three-Tier Memory Architecture](./adr_004_memory_architecture.md)
 - September 24: [ADR-005: Progressive Loading System](./adr-005-progressive-loading-system.md)
+- October 20: [ADR-006: NPM-Centric Distribution Architecture](./adr_006_npm_centric_distribution.md)
 
 ### ADRs by Component
 
@@ -103,6 +106,9 @@ This index organizes ADRs in multiple ways to help you find relevant decisions:
 
 #### Workflow Engine
 - [ADR-001: Workflow Data Passing Strategy](./adr_001_workflow_data_passing_strategy.md)
+
+#### Distribution & Integration
+- [ADR-006: NPM-Centric Distribution Architecture](./adr_006_npm_centric_distribution.md)
 
 ### Creating New ADRs
 
