@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "node_modules",
+    "dist",
+    "tests",
+    "benchmarks",
+    "examples",
+    "src/adapters/HouseholdFoodAdapter.ts",
+    "src/storage/providers/LocalStorageProvider.ts",
+    "src/storage/providers/StorageProviderFactory.ts"
+  ]
+}

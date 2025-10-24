@@ -24,6 +24,13 @@ Central navigation for all development processes, workflows, and methodologies.
 - **[Delivery](./delivery.md)** - Deployment and delivery processes
 - **[Document Integration](./document_integration.md)** - Documentation workflow
 
+### Release and Distribution
+- **[NPM Publishing](./npm-publishing.md)** - Publishing to GitHub Package Registry
+  - **Registry**: GitHub Package Registry (npm.pkg.github.com)
+  - **Package**: @corticai/corticai (scoped package)
+  - **Automation**: GitHub Actions workflow
+  - **Methods**: Automated releases and manual publishing
+
 ## Key Process Principles
 
 ### Testing Philosophy
@@ -79,6 +86,7 @@ See: [tdd-guidelines.md](./tdd-guidelines.md)
 - **Code Review**: [code-review-workflow.md](./code-review-workflow.md)
 - **Creating Features**: [creation.md](./creation.md)
 - **Deploying**: [delivery.md](./delivery.md)
+- **Publishing Packages**: [npm-publishing.md](./npm-publishing.md)
 
 ### By Role
 - **Developers**: testing-strategy.md, tdd-guidelines.md, creation.md
@@ -93,7 +101,7 @@ See: [tdd-guidelines.md](./tdd-guidelines.md)
 
 ## Maintenance
 
-**Last Updated**: 2025-10-05
+**Last Updated**: 2025-10-22
 **Next Review**: When process changes occur
 
 ### Update Triggers

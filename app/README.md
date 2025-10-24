@@ -23,6 +23,38 @@ app/
 
 ## Installation
 
+### From GitHub Package Registry
+
+To use `@corticai/corticai` as a dependency:
+
+1. **Configure npm for GitHub Package Registry:**
+   ```bash
+   npm login --registry https://npm.pkg.github.com --scope @corticai
+   # Enter your GitHub username and Personal Access Token (PAT) with read:packages scope
+   ```
+
+   Or add to your project's `.npmrc`:
+   ```
+   @corticai:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=YOUR_TOKEN
+   ```
+
+2. **Install the package:**
+   ```bash
+   npm install @corticai/corticai
+   ```
+
+3. **Import and use:**
+   ```typescript
+   import { contextTools, contextAgents } from '@corticai/corticai';
+   import { QueryBuilder } from '@corticai/corticai/query';
+   import { StorageAdapter } from '@corticai/corticai/storage';
+   ```
+
+### For Development
+
+To work on CorticAI itself:
+
 ```bash
 # Install dependencies
 npm install
@@ -36,6 +68,8 @@ npm test
 # Generate documentation
 npm run docs
 ```
+
+See [../context-network/processes/npm-publishing.md](../context-network/processes/npm-publishing.md) for detailed publishing instructions.
 
 ## Core Components
 
@@ -180,4 +214,4 @@ See the main project [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT - See [LICENSE](../LICENSE) for details.
+ISC - See [LICENSE](../LICENSE) for details.
