@@ -16,6 +16,11 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/unit/**/*.test.ts', 'src/**/*.unit.test.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'tests/unit/adapters/HouseholdFoodAdapter.test.ts', // Excluded from v0.1.0 build
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

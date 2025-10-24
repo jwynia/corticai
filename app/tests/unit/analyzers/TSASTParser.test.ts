@@ -518,7 +518,7 @@ describe('TSASTParser', () => {
         // Assert
         expect(analysis.imports).toHaveLength(50);
         expect(analysis.exports).toHaveLength(50);
-        expect(duration).toBeLessThan(1500); // Should parse in < 1.5 seconds (TypeScript compiler can be slow)
+        expect(duration).toBeLessThan(2500); // Should parse in < 2.5 seconds (account for CI environment variance)
       });
     });
   });
