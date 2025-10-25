@@ -170,19 +170,39 @@ For manual publishing or private package installation:
      - `write:packages` (to publish packages)
    - Copy the token (you won't see it again)
 
-2. **Configure for your machine:**
-   ```bash
-   # Set as environment variable (temporary)
-   export NPM_TOKEN=your_token_here
+2. **Configure for your environment:**
 
-   # Or add to ~/.npmrc (permanent, be careful with permissions)
+   **For DevContainers (Recommended for this project):**
+   ```bash
+   # Add to .devcontainer/.env (already gitignored)
+   GITHUB_TOKEN=your_token_here
+
+   # Create workspace .npmrc (already gitignored)
+   # This file exists at /.npmrc and uses the env var
+   @corticai:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+
+   # Rebuild container to load new env vars
+   # In VS Code: Command Palette → "Rebuild Container"
+   ```
+
+   **For Regular Machines:**
+   ```bash
+   # Add to ~/.npmrc (be careful with permissions)
    echo "//npm.pkg.github.com/:_authToken=your_token_here" >> ~/.npmrc
    chmod 600 ~/.npmrc
    ```
 
+   **Important Security Notes:**
+   - ✅ `.devcontainer/.env` - Safe (gitignored, workspace-level)
+   - ✅ `/.npmrc` - Safe (gitignored, uses env var)
+   - ❌ `~/.npmrc` in devcontainers - Not recommended (doesn't persist)
+   - ❌ NEVER commit tokens to git
+
 3. **Test the configuration:**
    ```bash
-   npm login --registry https://npm.pkg.github.com --scope @corticai
+   npm config list | grep @corticai
+   # Should show: @corticai:registry = "https://npm.pkg.github.com"
    ```
 
 ### Troubleshooting
