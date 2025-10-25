@@ -58,6 +58,14 @@
   "author": "J Wynia",
   "license": "ISC",
   "description": "TypeScript LLM Agent context management framework with DuckDB and JSON storage adapters.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jwynia/corticai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jwynia/corticai/issues"
+  },
+  "homepage": "https://github.com/jwynia/corticai#readme",
   "type": "module",
   "engines": {
     "node": ">=20.9.0"
