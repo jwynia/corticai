@@ -4,6 +4,7 @@ import * as fs from 'fs/promises';
 import { TSASTParser } from '../../../src/analyzers/TSASTParser';
 import { TSImportResolver } from '../../../src/analyzers/TSImportResolver';
 import type { FileAnalysis } from '../../../src/analyzers/types';
+import { itPerformance } from '../../helpers/performance';
 
 describe('TSASTParser', () => {
   let parser: TSASTParser;
@@ -495,9 +496,7 @@ describe('TSASTParser', () => {
     });
 
     describe('performance', () => {
-      it.skipIf(process.env.CI === 'true')('should parse files efficiently', async () => {
-        // Note: Performance tests are skipped in CI because they're non-deterministic
-        // (same code doesn't always get same result due to environment variance)
+      itPerformance('should parse files efficiently', async () => {
 
         // Arrange
         const testFile = path.join(testProjectDir, 'large-file.ts');
