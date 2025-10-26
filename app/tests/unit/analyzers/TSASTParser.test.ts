@@ -495,7 +495,10 @@ describe('TSASTParser', () => {
     });
 
     describe('performance', () => {
-      it('should parse files efficiently', async () => {
+      it.skipIf(process.env.CI === 'true')('should parse files efficiently', async () => {
+        // Note: Performance tests are skipped in CI because they're non-deterministic
+        // (same code doesn't always get same result due to environment variance)
+
         // Arrange
         const testFile = path.join(testProjectDir, 'large-file.ts');
         await fs.mkdir(testProjectDir, { recursive: true });
@@ -518,7 +521,7 @@ describe('TSASTParser', () => {
         // Assert
         expect(analysis.imports).toHaveLength(50);
         expect(analysis.exports).toHaveLength(50);
-        expect(duration).toBeLessThan(2500); // Should parse in < 2.5 seconds (account for CI environment variance)
+        expect(duration).toBeLessThan(2000); // Local dev threshold
       });
     });
   });
