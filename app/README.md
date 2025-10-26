@@ -25,11 +25,11 @@ app/
 
 ### From GitHub Package Registry
 
-To use `@corticai/corticai` as a dependency:
+To use `@jwynia/corticai` as a dependency:
 
 1. **Configure npm for GitHub Package Registry:**
    ```bash
-   npm login --registry https://npm.pkg.github.com --scope @corticai
+   npm login --registry https://npm.pkg.github.com --scope @jwynia
    # Enter your GitHub username and Personal Access Token (PAT) with read:packages scope
    ```
 
@@ -41,14 +41,14 @@ To use `@corticai/corticai` as a dependency:
 
 2. **Install the package:**
    ```bash
-   npm install @corticai/corticai
+   npm install @jwynia/corticai
    ```
 
 3. **Import and use:**
    ```typescript
-   import { contextTools, contextAgents } from '@corticai/corticai';
-   import { QueryBuilder } from '@corticai/corticai/query';
-   import { StorageAdapter } from '@corticai/corticai/storage';
+   import { contextTools, contextAgents } from '@jwynia/corticai';
+   import { QueryBuilder } from '@jwynia/corticai/query';
+   import { StorageAdapter } from '@jwynia/corticai/storage';
    ```
 
 ### For Development

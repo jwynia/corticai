@@ -1,5 +1,5 @@
 {
-  "name": "@corticai/corticai",
+  "name": "@jwynia/corticai",
   "version": "0.1.0",
   "main": "./dist/index.js",
   "files": [

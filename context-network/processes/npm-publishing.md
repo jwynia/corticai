@@ -13,7 +13,7 @@ This document describes how to publish the CorticAI package to GitHub Package Re
 
 ### Overview
 
-CorticAI is published to GitHub Package Registry under the scoped package name `@corticai/corticai`. This approach provides:
+CorticAI is published to GitHub Package Registry under the scoped package name `@jwynia/corticai`. This approach provides:
 - Organization-scoped packages (prevents name conflicts)
 - Access control via GitHub permissions
 - Integration with GitHub's package management
@@ -24,7 +24,7 @@ CorticAI is published to GitHub Package Registry under the scoped package name `
 See [[decisions/adr_006_npm_centric_distribution.md]] for the architectural decision about NPM distribution.
 
 **Package Structure:**
-- Main package name: `@corticai/corticai`
+- Main package name: `@jwynia/corticai`
 - Registry: https://npm.pkg.github.com
 - Entry points defined in `package.json` `exports` field
 - Built artifacts published from `dist/` directory
@@ -87,7 +87,7 @@ See [[decisions/adr_006_npm_centric_distribution.md]] for the architectural deci
 1. GitHub Personal Access Token (PAT) with `write:packages` scope
 2. Configure local `.npmrc` in `app/` directory:
    ```
-   @corticai:registry=https://npm.pkg.github.com
+   @jwynia:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=YOUR_TOKEN_HERE
    ```
 
@@ -111,28 +111,28 @@ See [[decisions/adr_006_npm_centric_distribution.md]] for the architectural deci
 
 #### As a Dependent Package
 
-To use `@corticai/corticai` in another project:
+To use `@jwynia/corticai` in another project:
 
 1. **Create or use existing GitHub Personal Access Token** with `read:packages` scope
 2. **Configure `.npmrc` in your project root:**
    ```
-   @corticai:registry=https://npm.pkg.github.com
+   @jwynia:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=YOUR_TOKEN
    ```
 
 3. **Install the package:**
    ```bash
-   npm install @corticai/corticai
+   npm install @jwynia/corticai
    ```
 
 4. **Import from CorticAI:**
    ```typescript
    // Import from main entry point
-   import { contextAgents, contextTools } from '@corticai/corticai';
+   import { contextAgents, contextTools } from '@jwynia/corticai';
 
    // Or import from specific entry points
-   import { QueryBuilder } from '@corticai/corticai/query';
-   import { StorageAdapter } from '@corticai/corticai/storage';
+   import { QueryBuilder } from '@jwynia/corticai/query';
+   import { StorageAdapter } from '@jwynia/corticai/storage';
    ```
 
 ### Version Management
@@ -179,7 +179,7 @@ For manual publishing or private package installation:
 
    # Create workspace .npmrc (already gitignored)
    # This file exists at /.npmrc and uses the env var
-   @corticai:registry=https://npm.pkg.github.com
+   @jwynia:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 
    # Rebuild container to load new env vars
@@ -201,8 +201,8 @@ For manual publishing or private package installation:
 
 3. **Test the configuration:**
    ```bash
-   npm config list | grep @corticai
-   # Should show: @corticai:registry = "https://npm.pkg.github.com"
+   npm config list | grep @jwynia
+   # Should show: @jwynia:registry = "https://npm.pkg.github.com"
    ```
 
 ### Troubleshooting
@@ -214,16 +214,16 @@ For manual publishing or private package installation:
 
 #### "Package name too similar to existing package"
 - GitHub Package Registry doesn't allow similar names across organizations
-- Use the scoped package name `@corticai/corticai`
+- Use the scoped package name `@jwynia/corticai`
 
 #### "401 Unauthorized when installing"
 - Ensure `.npmrc` has correct `read:packages` token
 - Token may have expired, create a new one
 
-#### "Cannot find module '@corticai/corticai' when importing"
-- Check package is installed: `npm list @corticai/corticai`
+#### "Cannot find module '@jwynia/corticai' when importing"
+- Check package is installed: `npm list @jwynia/corticai`
 - Verify TypeScript/build is using correct entry points
-- Ensure `.npmrc` is configured for `@corticai` scope
+- Ensure `.npmrc` is configured for `@jwynia` scope
 
 ### CI/CD Integration
 
@@ -254,10 +254,10 @@ After publishing, verify the package is available:
 
 ```bash
 # List package versions in GitHub Package Registry
-npm view @corticai/corticai versions --registry https://npm.pkg.github.com
+npm view @jwynia/corticai versions --registry https://npm.pkg.github.com
 
 # Install the newly published version
-npm install @corticai/corticai@latest
+npm install @jwynia/corticai@latest
 ```
 
 #### Check Package Contents
@@ -266,7 +266,7 @@ Ensure the package contains expected files:
 
 ```bash
 # View package contents
-npm pack @corticai/corticai
+npm pack @jwynia/corticai
 
 # Extract and inspect the tarball
 tar -tzf corticai-corticai-X.Y.Z.tgz | head -20
