@@ -15,6 +15,8 @@ import { DuckDBConnectionManager } from './DuckDBConnectionManager'
 import { DuckDBTableValidator } from './DuckDBTableValidator'
 import { DuckDBTypeMapper } from './DuckDBTypeMapper'
 import { DuckDBSQLGenerator } from './DuckDBSQLGenerator'
+import { DuckDBParquetOperations } from './DuckDBParquetOperations'
+import { DuckDBSemanticQueryBuilder } from './DuckDBSemanticQueryBuilder'
 import {
   SemanticStorage,
   SemanticQuery,
@@ -48,7 +50,9 @@ export class DuckDBStorageAdapter<T = any>
   private transactionDepth = 0
   private persistMutex = Promise.resolve()
   private connectionManager: DuckDBConnectionManager
-  
+  private parquetOperations: DuckDBParquetOperations | null = null
+  private semanticQueryBuilder: DuckDBSemanticQueryBuilder | null = null
+
   // Instance-level mutex for ensureLoaded synchronization
   private ensureLoadedMutex = Promise.resolve()
   
@@ -103,14 +107,49 @@ export class DuckDBStorageAdapter<T = any>
   private async getConnection(): Promise<DuckDBConnection> {
     return this.connectionManager.getConnection()
   }
-  
+
   /**
    * Create storage table if it doesn't exist
    */
   private async createTableIfNeeded(): Promise<void> {
     return this.connectionManager.createTableIfNeeded()
   }
-  
+
+  /**
+   * Get or create Parquet operations module
+   * Lazy initialization ensures connection is available
+   */
+  private async getParquetOperations(): Promise<DuckDBParquetOperations> {
+    if (!this.parquetOperations) {
+      const connection = await this.getConnection()
+      this.parquetOperations = new DuckDBParquetOperations({
+        connection,
+        enableParquet: this.config.enableParquet ?? false,
+        tableName: this.config.tableName!,
+        debug: this.config.debug,
+        log: (msg: string) => this.log(msg),
+        logWarn: (msg: string) => this.logWarn(msg)
+      })
+    }
+    return this.parquetOperations
+  }
+
+  /**
+   * Get or create DuckDBSemanticQueryBuilder instance
+   * Lazy initialization ensures connection is available
+   */
+  private async getSemanticQueryBuilder(): Promise<DuckDBSemanticQueryBuilder> {
+    if (!this.semanticQueryBuilder) {
+      const connection = await this.getConnection()
+      this.semanticQueryBuilder = new DuckDBSemanticQueryBuilder({
+        connection,
+        debug: this.config.debug,
+        log: (msg: string) => this.log(msg)
+      })
+    }
+    return this.semanticQueryBuilder
+  }
+
   // ============================================================================
   // ABSTRACT METHOD IMPLEMENTATIONS
   // ============================================================================
@@ -297,83 +336,8 @@ export class DuckDBStorageAdapter<T = any>
    * Implements SemanticStorage.query()
    */
   async query<R = T>(semanticQuery: SemanticQuery): Promise<SemanticQueryResult<R>> {
-    const startTime = Date.now()
-    let rowsScanned = 0
-
-    try {
-      const connection = await this.getConnection()
-
-      // Build SQL from semantic query
-      let sql = `SELECT ${semanticQuery.select && semanticQuery.select.length > 0 ? semanticQuery.select.join(', ') : '*'} FROM ${semanticQuery.from}`
-      const params: any[] = []
-
-      // WHERE clause
-      if (semanticQuery.where && semanticQuery.where.length > 0) {
-        const whereClauses = semanticQuery.where.map((filter, index) => {
-          params.push(filter.value)
-          return `${filter.field} ${filter.operator} $${params.length}`
-        })
-        sql += ` WHERE ${whereClauses.join(' AND ')}`
-      }
-
-      // GROUP BY clause
-      if (semanticQuery.groupBy && semanticQuery.groupBy.length > 0) {
-        sql += ` GROUP BY ${semanticQuery.groupBy.join(', ')}`
-      }
-
-      // Aggregations
-      if (semanticQuery.aggregations && semanticQuery.aggregations.length > 0) {
-        const aggSelects = semanticQuery.aggregations.map(agg => {
-          const alias = agg.as || `${agg.operator}_${agg.field}`
-          return `${agg.operator.toUpperCase()}(${agg.field}) AS ${alias}`
-        })
-
-        if (semanticQuery.select && semanticQuery.select.length > 0) {
-          sql = sql.replace(`SELECT ${semanticQuery.select.join(', ')}`, `SELECT ${semanticQuery.select.join(', ')}, ${aggSelects.join(', ')}`)
-        } else {
-          sql = sql.replace('SELECT *', `SELECT ${aggSelects.join(', ')}`)
-        }
-      }
-
-      // ORDER BY clause
-      if (semanticQuery.orderBy && semanticQuery.orderBy.length > 0) {
-        const orderClauses = semanticQuery.orderBy.map(order => `${order.field} ${order.direction.toUpperCase()}`)
-        sql += ` ORDER BY ${orderClauses.join(', ')}`
-      }
-
-      // LIMIT and OFFSET
-      if (semanticQuery.limit !== undefined) {
-        sql += ` LIMIT ${semanticQuery.limit}`
-      }
-      if (semanticQuery.offset !== undefined) {
-        sql += ` OFFSET ${semanticQuery.offset}`
-      }
-
-      // Execute query
-      const data = await DuckDBSQLGenerator.executeQuery<R>(connection, sql, params, this.config.debug)
-      rowsScanned = data.length
-
-      const executionTime = Date.now() - startTime
-
-      return {
-        data,
-        metadata: {
-          executionTime,
-          rowsScanned,
-          fromCache: false
-        }
-      }
-    } catch (error) {
-      return {
-        data: [],
-        metadata: {
-          executionTime: Date.now() - startTime,
-          rowsScanned,
-          fromCache: false
-        },
-        errors: [(error as Error).message]
-      }
-    }
+    const builder = await this.getSemanticQueryBuilder()
+    return builder.executeSemanticQuery<R>(semanticQuery)
   }
 
   /**
@@ -381,31 +345,8 @@ export class DuckDBStorageAdapter<T = any>
    * Implements SemanticStorage.executeSQL()
    */
   async executeSQL<R = any>(sql: string, params: any[] = []): Promise<SemanticQueryResult<R>> {
-    const startTime = Date.now()
-
-    try {
-      const connection = await this.getConnection()
-      const data = await DuckDBSQLGenerator.executeQuery<R>(connection, sql, params, this.config.debug)
-
-      return {
-        data,
-        metadata: {
-          executionTime: Date.now() - startTime,
-          rowsScanned: data.length,
-          fromCache: false
-        }
-      }
-    } catch (error) {
-      return {
-        data: [],
-        metadata: {
-          executionTime: Date.now() - startTime,
-          rowsScanned: 0,
-          fromCache: false
-        },
-        errors: [(error as Error).message]
-      }
-    }
+    const builder = await this.getSemanticQueryBuilder()
+    return builder.executeSQL<R>(sql, params)
   }
 
   /**
@@ -592,93 +533,29 @@ export class DuckDBStorageAdapter<T = any>
   /**
    * Export query results to Parquet format
    * Implements SemanticStorage.exportToParquet()
+   * Delegates to DuckDBParquetOperations module
    */
   async exportToParquet(query: SemanticQuery | string, outputPath: string): Promise<void> {
-    if (!this.config.enableParquet) {
-      throw new StorageError(
-        'Parquet support not enabled. Set enableParquet: true in configuration',
-        StorageErrorCode.INVALID_VALUE,
-        { enableParquet: this.config.enableParquet }
-      )
-    }
-
-    try {
-      const connection = await this.getConnection()
-
-      // Build the export SQL based on query type
-      let exportSQL: string
-      if (typeof query === 'string') {
-        // Raw SQL query
-        const safePath = outputPath.replace(/'/g, "''")
-        exportSQL = `COPY (${query}) TO '${safePath}' (FORMAT PARQUET)`
-      } else {
-        // Semantic query - convert to SQL
-        const result = await this.query(query)
-        // For now, use the table name from the semantic query
-        const safePath = outputPath.replace(/'/g, "''")
-        exportSQL = `COPY (SELECT * FROM ${query.from}) TO '${safePath}' (FORMAT PARQUET)`
-      }
-
-      await connection.run(exportSQL)
-
-      if (this.config.debug) {
-        this.log(`Exported data to Parquet file: ${outputPath}`)
-      }
-    } catch (error) {
-      throw new StorageError(
-        `Parquet export failed: ${(error as Error).message}`,
-        StorageErrorCode.CONNECTION_FAILED,
-        { outputPath, originalError: error }
-      )
-    }
+    const parquetOps = await this.getParquetOperations()
+    return parquetOps.exportToParquet(query, outputPath)
   }
 
   /**
    * Import data from Parquet file
    * Implements SemanticStorage.importFromParquet()
+   * Delegates to DuckDBParquetOperations module
    */
   async importFromParquet(table: string, inputPath: string): Promise<number> {
-    if (!this.config.enableParquet) {
-      throw new StorageError(
-        'Parquet support not enabled. Set enableParquet: true in configuration',
-        StorageErrorCode.INVALID_VALUE,
-        { enableParquet: this.config.enableParquet }
-      )
+    const parquetOps = await this.getParquetOperations()
+    const imported = await parquetOps.importFromParquet(table, inputPath)
+
+    // Reload data into memory cache if this is our main table
+    if (table === this.config.tableName) {
+      this.isLoaded = false
+      await this.ensureLoaded()
     }
 
-    try {
-      const connection = await this.getConnection()
-
-      // Get count before import
-      const countBefore = await this.aggregate(table, 'count', '*')
-
-      // Import from Parquet file - escape single quotes to prevent SQL injection
-      const safePath = inputPath.replace(/'/g, "''")
-      const importSQL = `INSERT INTO ${table} SELECT * FROM read_parquet('${safePath}')`
-      await connection.run(importSQL)
-
-      // Get count after import
-      const countAfter = await this.aggregate(table, 'count', '*')
-      const imported = countAfter - countBefore
-
-      // Reload data into memory cache if this is our main table
-      if (table === this.config.tableName) {
-        this.isLoaded = false
-        await this.ensureLoaded()
-      }
-
-      if (this.config.debug) {
-        this.log(`Imported ${imported} rows from Parquet file: ${inputPath}`)
-      }
-
-      return imported
-    } catch (error) {
-      throw new StorageError(
-        `Parquet import failed: ${(error as Error).message}`,
-        StorageErrorCode.CONNECTION_FAILED,
-        { inputPath, originalError: error }
-      )
-    }
+    return imported
   }
 
   /**
@@ -725,22 +602,14 @@ export class DuckDBStorageAdapter<T = any>
   async importParquet(filePath: string): Promise<void> {
     await this.importFromParquet(this.config.tableName!, filePath)
   }
-  
+
   /**
    * Query Parquet file directly without importing
-   * Delegates to DuckDBSQLGenerator for consistent query execution
+   * Delegates to DuckDBParquetOperations module
    */
   async queryParquet<R = any>(filePath: string, sql: string, params: any[] = []): Promise<R[]> {
-    if (!this.config.enableParquet) {
-      throw new StorageError(
-        'Parquet support not enabled. Set enableParquet: true in configuration',
-        StorageErrorCode.INVALID_VALUE,
-        { enableParquet: this.config.enableParquet }
-      )
-    }
-
-    const connection = await this.getConnection()
-    return DuckDBSQLGenerator.queryParquet<R>(connection, filePath, sql, params, this.config.debug)
+    const parquetOps = await this.getParquetOperations()
+    return parquetOps.queryParquet<R>(filePath, sql, params)
   }
   
   /**
