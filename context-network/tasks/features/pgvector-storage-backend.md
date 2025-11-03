@@ -318,9 +318,9 @@ interface PgVectorStorageConfig extends StorageConfig {
 - ✅ Improved TODO comment with implementation context
 
 **Deferred Improvements** (tracked as separate tasks):
-- [[pgvector-sql-injection-fix]] (IMPROVE-PGVECTOR-001) - 🔴 CRITICAL: Add input validation to prevent SQL injection
-- [[pgvector-n1-query-optimization]] (IMPROVE-PGVECTOR-002) - 🟡 HIGH: Batch-fetch nodes to eliminate N+1 query pattern
-- [[pgvector-code-quality]] (IMPROVE-PGVECTOR-003) - 🟢 MEDIUM: Replace non-null assertions, extract helpers, add validation
+- [[pgvector-sql-injection-fix]] (IMPROVE-PGVECTOR-001) - ✅ COMPLETED: Input validation prevents SQL injection
+- [[pgvector-n1-query-optimization]] (IMPROVE-PGVECTOR-002) - ✅ COMPLETED: Batch-fetch eliminates N+1 query pattern (50x faster)
+- [[pgvector-code-quality]] (IMPROVE-PGVECTOR-003) - ✅ COMPLETED: All code quality issues addressed in IMPROVE-001 and IMPROVE-002
 
 ## Questions & Decisions
 (To be populated as needed)

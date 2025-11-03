@@ -613,4 +613,704 @@ describe('PgVectorStorageAdapter (Unit Tests)', () => {
       expect(queries.some(q => q.includes('$1'))).toBe(true);
     });
   });
+
+  // ============================================================================
+  // SECURITY TESTS: SQL Injection Prevention
+  // ============================================================================
+
+  describe('Security: SQL Injection Prevention', () => {
+    beforeEach(() => {
+      // Reset mock before each test
+      mockPg.reset();
+      mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+    });
+
+    describe('traverse() input validation', () => {
+      it('should reject invalid direction values', async () => {
+        const pattern: any = {
+          startNode: 'node-1',
+          direction: 'UNION SELECT * FROM users--' // SQL injection attempt
+        };
+
+        await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid direction/);
+      });
+
+      it('should reject direction with SQL keywords', async () => {
+        const pattern: any = {
+          startNode: 'node-1',
+          direction: '; DROP TABLE nodes; --'
+        };
+
+        await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid direction/);
+      });
+
+      it('should accept valid direction: outgoing', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const pattern = {
+          startNode: 'node-1',
+          direction: 'outgoing' as const
+        };
+
+        await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+      });
+
+      it('should accept valid direction: incoming', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const pattern = {
+          startNode: 'node-1',
+          direction: 'incoming' as const
+        };
+
+        await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+      });
+
+      it('should accept valid direction: both', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const pattern = {
+          startNode: 'node-1',
+          direction: 'both' as const
+        };
+
+        await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+      });
+
+      it('should accept undefined direction (defaults to both)', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const pattern = {
+          startNode: 'node-1'
+        };
+
+        await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+      });
+
+      it('should reject negative maxDepth', async () => {
+        const pattern: any = {
+          startNode: 'node-1',
+          maxDepth: -1
+        };
+
+        await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should reject maxDepth exceeding absolute maximum', async () => {
+        const pattern: any = {
+          startNode: 'node-1',
+          maxDepth: 99999 // Way over ABSOLUTE_MAX_DEPTH (50)
+        };
+
+        await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should reject non-numeric maxDepth', async () => {
+        const pattern: any = {
+          startNode: 'node-1',
+          maxDepth: 'DROP TABLE nodes' // SQL injection attempt
+        };
+
+        await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should reject maxDepth with SQL injection payload', async () => {
+        const pattern: any = {
+          startNode: 'node-1',
+          maxDepth: '5; DROP TABLE nodes; --'
+        };
+
+        await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should accept valid maxDepth within bounds', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const pattern = {
+          startNode: 'node-1',
+          maxDepth: 5
+        };
+
+        await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+      });
+
+      it('should accept maxDepth at upper bound (ABSOLUTE_MAX_DEPTH)', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const pattern = {
+          startNode: 'node-1',
+          maxDepth: 50 // ABSOLUTE_MAX_DEPTH
+        };
+
+        await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+      });
+
+      it('should sanitize maxDepth to prevent string interpolation attacks', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Verify SQL doesn't contain injected code
+          expect(sql).not.toContain('DROP TABLE');
+          expect(sql).not.toContain('UNION SELECT');
+          expect(sql).not.toContain('--');
+          return { rows: [], rowCount: 0 };
+        });
+
+        const pattern: any = {
+          startNode: 'node-1',
+          maxDepth: '5) OR 1=1; DROP TABLE nodes; --'
+        };
+
+        // Should throw validation error before SQL execution
+        await expect(adapter.traverse(pattern)).rejects.toThrow();
+      });
+    });
+
+    describe('shortestPath() input validation', () => {
+      it('should reject negative maxDepth in edgeTypes array', async () => {
+        const pattern: any = {
+          fromNodeId: 'node-1',
+          toNodeId: 'node-2',
+          edgeTypes: ['KNOWS', '-1; DROP TABLE edges; --']
+        };
+
+        // Should not throw on edge types (they're parameterized)
+        // But would need validation for direction if it existed
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+        await expect(adapter.shortestPath('node-1', 'node-2', pattern.edgeTypes)).resolves.toBeNull();
+      });
+
+      it('should handle empty node IDs safely', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        await expect(adapter.shortestPath('', '')).resolves.toBeNull();
+      });
+
+      it('should sanitize node IDs with SQL injection attempts', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          // Verify parameters are used, not interpolated
+          expect(sql).toContain('$1');
+          expect(sql).toContain('$2');
+          expect(sql).not.toContain('DROP TABLE');
+
+          // Verify malicious input is passed as parameter
+          if (params) {
+            expect(params[0]).toContain('DROP TABLE');
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.shortestPath(
+          "'; DROP TABLE nodes; --",
+          "node-2"
+        );
+      });
+    });
+
+    describe('findConnected() input validation', () => {
+      it('should reject negative maxDepth', async () => {
+        await expect(adapter.findConnected('node-1', -5)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should reject maxDepth exceeding absolute maximum', async () => {
+        await expect(adapter.findConnected('node-1', 10000)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should reject non-numeric maxDepth', async () => {
+        const nodeId = 'node-1';
+        const maliciousDepth: any = 'DROP TABLE nodes';
+
+        await expect(adapter.findConnected(nodeId, maliciousDepth)).rejects.toThrow(/Invalid maxDepth/);
+      });
+
+      it('should accept valid maxDepth', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        await expect(adapter.findConnected('node-1', 5)).resolves.toEqual([]);
+      });
+
+      it('should accept undefined maxDepth (uses default)', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        await expect(adapter.findConnected('node-1')).resolves.toEqual([]);
+      });
+
+      it('should sanitize maxDepth to prevent interpolation attacks', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Verify SQL doesn't contain injected code
+          expect(sql).not.toContain('DROP TABLE');
+          expect(sql).not.toContain('UNION SELECT');
+          return { rows: [], rowCount: 0 };
+        });
+
+        const maliciousDepth: any = '3; DROP TABLE nodes; --';
+
+        // Should throw validation error
+        await expect(adapter.findConnected('node-1', maliciousDepth)).rejects.toThrow();
+      });
+    });
+
+    describe('Direction validation comprehensive tests', () => {
+      const invalidDirections = [
+        'invalid',
+        'OUTGOING', // wrong case
+        'in', // partial
+        'out', // partial
+        '1=1',
+        'outgoing OR 1=1',
+        'incoming; DROP TABLE',
+        'both\')',
+        null as any,
+        42 as any,
+        {} as any,
+        [] as any
+      ];
+
+      invalidDirections.forEach(direction => {
+        it(`should reject invalid direction: ${JSON.stringify(direction)}`, async () => {
+          const pattern: any = {
+            startNode: 'node-1',
+            direction
+          };
+
+          await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid direction/);
+        });
+      });
+    });
+
+    describe('MaxDepth boundary tests', () => {
+      const invalidDepths = [
+        -1,
+        -100,
+        51, // Just over ABSOLUTE_MAX_DEPTH (50)
+        100,
+        999999,
+        Infinity,
+        NaN,
+        '5',
+        '5; DROP TABLE',
+        null as any,
+        {} as any,
+        [] as any
+      ];
+
+      invalidDepths.forEach(depth => {
+        it(`should reject invalid maxDepth: ${JSON.stringify(depth)}`, async () => {
+          const pattern: any = {
+            startNode: 'node-1',
+            maxDepth: depth
+          };
+
+          await expect(adapter.traverse(pattern)).rejects.toThrow(/Invalid maxDepth/);
+        });
+      });
+
+      const validDepths = [0, 1, 5, 10, 20, 49, 50];
+
+      validDepths.forEach(depth => {
+        it(`should accept valid maxDepth: ${depth}`, async () => {
+          mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+          const pattern = {
+            startNode: 'node-1',
+            maxDepth: depth
+          };
+
+          await expect(adapter.traverse(pattern)).resolves.toEqual([]);
+        });
+      });
+    });
+
+    describe('SQL query construction safety', () => {
+      it('should never interpolate direction string directly into SQL', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // SQL should be built programmatically, not with user strings
+          // Check that common injection patterns don't appear
+          expect(sql).not.toMatch(/e\.from_node.*\$[^0-9]/); // No weird parameter syntax
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.traverse({
+          startNode: 'node-1',
+          direction: 'outgoing'
+        });
+      });
+
+      it('should always use integer for maxDepth in SQL', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Find the maxDepth comparison in SQL
+          const depthMatch = sql.match(/depth < (\d+)/);
+          expect(depthMatch).toBeTruthy();
+
+          if (depthMatch) {
+            const depth = parseInt(depthMatch[1], 10);
+            expect(depth).toBeGreaterThanOrEqual(0);
+            expect(depth).toBeLessThanOrEqual(50); // ABSOLUTE_MAX_DEPTH
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.traverse({
+          startNode: 'node-1',
+          maxDepth: 5
+        });
+      });
+    });
+  });
+
+  // ============================================================================
+  // PERFORMANCE TESTS: N+1 Query Optimization
+  // ============================================================================
+
+  describe('Performance: N+1 Query Optimization', () => {
+    beforeEach(() => {
+      mockPg.reset();
+    });
+
+    describe('traverse() batch fetching', () => {
+      it('should fetch nodes in single batch query (not per path)', async () => {
+        // Setup: Mock CTE query that returns multiple paths
+        let queryCount = 0;
+        const queries: string[] = [];
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          queryCount++;
+          queries.push(sql);
+
+          // First query: CTE returns multiple paths
+          if (sql.includes('WITH RECURSIVE')) {
+            return {
+              rows: [
+                {
+                  path_nodes: ['node-1', 'node-2', 'node-3'],
+                  path_edges_data: [
+                    { from: 'node-1', to: 'node-2', type: 'KNOWS', properties: {} },
+                    { from: 'node-2', to: 'node-3', type: 'KNOWS', properties: {} }
+                  ],
+                  depth: 2
+                },
+                {
+                  path_nodes: ['node-1', 'node-4', 'node-5'],
+                  path_edges_data: [
+                    { from: 'node-1', to: 'node-4', type: 'KNOWS', properties: {} },
+                    { from: 'node-4', to: 'node-5', type: 'KNOWS', properties: {} }
+                  ],
+                  depth: 2
+                },
+                {
+                  path_nodes: ['node-1', 'node-2', 'node-6'],
+                  path_edges_data: [
+                    { from: 'node-1', to: 'node-2', type: 'KNOWS', properties: {} },
+                    { from: 'node-2', to: 'node-6', type: 'KNOWS', properties: {} }
+                  ],
+                  depth: 2
+                }
+              ],
+              rowCount: 3
+            };
+          }
+
+          // Second query: Batch fetch all nodes
+          if (sql.includes('WHERE id = ANY')) {
+            // Verify this is called with ALL unique node IDs at once
+            expect(params).toBeDefined();
+            expect(params![0]).toBeInstanceOf(Array);
+            const nodeIds = params![0] as string[];
+
+            // Should fetch all 6 unique nodes in one query
+            expect(nodeIds.length).toBeGreaterThanOrEqual(5); // At least 5 unique nodes
+            expect(nodeIds).toContain('node-1');
+            expect(nodeIds).toContain('node-2');
+            expect(nodeIds).toContain('node-3');
+
+            return {
+              rows: nodeIds.map(id => ({
+                id,
+                type: 'Person',
+                properties: { name: `Node ${id}` }
+              })),
+              rowCount: nodeIds.length
+            };
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        const pattern = {
+          startNode: 'node-1',
+          maxDepth: 3
+        };
+
+        await adapter.traverse(pattern);
+
+        // CRITICAL: Should be only 2 queries (1 CTE + 1 batch fetch)
+        // NOT 4 queries (1 CTE + 3 per-path fetches)
+        expect(queryCount).toBe(2);
+
+        // Verify we have exactly 1 CTE query and 1 batch node fetch
+        const cteQueries = queries.filter(q => q.includes('WITH RECURSIVE'));
+        const nodeFetchQueries = queries.filter(q => q.includes('WHERE id = ANY'));
+
+        expect(cteQueries.length).toBe(1);
+        expect(nodeFetchQueries.length).toBe(1); // Single batch fetch
+      });
+
+      it('should handle empty result set efficiently', async () => {
+        let queryCount = 0;
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          queryCount++;
+
+          if (sql.includes('WITH RECURSIVE')) {
+            return { rows: [], rowCount: 0 }; // No paths found
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        const result = await adapter.traverse({
+          startNode: 'node-1',
+          maxDepth: 3
+        });
+
+        // Should only run CTE query, no node fetch for empty result
+        expect(queryCount).toBe(1);
+        expect(result).toEqual([]);
+      });
+
+      it('should deduplicate node IDs before fetching', async () => {
+        let nodeIds: string[] | undefined;
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          if (sql.includes('WITH RECURSIVE')) {
+            // Return paths with overlapping nodes
+            return {
+              rows: [
+                {
+                  path_nodes: ['node-1', 'node-2', 'node-3'],
+                  path_edges_data: [],
+                  depth: 2
+                },
+                {
+                  path_nodes: ['node-1', 'node-2', 'node-4'], // node-1 and node-2 repeated
+                  path_edges_data: [],
+                  depth: 2
+                }
+              ],
+              rowCount: 2
+            };
+          }
+
+          if (sql.includes('WHERE id = ANY')) {
+            nodeIds = params![0] as string[];
+
+            return {
+              rows: nodeIds.map(id => ({
+                id,
+                type: 'Person',
+                properties: {}
+              })),
+              rowCount: nodeIds.length
+            };
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.traverse({
+          startNode: 'node-1',
+          maxDepth: 3
+        });
+
+        // Should fetch only unique nodes: node-1, node-2, node-3, node-4 (4 nodes, not 6)
+        expect(nodeIds).toBeDefined();
+        expect(new Set(nodeIds).size).toBe(nodeIds!.length); // All unique
+        expect(nodeIds!.length).toBe(4);
+      });
+
+      it('should scale well with many paths (performance test)', async () => {
+        let queryCount = 0;
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          queryCount++;
+
+          if (sql.includes('WITH RECURSIVE')) {
+            // Simulate 50 paths with 3 nodes each
+            const paths = Array.from({ length: 50 }, (_, i) => ({
+              path_nodes: [`node-${i * 3}`, `node-${i * 3 + 1}`, `node-${i * 3 + 2}`],
+              path_edges_data: [],
+              depth: 2
+            }));
+
+            return { rows: paths, rowCount: paths.length };
+          }
+
+          if (sql.includes('WHERE id = ANY')) {
+            const nodeIds = params![0] as string[];
+            return {
+              rows: nodeIds.map(id => ({
+                id,
+                type: 'Person',
+                properties: {}
+              })),
+              rowCount: nodeIds.length
+            };
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        const startTime = Date.now();
+        await adapter.traverse({
+          startNode: 'node-0',
+          maxDepth: 3
+        });
+        const duration = Date.now() - startTime;
+
+        // Should still be only 2 queries even with 50 paths
+        expect(queryCount).toBe(2);
+
+        // Should be fast (< 100ms for mock)
+        expect(duration).toBeLessThan(100);
+      });
+    });
+
+    describe('shortestPath() batch fetching', () => {
+      it('should fetch nodes in single batch query', async () => {
+        let queryCount = 0;
+        const queries: string[] = [];
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          queryCount++;
+          queries.push(sql);
+
+          // CTE query returns shortest path
+          if (sql.includes('WITH RECURSIVE')) {
+            return {
+              rows: [{
+                path_nodes: ['node-1', 'node-2', 'node-3', 'node-4'],
+                path_edges: ['KNOWS', 'WORKS_WITH', 'MANAGES'],
+                depth: 3
+              }],
+              rowCount: 1
+            };
+          }
+
+          // Batch node fetch
+          if (sql.includes('WHERE id = ANY') && !sql.includes('from_node')) {
+            const nodeIds = params![0] as string[];
+            return {
+              rows: nodeIds.map(id => ({
+                id,
+                type: 'Person',
+                properties: {}
+              })),
+              rowCount: nodeIds.length
+            };
+          }
+
+          // Edge queries
+          if (sql.includes('from_node')) {
+            return {
+              rows: [{
+                from_node: params![0],
+                to_node: params![1],
+                type: 'KNOWS',
+                properties: {}
+              }],
+              rowCount: 1
+            };
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.shortestPath('node-1', 'node-4');
+
+        // Should use batch fetching (1 CTE + 1 batch node fetch + N edge fetches)
+        const nodeFetchQueries = queries.filter(q =>
+          q.includes('WHERE id = ANY') && !q.includes('from_node')
+        );
+
+        expect(nodeFetchQueries.length).toBe(1); // Single batch fetch for nodes
+      });
+
+      it('should handle path not found efficiently', async () => {
+        let queryCount = 0;
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          queryCount++;
+
+          if (sql.includes('WITH RECURSIVE')) {
+            return { rows: [], rowCount: 0 }; // No path found
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        const result = await adapter.shortestPath('node-1', 'node-99');
+
+        // Should only run CTE query
+        expect(queryCount).toBe(1);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('Query count metrics', () => {
+      it('should minimize database round trips for traverse()', async () => {
+        const queryLog: Array<{ type: string; time: number }> = [];
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          const start = Date.now();
+
+          let type = 'unknown';
+          if (sql.includes('WITH RECURSIVE')) type = 'CTE';
+          else if (sql.includes('WHERE id = ANY')) type = 'batch_fetch';
+
+          // Simulate network latency
+          await new Promise(resolve => setTimeout(resolve, 1));
+
+          queryLog.push({ type, time: Date.now() - start });
+
+          if (type === 'CTE') {
+            return {
+              rows: [
+                { path_nodes: ['node-1', 'node-2'], path_edges_data: [], depth: 1 },
+                { path_nodes: ['node-1', 'node-3'], path_edges_data: [], depth: 1 }
+              ],
+              rowCount: 2
+            };
+          }
+
+          if (type === 'batch_fetch') {
+            return {
+              rows: [
+                { id: 'node-1', type: 'Person', properties: {} },
+                { id: 'node-2', type: 'Person', properties: {} },
+                { id: 'node-3', type: 'Person', properties: {} }
+              ],
+              rowCount: 3
+            };
+          }
+
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.traverse({
+          startNode: 'node-1',
+          maxDepth: 2
+        });
+
+        // Verify query pattern
+        expect(queryLog.length).toBe(2);
+        expect(queryLog[0].type).toBe('CTE');
+        expect(queryLog[1].type).toBe('batch_fetch');
+
+        // Each query should have minimal overhead
+        queryLog.forEach(log => {
+          expect(log.time).toBeLessThan(10); // < 10ms overhead
+        });
+      });
+    });
+  });
 });

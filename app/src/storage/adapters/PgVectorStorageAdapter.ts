@@ -164,6 +164,223 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
   }
 
   // ============================================================================
+  // INPUT VALIDATION HELPERS (SQL Injection Prevention)
+  // ============================================================================
+
+  /**
+   * Validate and sanitize direction parameter for graph traversal
+   *
+   * @param direction - Direction value to validate
+   * @returns Sanitized direction value
+   * @throws StorageError with INVALID_VALUE if direction is invalid
+   */
+  private validateDirection(direction: string | undefined): 'outgoing' | 'incoming' | 'both' | undefined {
+    if (direction === undefined) {
+      return undefined;
+    }
+
+    const validDirections: Array<'outgoing' | 'incoming' | 'both'> = ['outgoing', 'incoming', 'both'];
+
+    if (!validDirections.includes(direction as any)) {
+      throw new StorageError(
+        `Invalid direction: "${direction}". Must be one of: outgoing, incoming, both, or undefined`,
+        StorageErrorCode.INVALID_VALUE,
+        { direction, validDirections }
+      );
+    }
+
+    return direction as 'outgoing' | 'incoming' | 'both';
+  }
+
+  /**
+   * Validate and sanitize maxDepth parameter for graph traversal
+   *
+   * Prevents SQL injection by ensuring maxDepth is:
+   * 1. A valid number (not a string with SQL code)
+   * 2. Within safe bounds (0 to ABSOLUTE_MAX_DEPTH)
+   * 3. An integer (no decimals that could be crafted)
+   *
+   * @param maxDepth - Depth value to validate
+   * @param methodName - Name of calling method (for error messages)
+   * @returns Sanitized integer depth value
+   * @throws StorageError with INVALID_VALUE if maxDepth is invalid
+   */
+  private validateMaxDepth(maxDepth: number | undefined, methodName: string): number {
+    if (maxDepth === undefined) {
+      return PgVectorStorageAdapter.DEFAULT_TRAVERSAL_DEPTH;
+    }
+
+    // Check for non-numeric types (includes strings, objects, arrays, etc.)
+    if (typeof maxDepth !== 'number') {
+      throw new StorageError(
+        `Invalid maxDepth in ${methodName}: "${maxDepth}". Must be a number between 0 and ${PgVectorStorageAdapter.ABSOLUTE_MAX_DEPTH}`,
+        StorageErrorCode.INVALID_VALUE,
+        { maxDepth, methodName, expectedType: 'number', actualType: typeof maxDepth }
+      );
+    }
+
+    // Check for NaN, Infinity
+    if (!Number.isFinite(maxDepth)) {
+      throw new StorageError(
+        `Invalid maxDepth in ${methodName}: "${maxDepth}". Must be a finite number`,
+        StorageErrorCode.INVALID_VALUE,
+        { maxDepth, methodName }
+      );
+    }
+
+    // Convert to integer (removes any decimal component)
+    const depth = Math.floor(maxDepth);
+
+    // Check bounds
+    if (depth < 0 || depth > PgVectorStorageAdapter.ABSOLUTE_MAX_DEPTH) {
+      throw new StorageError(
+        `Invalid maxDepth in ${methodName}: "${maxDepth}". Must be between 0 and ${PgVectorStorageAdapter.ABSOLUTE_MAX_DEPTH}`,
+        StorageErrorCode.INVALID_VALUE,
+        { maxDepth, depth, min: 0, max: PgVectorStorageAdapter.ABSOLUTE_MAX_DEPTH, methodName }
+      );
+    }
+
+    return depth;
+  }
+
+  /**
+   * Build SQL condition for direction filtering (safe from injection)
+   *
+   * This method programmatically builds the SQL condition based on
+   * validated direction enum, preventing any string interpolation attacks.
+   *
+   * @param direction - Validated direction (must be 'outgoing', 'incoming', or 'both')
+   * @returns SQL condition string (safe for interpolation)
+   */
+  private buildDirectionCondition(direction: 'outgoing' | 'incoming' | 'both'): string {
+    switch (direction) {
+      case 'outgoing':
+        return 'e.from_node = ps.id AND next_node.id = e.to_node';
+      case 'incoming':
+        return 'e.to_node = ps.id AND next_node.id = e.from_node';
+      case 'both':
+        return '(e.from_node = ps.id AND next_node.id = e.to_node) OR (e.to_node = ps.id AND next_node.id = e.from_node)';
+    }
+  }
+
+  // ============================================================================
+  // PERFORMANCE OPTIMIZATION HELPERS (N+1 Query Prevention)
+  // ============================================================================
+
+  /**
+   * Batch-fetch multiple nodes by their IDs (N+1 query optimization)
+   *
+   * This method fetches all requested nodes in a SINGLE database query
+   * instead of making separate queries for each node. This prevents the
+   * N+1 query problem where N paths would result in N+1 queries.
+   *
+   * Example:
+   * - Before: 100 paths = 1 CTE + 100 node queries = 101 queries
+   * - After:  100 paths = 1 CTE + 1 batch query = 2 queries
+   *
+   * @param nodeIds - Array of node IDs to fetch (may contain duplicates)
+   * @returns Map of node ID -> GraphNode for O(1) lookup
+   */
+  private async fetchNodesMap(nodeIds: string[]): Promise<Map<string, GraphNode>> {
+    if (nodeIds.length === 0) {
+      return new Map();
+    }
+
+    // Deduplicate node IDs to avoid fetching same node multiple times
+    const uniqueIds = [...new Set(nodeIds)];
+
+    const nodesTable = this.qualifiedTableName(this.config.nodesTable);
+
+    const result = await this.pg.query(`
+      SELECT id, type, properties
+      FROM ${nodesTable}
+      WHERE id = ANY($1::text[])
+    `, [uniqueIds]);
+
+    // Build map for O(1) lookup during path construction
+    const nodeMap = new Map<string, GraphNode>();
+    for (const row of result.rows) {
+      nodeMap.set(row.id, {
+        id: row.id,
+        type: row.type,
+        properties: row.properties || {}
+      });
+    }
+
+    return nodeMap;
+  }
+
+  /**
+   * Batch-fetch edges for consecutive node pairs (N+1 query optimization)
+   *
+   * This method fetches all requested edges in a SINGLE database query
+   * using a SQL OR condition for all pairs.
+   *
+   * @param nodePairs - Array of [fromId, toId] pairs
+   * @returns Array of edges in order requested
+   */
+  private async fetchEdgesForPath(nodePairs: Array<[string, string]>): Promise<GraphEdge[]> {
+    if (nodePairs.length === 0) {
+      return [];
+    }
+
+    const edgesTable = this.qualifiedTableName(this.config.edgesTable);
+
+    // Build SQL with OR conditions for all pairs (bidirectional)
+    const conditions: string[] = [];
+    const params: string[] = [];
+    let paramIndex = 1;
+
+    for (const [from, to] of nodePairs) {
+      conditions.push(
+        `(from_node = $${paramIndex} AND to_node = $${paramIndex + 1}) OR ` +
+        `(from_node = $${paramIndex + 1} AND to_node = $${paramIndex})`
+      );
+      params.push(from, to);
+      paramIndex += 2;
+    }
+
+    const sql = `
+      SELECT from_node, to_node, type, properties
+      FROM ${edgesTable}
+      WHERE ${conditions.join(' OR ')}
+    `;
+
+    const result = await this.pg.query(sql, params);
+
+    // Build edge map for quick lookup: "from:to" -> edge
+    const edgeMap = new Map<string, GraphEdge>();
+    for (const row of result.rows) {
+      const edge: GraphEdge = {
+        from: row.from_node,
+        to: row.to_node,
+        type: row.type,
+        properties: row.properties || {}
+      };
+
+      // Store both directions for bidirectional lookup
+      edgeMap.set(`${row.from_node}:${row.to_node}`, edge);
+      edgeMap.set(`${row.to_node}:${row.from_node}`, edge);
+    }
+
+    // Return edges in the order requested
+    return nodePairs.map(([from, to]) => {
+      const edge = edgeMap.get(`${from}:${to}`);
+      if (!edge) {
+        // Edge not found - this shouldn't happen in a valid path
+        // Return a placeholder to maintain array indices
+        return {
+          from,
+          to,
+          type: 'UNKNOWN',
+          properties: {}
+        };
+      }
+      return edge;
+    });
+  }
+
+  // ============================================================================
   // PRIMARY STORAGE INTERFACE - GRAPH OPERATIONS
   // ============================================================================
 
@@ -413,26 +630,21 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
   async traverse(pattern: TraversalPattern): Promise<GraphPath[]> {
     await this.ensureLoaded();
 
+    // Validate inputs to prevent SQL injection
+    const validatedDirection = this.validateDirection(pattern.direction as any);
+    const maxDepth = this.validateMaxDepth(pattern.maxDepth as any, 'traverse');
+
     try {
       const nodesTable = this.qualifiedTableName(this.config.nodesTable);
       const edgesTable = this.qualifiedTableName(this.config.edgesTable);
-      const maxDepth = pattern.maxDepth || PgVectorStorageAdapter.DEFAULT_TRAVERSAL_DEPTH;
 
       // Build edge type filter
       const edgeTypeFilter = pattern.edgeTypes && pattern.edgeTypes.length > 0
         ? `AND e.type = ANY($2::text[])`
         : '';
 
-      // Build direction filter
-      let directionJoin = '';
-      if (pattern.direction === 'outgoing') {
-        directionJoin = 'e.from_node = ps.id AND next_node.id = e.to_node';
-      } else if (pattern.direction === 'incoming') {
-        directionJoin = 'e.to_node = ps.id AND next_node.id = e.from_node';
-      } else {
-        // Both directions
-        directionJoin = '(e.from_node = ps.id AND next_node.id = e.to_node) OR (e.to_node = ps.id AND next_node.id = e.from_node)';
-      }
+      // Build direction filter using safe method
+      const directionJoin = this.buildDirectionCondition(validatedDirection || 'both');
 
       // Build params array
       const params: any[] = [pattern.startNode];
@@ -482,31 +694,26 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
         ORDER BY depth, array_length(path_nodes, 1)
       `, params);
 
+      // ✅ OPTIMIZATION: Collect all unique node IDs upfront
+      const allNodeIds = new Set<string>();
+      for (const row of result.rows) {
+        const nodeIds = row.path_nodes as string[];
+        nodeIds.forEach(id => allNodeIds.add(id));
+      }
+
+      // ✅ OPTIMIZATION: Single batch fetch for all nodes (prevents N+1 queries)
+      const nodeMap = await this.fetchNodesMap([...allNodeIds]);
+
       // Convert results to GraphPath[]
       const paths: GraphPath[] = [];
       for (const row of result.rows) {
         const nodeIds = row.path_nodes as string[];
         const edgesData = row.path_edges_data as any[];
 
-        // Fetch full node data
-        const nodesResult = await this.pg.query(`
-          SELECT id, type, properties
-          FROM ${nodesTable}
-          WHERE id = ANY($1::text[])
-        `, [nodeIds]);
-
-        // Build node lookup
-        const nodeMap = new Map<string, GraphNode>();
-        for (const nodeRow of nodesResult.rows) {
-          nodeMap.set(nodeRow.id, {
-            id: nodeRow.id,
-            type: nodeRow.type,
-            properties: nodeRow.properties || {}
-          });
-        }
-
-        // Build nodes array in order
-        const nodes: GraphNode[] = nodeIds.map(id => nodeMap.get(id)!).filter(Boolean);
+        // Build nodes array from pre-fetched map (O(1) lookup)
+        const nodes: GraphNode[] = nodeIds
+          .map(id => nodeMap.get(id))
+          .filter((node): node is GraphNode => node !== undefined);
 
         // Build edges array from stored data
         const edges: GraphEdge[] = edgesData.map(edgeData => ({
@@ -609,47 +816,20 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
       const row = result.rows[0];
       const nodeIds = row.path_nodes as string[];
 
-      // Fetch full node data for the path
-      const nodesResult = await this.pg.query(`
-        SELECT id, type, properties
-        FROM ${nodesTable}
-        WHERE id = ANY($1::text[])
-      `, [nodeIds]);
-
-      // Create lookup map for nodes
-      const nodeMap = new Map<string, GraphNode>();
-      for (const nodeRow of nodesResult.rows) {
-        nodeMap.set(nodeRow.id, {
-          id: nodeRow.id,
-          type: nodeRow.type,
-          properties: nodeRow.properties || {}
-        });
-      }
+      // ✅ OPTIMIZATION: Batch fetch all nodes (prevents N+1 for single path)
+      const nodeMap = await this.fetchNodesMap(nodeIds);
 
       // Build nodes array in path order
-      const nodes: GraphNode[] = nodeIds.map(id => nodeMap.get(id)!).filter(Boolean);
+      const nodes: GraphNode[] = nodeIds
+        .map(id => nodeMap.get(id))
+        .filter((node): node is GraphNode => node !== undefined);
 
-      // Build edges array (between consecutive nodes in path)
-      const edges: GraphEdge[] = [];
+      // ✅ OPTIMIZATION: Batch fetch all edges (prevents N+1 for path edges)
+      const nodePairs: Array<[string, string]> = [];
       for (let i = 0; i < nodeIds.length - 1; i++) {
-        // Fetch the actual edge between consecutive nodes
-        const edgeResult = await this.pg.query(`
-          SELECT from_node, to_node, type, properties
-          FROM ${edgesTable}
-          WHERE (from_node = $1 AND to_node = $2) OR (from_node = $2 AND to_node = $1)
-          LIMIT 1
-        `, [nodeIds[i], nodeIds[i + 1]]);
-
-        if (edgeResult.rows.length > 0) {
-          const edgeRow = edgeResult.rows[0];
-          edges.push({
-            from: edgeRow.from_node,
-            to: edgeRow.to_node,
-            type: edgeRow.type,
-            properties: edgeRow.properties || {}
-          });
-        }
+        nodePairs.push([nodeIds[i], nodeIds[i + 1]]);
       }
+      const edges = await this.fetchEdgesForPath(nodePairs);
 
       return {
         nodes,
@@ -669,7 +849,8 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
   async findConnected(nodeId: string, maxDepth?: number): Promise<GraphNode[]> {
     await this.ensureLoaded();
 
-    const depth = maxDepth || 3; // Default max depth
+    // Validate maxDepth to prevent SQL injection
+    const depth = this.validateMaxDepth(maxDepth, 'findConnected');
 
     try {
       const nodesTable = this.qualifiedTableName(this.config.nodesTable);
