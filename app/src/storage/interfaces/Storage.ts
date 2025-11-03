@@ -216,6 +216,42 @@ export interface CosmosDBStorageConfig extends StorageConfig {
 }
 
 /**
+ * PostgreSQL with pgvector extension storage configuration
+ */
+export interface PgVectorStorageConfig extends StorageConfig {
+  type: 'pgvector'
+
+  // Connection configuration
+  connectionString: string    // PostgreSQL connection string
+  schema?: string            // Database schema (default: 'public')
+
+  // Vector configuration
+  vectorDimensions?: number  // Default vector dimensions (default: 1536 for OpenAI)
+  distanceMetric?: 'cosine' | 'euclidean' | 'inner_product'  // Distance function
+  autoGenerateEmbeddings?: boolean  // Auto-generate embeddings on insert (default: false)
+  embeddingProvider?: 'openai' | 'local' | 'none'  // Embedding generation provider
+
+  // Connection pool configuration
+  poolSize?: number           // Max connections (default: 10)
+  idleTimeout?: number        // Idle connection timeout in ms (default: 30000)
+  connectionTimeout?: number  // Connection attempt timeout in ms (default: 5000)
+
+  // Performance tuning
+  maintenanceWorkMem?: string  // Memory for index building (default: '256MB')
+  enableVectorIndex?: boolean  // Create vector indexes (default: true)
+  indexType?: 'ivfflat' | 'hnsw'  // Vector index type (default: 'ivfflat')
+  ivfLists?: number           // IVFFlat lists parameter (default: 100)
+  ivfProbes?: number          // IVFFlat probes parameter (default: 10)
+  hnswM?: number              // HNSW M parameter (default: 16)
+  hnswEfConstruction?: number // HNSW efConstruction parameter (default: 64)
+
+  // Table naming
+  nodesTable?: string         // Nodes table name (default: 'nodes')
+  edgesTable?: string         // Edges table name (default: 'edges')
+  dataTable?: string          // Data table name (default: 'data')
+}
+
+/**
  * Optional save capability for storage adapters that support manual persistence
  */
 export interface SaveableStorage {
