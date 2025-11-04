@@ -4,11 +4,33 @@ import type { FileAnalysis, Import, Export, AnalysisError } from './types';
 import type { TSImportResolver } from './TSImportResolver';
 
 /**
+ * File system operations interface for dependency injection
+ */
+export interface FileSystem {
+  readFile(path: string, encoding: 'utf-8'): Promise<string>;
+  access(path: string): Promise<void>;
+}
+
+/**
+ * Default file system implementation using Node's fs/promises
+ */
+export class NodeFileSystem implements FileSystem {
+  async readFile(path: string, encoding: 'utf-8'): Promise<string> {
+    return fs.readFile(path, encoding);
+  }
+
+  async access(path: string): Promise<void> {
+    await fs.access(path);
+  }
+}
+
+/**
  * Dependencies for TSASTParser
  * Follows dependency injection pattern from Kuzu refactoring
  */
 export interface TSASTParserDeps {
   importResolver: TSImportResolver;
+  fileSystem?: FileSystem;
   compilerOptions?: ts.CompilerOptions;
   log?: (message: string) => void;
 }
@@ -31,11 +53,13 @@ export interface TSASTParserDeps {
  */
 export class TSASTParser {
   private readonly importResolver: TSImportResolver;
+  private readonly fileSystem: FileSystem;
   private readonly compilerOptions: ts.CompilerOptions;
   private readonly log?: (message: string) => void;
 
   constructor(deps: TSASTParserDeps) {
     this.importResolver = deps.importResolver;
+    this.fileSystem = deps.fileSystem || new NodeFileSystem();
     this.log = deps.log;
 
     // Set up TypeScript compiler options
@@ -72,7 +96,7 @@ export class TSASTParser {
     try {
       // Check if file exists
       try {
-        await fs.access(filePath);
+        await this.fileSystem.access(filePath);
       } catch {
         throw new Error(`File not found: ${filePath}`);
       }
@@ -80,7 +104,7 @@ export class TSASTParser {
       // Read file content
       let content: string;
       try {
-        content = await fs.readFile(filePath, 'utf-8');
+        content = await this.fileSystem.readFile(filePath, 'utf-8');
         // Check for binary content (null bytes or other control characters)
         if (content.includes('\0') || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content)) {
           throw new Error(`File encoding error: ${filePath}`);
