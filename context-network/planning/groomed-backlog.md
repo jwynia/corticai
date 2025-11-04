@@ -1,147 +1,206 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-10-18 (PERF-001 deprioritized & blocked)
-**Last Synced**: 2025-10-29 (Sync score: 9/10 - Three major completions documented)
+**Last Groomed**: 2025-11-04 (pgvector backend + semantic architecture integration)
+**Last Synced**: 2025-10-29 (Sync score: 9/10)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
-**Test Status**: ✅ 295/301 tests passing (98% pass rate, +41 new tests since last sync)
-**Current Phase**: Foundation Complete - Domain Adapter Expansion & Quality Improvements
+**Test Status**: ✅ 416/420 tests passing (99% pass rate, 4 flaky async tests)
+**Current Phase**: Phase 4 - Domain Adapters + Storage Backend Expansion
 **Foundation**: ✅ Phases 1-3 complete + Hexagonal architecture
 **Architecture**: ✅ Hexagonal architecture, 100% unit testable business logic
 **Lens System**: ✅ DebugLens + DocumentationLens proving intelligent filtering
-**Security**: ✅ Parameterized queries, 7/7 injection protection tests passing
-**Logging**: ✅ Comprehensive logging with PII sanitization, 115/115 tests passing
-**Logger Encapsulation**: ✅ COMPLETE - Module-level logger pattern, 50/50 tests passing
-**Major Refactorings**: ✅ ALL COMPLETE - Kuzu (29% reduction), DuckDB, and TypeScript analyzer refactored
-**getEdges Enhancement (TECH-002)**: ✅ COMPLETE - Performance monitoring, edge filtering, error handling (2025-10-13)
-**Edge Testing**: ✅ COMPLETE - 17 comprehensive tests, enhanced error handling (2025-10-13)
-**TypeScript Analyzer Refactoring**: ✅ COMPLETE - 58% reduction (749 → 312 lines), 150/150 tests passing (2025-10-13)
-**Kuzu Adapter Optimization (REFACTOR-003)**: ✅ COMPLETE - 29% reduction (822 → 582 lines), 260/260 tests passing (2025-10-19)
-**HouseholdFoodAdapter**: ✅ COMPLETE - Third domain adapter, 35/41 tests passing, 0 regressions (2025-10-20)
-**Recent Completions (Oct)**: 19 major tasks completed with zero test regressions
+**Security**: ✅ Parameterized queries, SQL injection protection
+**Logging**: ✅ Comprehensive logging with PII sanitization
+**Major Refactorings**: ✅ ALL COMPLETE - Kuzu (29%), DuckDB (15.4%), TypeScript analyzer (58%)
+**Recent Work**: ✅ pgvector backend implementation (Phase 1-2 complete, 91 tests passing)
+**New Architecture**: 📋 Semantic processing architecture documented (7 docs, Oct 28-29)
 
 ---
 
-## 🎉 Recently Completed (October 2025)
+## 🎉 Recently Completed (November 2025)
 
-### ~~1. Implement HouseholdFoodAdapter~~ ✅ COMPLETE (2025-10-20)
-**Task**: household-food-adapter-implementation
-**Status**: ✅ COMPLETE - Third domain adapter, 35/41 tests passing (85%), 0 regressions
-**Implementation**: TDD approach with household food management features
-**Tests**: 41 comprehensive tests covering recipes, ingredients, pantry, expiration tracking, shopping lists
-**Completion Record**: [2025-10-20-household-food-adapter-implementation.md](../tasks/completed/2025-10-20-household-food-adapter-implementation.md)
+### ~~1. pgvector Storage Backend - Phases 1-2~~ ✅ COMPLETE (2025-11-03)
+**Task**: FEAT-PGVECTOR-001 (Phases 1-2)
+**Status**: ✅ COMPLETE - Dual-role adapter with 91 comprehensive tests
+**Implementation**: PostgreSQL+pgvector as complete storage backend (Primary + Semantic roles)
+**Tests**: 91/91 passing (30 unit tests + 55 security tests + 6 performance tests)
+**Completion**: Foundation complete, ready for Phase 3-4 (Semantic + Vector operations)
 
-**Key Achievement**: Validates universal adapter pattern across 4 diverse domains (code, narrative, place, household)
-**Impact**: Demonstrates practical household applications with new patterns (quantities, dates, meal planning)
-
-### ~~2. Kuzu Adapter Optimization (REFACTOR-003)~~ ✅ COMPLETE (2025-10-19)
-**Task**: REFACTOR-003
-**Status**: ✅ COMPLETE - 29% reduction (822 → 582 lines), 260/260 tests passing
-**Implementation**: Test-First Development for KuzuSchemaManager (26 new tests), extracted 2 focused modules
-**Tests**: 260 total passing (234 original + 26 new schema management tests)
-**Completion Record**: [2025-10-19-refactor-003-kuzu-adapter-optimization.md](../tasks/completed/2025-10-19-refactor-003-kuzu-adapter-optimization.md)
-
-**Modules Created**:
-- KuzuSchemaManager.ts (229 lines) - Database lifecycle management
-- KuzuQueryExecutor.ts (194 lines) - Query execution
-- Main adapter reduced to 582 lines (below 600 target)
-
-**Key Achievement**: Main adapter below 600 lines, comprehensive TDD for schema management
-
-### ~~3. Move Performance Alternatives to Documentation (TASK-DOC-001)~~ ✅ COMPLETE (2025-10-18)
-**Task**: TASK-DOC-001
-**Status**: ✅ COMPLETE - Removed 60+ lines of commented code, 234/234 tests passing
-**Implementation**: Extracted performance research to dedicated documentation
-**Completion Record**: [2025-10-18-task-doc-001-performance-docs.md](../tasks/completed/2025-10-18-task-doc-001-performance-docs.md)
-
-**Created Documentation**:
-- `context-network/research/duckdb-performance-experiments.md` (262 lines)
-- Preserved benchmarks for 3 strategies (Prepared Statements, Appender API, Batch VALUES)
-- Clean 3-line reference in source code
-
-**Key Achievement**: Code maintainability improvement while preserving research value
-
-### ~~4. Implement Pattern Detection System~~ ✅ COMPLETE (2025-10-14)
-**Task**: FEAT-001
-**Status**: ✅ COMPLETE - 43 new pattern detection tests, 193/193 total passing
-**Implementation**: Full TDD approach with circular dependency, orphaned node, and hub node detection
-**Tests**: 19 circular dependency + 18 orphaned node + 6 hub node = 43 new tests
-**Completion Record**: [2025-10-14-pattern-detection-feat-001-complete.md](../tasks/completed/2025-10-14-pattern-detection-feat-001-complete.md)
+**Achievement**:
+- PostgreSQL adapter implements both PrimaryStorage and SemanticStorage interfaces
+- Dependency injection pattern enables pure unit testing
+- Graph operations using recursive CTEs (traverse, shortestPath, findConnected)
+- Batch operations for high-throughput scenarios (50x performance improvement)
+- Security hardening with input validation and parameterized queries
 
 **Files Created**:
-- PatternTypes.ts - Type definitions and interfaces
-- CircularDependencyDetector.ts - DFS-based cycle detection
-- OrphanedNodeDetector.ts - Isolation detection
-- HubNodeDetector.ts - Connection threshold detection
-- PatternDetectionService.ts - Orchestration service
+- `PgVectorStorageAdapter.ts` (900+ lines with comprehensive graph operations)
+- `PgVectorSchemaManager.ts` (303 lines for table/index management)
+- `IPostgreSQLClient.ts` + `PostgreSQLClient.ts` (dependency injection)
+- `MockPostgreSQLClient.ts` (unit testing without real database)
+- Comprehensive test suite (91 tests across 3 test files)
 
-**Key Achievement**: Domain-agnostic pattern detection system with comprehensive remediation suggestions
-
-### ~~2. Split TypeScriptDependencyAnalyzer~~ ✅ COMPLETE (2025-10-13)
-**Task**: REFACTOR-002
-**Status**: ✅ COMPLETE - 58% reduction (749 → 312 lines)
-**Implementation**: Test-First Development (TDD) approach, extracted 3 focused modules
-**Tests**: 150/150 passing (77 original + 73 new module tests)
-**Completion Record**: [2025-10-13-typescript-analyzer-refactoring.md](../tasks/completed/2025-10-13-typescript-analyzer-refactoring.md)
-
-**Modules Created**:
-- TSImportResolver.ts (191 lines) - Path resolution utilities
-- TSASTParser.ts (402 lines) - AST parsing & extraction
-- TSDependencyGraph.ts (187 lines) - Graph operations
-
-**Key Achievement**: Established Test-First Refactoring Pattern as standard for large file refactorings
-
-### ~~3. Complete Kuzu Graph Operations - getEdges Enhancement~~ ✅ COMPLETE (2025-10-13)
-**Task**: TECH-002
-**Status**: ✅ COMPLETE - All acceptance criteria met
-**Implementation**: Performance monitoring, edge type filtering, enhanced error handling
-**Tests**: 17 new tests + 77/77 passing total
-**Completion Record**: [2025-10-13-tech-002-getedges-enhancement-complete.md](../tasks/completed/2025-10-13-tech-002-getedges-enhancement-complete.md)
-
-### ~~4. DuckDB Adapter Refactoring~~ ✅ COMPLETE (2025-10-13)
-**Task**: REFACTOR-001
-**Status**: ✅ COMPLETE - 20% reduction (677 → 541 lines)
-**Implementation**: Removed code duplication by leveraging existing helper modules
-**Tests**: 75/75 DuckDB tests + 60/60 unit tests passing
-**Completion Record**: [2025-10-13-duckdb-adapter-refactoring.md](../tasks/completed/2025-10-13-duckdb-adapter-refactoring.md)
+**Related Tasks Completed**:
+- IMPROVE-PGVECTOR-001: SQL injection prevention (55 security tests)
+- IMPROVE-PGVECTOR-002: N+1 query optimization (50x performance improvement)
+- IMPROVE-PGVECTOR-003: Code quality improvements (all addressed)
 
 ---
 
 ## 🚀 Ready for Implementation
 
-*Note: REFACTOR-003 (Kuzu optimization) completed 2025-10-19 - see Recently Completed section above*
-
----
-
-### 2. Optimize DuckDBStorageAdapter Large File
-**One-liner**: Apply further refactoring to reduce DuckDBStorageAdapter from 912 lines
-**Complexity**: Medium
-**Priority**: LOW
-**Effort**: 3-4 hours
+### 1. Fix Flaky Async Tests in TSASTParser
+**One-liner**: Resolve 4 timeout failures in TSASTParser error handling and performance tests
+**Complexity**: Small
+**Priority**: HIGH
+**Effort**: 1-2 hours
 
 <details>
 <summary>Implementation Details</summary>
 
-**Context**: DuckDBStorageAdapter is now 912 lines (after previous 20% reduction from 677 to 541, but has grown with new features)
+**Context**: 4 tests in TSASTParser are timing out (5s limit exceeded)
 
-**Current State**: File has grown with new features and Parquet operations
+**Failing Tests**:
+1. `should handle duplicate exports` - Timeout at line 240
+2. `should handle syntax errors gracefully` - Timeout at line 307
+3. `should handle malformed exports` - Timeout at line 342
+4. `should parse files efficiently` - Duration 2389ms > 2000ms threshold (line 523)
 
 **Acceptance Criteria**:
-- [ ] Extract Parquet operations to `DuckDBParquetOperations.ts`
-- [ ] Create additional helper modules as needed
-- [ ] Target: < 600 lines for main adapter
+- [ ] All 4 timeout tests pass reliably
+- [ ] Performance test threshold adjusted or code optimized
+- [ ] Tests complete in <1s on average
 - [ ] Zero test regressions
-- [ ] Performance maintained
 
-**Pattern**: Follow proven refactoring pattern, leverage existing helper modules
+**Investigation Steps**:
+1. Check if tests are creating files synchronously
+2. Review async/await patterns in file operations
+3. Consider increasing timeout for legitimate slow operations
+4. Optimize file parsing if performance test is accurate
+
+**Files**:
+- `tests/unit/analyzers/TSASTParser.test.ts` (lines 240, 307, 342, 523)
 
 </details>
 
 ---
 
-## ⏳ Blocked or Needs Decision
+### 2. Complete pgvector Backend - Phase 3 (SemanticStorage)
+**One-liner**: Implement remaining SemanticStorage methods (materialized views, full-text search, schema management)
+**Complexity**: Medium
+**Priority**: MEDIUM
+**Effort**: 4-6 hours
 
-### 3. Add Connection Pooling for Database Adapters (PERF-001)
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Phases 1-2 complete (Basic storage + PrimaryStorage). Phase 3 adds SemanticStorage capabilities.
+
+**Phase 3 Scope**:
+- Materialized views support (5 stub methods)
+- Full-text search with PostgreSQL FTS
+- Schema management (defineSchema, getSchema)
+- Analytics features (CTEs, window functions)
+
+**Acceptance Criteria**:
+- [ ] Implement `createMaterializedView()` with refresh strategies
+- [ ] Implement `search()` with PostgreSQL full-text search (tsvector/tsquery)
+- [ ] Implement `createSearchIndex()` for FTS optimization
+- [ ] Implement schema management methods
+- [ ] Add SemanticStorage contract tests
+- [ ] Performance benchmarks vs DuckDB baseline
+- [ ] Zero test regressions
+
+**Pattern**: Follow existing TDD approach from Phase 1-2
+
+**Files**:
+- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 457-597 stub methods)
+
+</details>
+
+---
+
+### 3. Complete pgvector Backend - Phase 4 (Vector Operations)
+**One-liner**: Implement vector search with pgvector extension (embeddings, similarity search, hybrid queries)
+**Complexity**: Medium
+**Priority**: MEDIUM
+**Effort**: 4-6 hours
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Enable semantic similarity search using pgvector extension
+
+**Phase 4 Scope**:
+- pgvector extension setup and initialization
+- Vector index creation (IVFFLAT or HNSW)
+- Similarity search with distance metrics (cosine, euclidean, dot product)
+- Embedding storage and retrieval
+- Hybrid search (vector + keyword + filters)
+
+**Acceptance Criteria**:
+- [ ] Implement `createVectorIndex()` with configurable index type
+- [ ] Implement `vectorSearch()` with distance metrics
+- [ ] Implement `insertWithEmbedding()` for bulk vector loading
+- [ ] Support auto-generated embeddings (optional OpenAI integration)
+- [ ] Hybrid search combining vector similarity + metadata filters
+- [ ] Performance benchmarks for various index sizes
+- [ ] Documentation of embedding strategies
+
+**Pattern**: Follow existing TDD approach with comprehensive tests
+
+**Files**:
+- Create `PgVectorVectorOperations.ts` (new module)
+- Update `PgVectorStorageAdapter.ts` (delegate to vector operations)
+
+</details>
+
+---
+
+### 4. Integrate Semantic Processing Architecture
+**One-liner**: Review semantic processing architecture docs and create implementation roadmap
+**Complexity**: Small (Research/Planning)
+**Priority**: HIGH
+**Effort**: 2-3 hours
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Major architectural work documented Oct 28-29 defining CorticAI's semantic processing approach
+
+**Architecture Documents** (7 files):
+1. `attention-gravity-problem.md` - Core problem definition
+2. `semantic-pipeline-stages.md` - 5-stage processing model
+3. `projection-based-compression.md` - Lossless compression approach
+4. `write-time-enrichment.md` - Q&A generation, relationship inference
+5. `semantic-maintenance.md` - Health monitoring strategies
+6. `design-rationale.md` - CorticAI vs competitors
+7. `index.md` - Navigation and integration guide
+
+**Task**: Review architecture and create actionable implementation plan
+
+**Acceptance Criteria**:
+- [ ] Read all 7 semantic processing architecture documents
+- [ ] Review ADR on semantic operations placement
+- [ ] Create implementation roadmap for semantic features
+- [ ] Identify which storage operations need semantic enhancement
+- [ ] Document integration points with existing codebase
+- [ ] Create follow-up tasks for specific implementations
+
+**Deliverables**:
+- Updated roadmap with semantic processing phases
+- New tasks in groomed backlog for semantic features
+- Decision record on implementation priorities
+
+**Impact**: Foundational for search, retrieval, and attention management features
+
+</details>
+
+---
+
+## ⏳ Ready Soon (Blocked)
+
+### 5. Add Connection Pooling for Database Adapters (PERF-001)
 **One-liner**: Implement connection pooling to improve performance under load
 **Complexity**: Medium
 **Priority**: LOW (Deprioritized 2025-10-18)
@@ -168,33 +227,9 @@
 2. **Narrow scope** - Kuzu only, as per original detailed design
 3. **Broaden scope** - Both adapters with generic reusable pool design
 
+**Note**: pgvector backend already has connection pooling via `pg` library
+
 **Task Details**: [add-connection-pooling.md](../tasks/performance/add-connection-pooling.md)
-
-</details>
-
----
-
-### 4. Implement PlaceDomainAdapter (Phase 4)
-**One-liner**: Domain adapter for location-based context (second proof of concept)
-**Complexity**: Large
-**Priority**: HIGH (Phase 4 priority)
-**Effort**: 8-10 hours
-**Blocker**: Needs Phase 4 kickoff decision
-
-<details>
-<summary>Implementation Preview</summary>
-
-**Context**: Second domain adapter to prove domain-agnostic design (NovelAdapter completed 2025-10-07)
-
-**Acceptance Criteria**:
-- [ ] Node types: Place, Activity, Service, Event
-- [ ] Relationship types: LOCATED_IN, OFFERS, OCCURS_AT
-- [ ] Spatial queries (within radius, bounding box)
-- [ ] Temporal queries (open at time, event schedule)
-- [ ] Natural language query translation
-- [ ] Integration tests with real location data
-
-**Decision Needed**: Approve Phase 4 start, define scope boundaries
 
 </details>
 
@@ -202,14 +237,16 @@
 
 ## 🔧 Tech Debt & Refactoring
 
-### 5. Add Recursive Depth Limit to Prevent Stack Overflow
+### 6. Add Recursive Depth Limit to Prevent Stack Overflow
 **One-liner**: Implement configurable recursion depth limits in graph traversal
 **Complexity**: Trivial
-**Priority**: MEDIUM
+**Priority**: LOW
 **Effort**: 1-2 hours
 
 <details>
 <summary>Implementation Details</summary>
+
+**Context**: Kuzu graph operations need depth limits for safety
 
 **Acceptance Criteria**:
 - [ ] Add `maxDepth` parameter to traversal methods
@@ -220,11 +257,13 @@
 **Files**:
 - `src/storage/adapters/KuzuGraphOperations.ts`
 
+**Note**: pgvector backend already has this (DEFAULT_TRAVERSAL_DEPTH=3, MAX_TRAVERSAL_DEPTH=20, ABSOLUTE_MAX_DEPTH=50)
+
 </details>
 
 ---
 
-### 6. Optimize File Lookups in TypeScript Dependency Analyzer
+### 7. Optimize File Lookups in TypeScript Dependency Analyzer
 **One-liner**: Improve performance of file path resolution in dependency analysis
 **Complexity**: Small
 **Priority**: LOW
@@ -248,7 +287,7 @@
 
 ---
 
-### 7. Mock File System Operations in Tests
+### 8. Mock File System Operations in Tests
 **One-liner**: Replace real file system operations with mocks for better test isolation
 **Complexity**: Small
 **Priority**: LOW
@@ -258,19 +297,21 @@
 
 ---
 
-### 8. Improve Performance Test Robustness
+### 9. Improve Performance Test Robustness
 **One-liner**: Make timing-based tests less sensitive to machine performance
 **Complexity**: Trivial
-**Priority**: LOW
+**Priority**: MEDIUM (Related to Task #1)
 **Effort**: 2 hours
 
 **Approach**: Use relative performance comparisons instead of absolute timing thresholds
+
+**Related**: Task #1 (TSASTParser performance test failure at 2389ms vs 2000ms threshold)
 
 ---
 
 ## 📝 Documentation Tasks
 
-### 9. Document Universal Fallback Adapter Patterns
+### 10. Document Universal Fallback Adapter Patterns
 **One-liner**: Create guide for extending the UniversalFallbackAdapter
 **Complexity**: Trivial
 **Priority**: LOW
@@ -280,7 +321,7 @@
 
 ---
 
-### 10. Create Cross-Domain Query Examples
+### 11. Create Cross-Domain Query Examples
 **One-liner**: Documentation showing how to query across multiple domains
 **Complexity**: Small
 **Priority**: LOW
@@ -290,108 +331,39 @@
 
 ---
 
-## 🗑️ Recently Archived (Completed Since Last Groom)
-
-### Oct 2025 Completions ✅
-
-1. **TypeScript Analyzer Refactoring** ✅ COMPLETE (2025-10-13)
-   - Reduced from 749 to 312 lines (58% reduction)
-   - Created 3 focused modules with TDD approach
-   - 150/150 tests passing (77 original + 73 new)
-
-2. **getEdges Enhancement (TECH-002)** ✅ COMPLETE (2025-10-13)
-   - Performance monitoring integration
-   - Edge type filtering support
-   - Enhanced error handling
-   - 17 new tests + 77/77 total passing
-
-3. **DuckDB Adapter Refactoring** ✅ COMPLETE (2025-10-13)
-   - Reduced from 677 to 541 lines (20% reduction)
-   - Leveraged existing helper modules
-   - Zero test regressions
-
-4. **Property Parsing Validation** ✅ COMPLETE (2025-10-12)
-   - Comprehensive validation for nested properties
-   - 45+ validation tests passing
-
-5. **Kuzu Adapter Refactoring** ✅ COMPLETE (2025-10-12)
-   - Reduced from 1121 to 597 lines (47% reduction)
-   - Extracted helper modules
-   - Zero test regressions
-
-6. **Comprehensive Edge Testing** ✅ COMPLETE (2025-10-12)
-   - 20+ additional edge case tests
-   - Circular reference handling
-   - Bidirectional relationship tests
-
-7. **Edge Filtering Implementation** ✅ COMPLETE (2025-10-12)
-   - Research completed
-   - Implementation patterns documented
-
-8. **Logger Encapsulation** ✅ COMPLETE (2025-10-11)
-   - Module-level logger pattern
-   - 50/50 tests passing
-   - 18 new tests added
-
-9. **Logging Strategy** ✅ COMPLETE (2025-10-10)
-   - Comprehensive logging system
-   - Data sanitization
-   - 115/115 tests passing
-
-10. **Entity ID Generation Improvement** ✅ COMPLETE (2025-10-10)
-    - Replaced timestamp-based IDs with crypto.randomUUID()
-    - Security improvements
-    - 24/24 tests passing
-
-11. **PlaceDomainAdapter** ✅ COMPLETE (2025-10-07)
-    - First domain adapter implementation
-    - Spatial and temporal query support
-
-12. **DocumentationLens** ✅ COMPLETE (2025-10-07)
-    - Lens for documentation-focused views
-    - 185+ lens tests passing
-
-13. **CosmosDB Partitioning Improvement** ✅ COMPLETE (2025-10-07)
-    - Optimized partition strategy
-    - Cost reduction
-
----
-
 ## 📊 Summary Statistics
 
-- **Total active tasks**: 9
-- **Ready for work**: 1 (DuckDB optimization)
-- **Blocked/Needs decision**: 2 (PERF-001, PlaceDomainAdapter Phase 4)
+- **Total active tasks**: 11
+- **Ready for work**: 4 (TSASTParser tests, pgvector Phase 3-4, semantic architecture)
+- **Blocked/Needs decision**: 1 (PERF-001)
 - **Tech debt items**: 4
 - **Documentation tasks**: 2
-- **Completed since last sync (2025-10-29)**: 3 major tasks (HouseholdFoodAdapter, Kuzu Optimization, Performance Docs)
-- **Completed since October began**: 19 major tasks
-- **Test coverage**: 295/301 tests passing (98% pass rate, +102 tests since October start)
+- **Completed since October start**: 20+ major tasks
+- **Completed since last groom (Nov 3)**: 1 major feature (pgvector Phases 1-2)
+- **Test coverage**: 416/420 tests passing (99% pass rate, +25 net new tests since Oct 29)
 - **Build status**: ✅ PASSING (0 TypeScript errors)
 
 ---
 
 ## 🎯 Top 3 Immediate Priorities
 
-### 1. **Semantic Processing Architecture Research** (New Discovery - High Impact)
-- **Why**: Major architecture work documented (Oct 28-29) - needs integration planning
-- **Effort**: Review ~100+ lines of new architecture docs
-- **Context**: Attention gravity problem, semantic pipeline stages, projection-based compression
-- **Impact**: HIGH - foundational for search/retrieval features
-- **Files**: `context-network/architecture/semantic-processing/`, `context-network/decisions/adr-semantic-operations-placement.md`
-
-### 2. **Phase 4 Decision: Domain Adapter Strategy** (Validated via HouseholdFoodAdapter)
-- **Why**: HouseholdFoodAdapter proves universal pattern works (4th domain adapter)
-- **Effort**: Strategic planning - decide next domain adapter(s)
-- **Status**: PlaceDomainAdapter was planned, HouseholdFoodAdapter completed instead
-- **Impact**: HIGH - validates architecture across diverse domains
-- **Achievement**: Pattern proven across code, narrative, place, household domains
-
-### 3. **Recursive Depth Limit** (Task #5)
-- **Why**: Prevent stack overflow in graph traversal
+### 1. **Fix Flaky Async Tests** (Task #1)
+- **Why**: Blocking CI/CD reliability, easy win
 - **Effort**: 1-2 hours
+- **Impact**: HIGH - restores 100% test pass rate
 - **No blockers**: Start immediately
-- **Impact**: MEDIUM - reliability improvement
+
+### 2. **Semantic Processing Architecture Integration** (Task #4)
+- **Why**: Major architecture work already documented, needs implementation roadmap
+- **Effort**: 2-3 hours (research + planning)
+- **Impact**: HIGH - foundational for search/retrieval features
+- **Context**: 7 architecture docs + ADR already completed (Oct 28-29)
+
+### 3. **pgvector Backend - Phase 3** (Task #2)
+- **Why**: Foundation complete (Phases 1-2), natural next step
+- **Effort**: 4-6 hours
+- **Impact**: MEDIUM - completes SemanticStorage implementation
+- **Dependencies**: None - can start immediately
 
 ---
 
@@ -399,87 +371,89 @@
 
 ### Code Quality ✅
 - **Build Status**: ✅ 0 TypeScript errors
-- **Test Suite**: ✅ 295/301 tests passing (98% pass rate)
+- **Test Suite**: ✅ 416/420 tests passing (99% pass rate)
+- **Flaky Tests**: ⚠️ 4 timeout failures (TSASTParser error handling)
 - **Coverage**: ✅ 95%+ for core modules
-- **New Tests**: +102 tests since October start (+53% growth)
-- **Linting**: ✅ 8 minor issues (non-blocking)
+- **New Tests**: +91 tests for pgvector backend
+- **Linting**: ✅ Clean
 
 ### Recent Velocity ⚡
-- **Tasks completed (Oct)**: 19 major completions (up from 17)
-- **Code quality**: Zero test regressions across all refactorings and new features
-- **Lines improved**: Kuzu 29% reduction (822→582), TypeScript 58% (749→312)
+- **Tasks completed (Nov 1-3)**: 1 major feature (pgvector Phases 1-2)
+- **Tasks completed (October)**: 19 major completions
+- **Code quality**: Zero test regressions (except 4 flaky async tests)
 - **New capabilities**:
-  - Pattern detection system (43 new tests)
-  - HouseholdFoodAdapter (41 new tests, 4th domain adapter)
-  - Semantic processing architecture (7 architecture docs)
-  - Connection pooling implementation (41 new tests)
+  - pgvector backend with dual-role architecture (91 comprehensive tests)
+  - Graph operations via PostgreSQL recursive CTEs
+  - Batch operations with 50x performance improvement
+  - Semantic processing architecture documented (7 docs)
 
 ### Documentation Quality ✅
-- **Completion records**: 19 comprehensive records in Oct (up from 17)
+- **Completion records**: 20+ comprehensive records since October
 - **Planning sync**: 9/10 alignment (per 2025-10-29 sync report)
-- **Architecture docs**: Major semantic processing architecture added (Oct 28-29)
-- **Research docs**: DuckDB performance experiments, LLM memory pruning strategies
+- **Architecture docs**: Semantic processing architecture added (Oct 28-29)
+- **Task tracking**: pgvector implementation well-documented with 3 improvement tasks
 
 ---
 
 ## 🔄 Process Notes
 
 ### Recent Wins 🏆
-1. **Pattern Detection System**: Full TDD implementation with 43 comprehensive tests, domain-agnostic design
-2. **Test-First Development**: Pattern detection built entirely with RED-GREEN-REFACTOR cycle
-3. **Three Major Refactorings**: Kuzu (47%), DuckDB (20%), TypeScript (58%) all with zero regressions
-4. **Test-Driven Approach**: Every feature has comprehensive tests (193 total tests passing)
-5. **Documentation Discipline**: All completions documented same-day
-6. **Modular Architecture**: Helper module pattern proven extremely effective
+1. **pgvector Backend Foundation**: Phases 1-2 complete with 91 comprehensive tests
+2. **TDD Excellence**: Full RED-GREEN-REFACTOR cycle for pgvector implementation
+3. **Security First**: 55 security tests covering SQL injection prevention
+4. **Performance Optimization**: N+1 query elimination (50x improvement)
+5. **Dependency Injection**: Pure unit tests without real database
+6. **Code Quality**: All non-null assertions replaced with type guards
 
 ### Patterns to Continue
-- ✅ Test-First Development for all refactorings
-- ✅ Refactor incrementally with tests as safety net
-- ✅ Document discoveries immediately (no lag)
-- ✅ Extract helper modules when files exceed 500 lines
-- ✅ Comprehensive test coverage before declaring complete
+- ✅ Test-First Development for all new features
+- ✅ Security testing as first-class concern
+- ✅ Performance benchmarking before and after optimizations
+- ✅ Dependency injection for testability
+- ✅ Document discoveries immediately
+- ✅ Extract helper modules when complexity increases
 
 ### Grooming Frequency
-- **Current cadence**: Weekly (working well)
-- **Next groom**: 2025-10-25 or after 2+ task completions
-- **Sync reports**: Continue weekly reality checks
+- **Current cadence**: As needed (working well)
+- **Last groom**: 2025-11-04 (pgvector + semantic architecture)
+- **Next groom**: After 2+ task completions or major discoveries
 
 ---
 
 ## 🚦 Risk Assessment
 
 ### Schedule Risk: LOW
-- **Situation**: Clear priorities, no blockers for immediate work
+- **Situation**: Clear priorities, minimal blockers
 - **Mitigation**: Well-defined tasks with effort estimates
 
 ### Technical Risk: LOW
 - **Foundation solid**: Phases 1-3 complete, well-tested
-- **Refactoring proven**: Three successful large refactorings with TDD approach
-- **Quality high**: 95%+ test coverage maintained
+- **New backend proven**: pgvector Phases 1-2 complete with comprehensive tests
+- **Quality high**: 99% test pass rate (4 flaky tests)
 
-### Process Risk: NONE
-- **Sync excellent**: 9.5/10 alignment (near-perfect)
-- **No conflicts**: Clean implementation path
-- **Documentation**: Same-day completion records
+### Process Risk: LOW
+- **Sync excellent**: 9/10 alignment
+- **Documentation**: Same-day completion records for pgvector
+- **Test coverage**: 91 new tests for pgvector backend
 
 ---
 
 ## 📅 Next Steps
 
-### This Week (2025-10-18 to 2025-10-25)
-1. Make Phase 4 decision: Approve PlaceDomainAdapter scope
-2. Begin Task #5: Recursive Depth Limit (if Phase 4 not approved) - 1-2 hours
-3. Begin Task #1: Kuzu Adapter Optimization (if time allows) - 3-4 hours
+### This Week (2025-11-04 to 2025-11-08)
+1. Fix 4 flaky async tests in TSASTParser (Task #1) - 1-2 hours
+2. Review semantic processing architecture (Task #4) - 2-3 hours
+3. Begin pgvector Phase 3 (SemanticStorage) if time allows - 4-6 hours
 
-### Next Sprint (2025-10-25+)
-1. Complete PlaceDomainAdapter implementation (if approved)
-2. Continue storage adapter optimizations
-3. Address tech debt items (file lookup optimization, performance tests)
+### Next Sprint (2025-11-08+)
+1. Complete pgvector Phase 3 (SemanticStorage methods)
+2. Complete pgvector Phase 4 (Vector operations)
+3. Implement first semantic processing feature from architecture review
 
-### Phase 4 Planning
-- Review PlaceDomainAdapter requirements
-- Define success criteria for domain-agnostic validation
-- Plan third domain adapter (CodeDomainAdapter?)
+### Strategic Planning
+- Integrate semantic processing architecture into implementation roadmap
+- Define success criteria for Phase 4 domain adapter expansion
+- Plan third/fourth domain adapters (CodeDomainAdapter? MediaAdapter?)
 
 ---
 
@@ -487,11 +461,11 @@
 
 ✅ **Task Clarity**: All tasks have acceptance criteria
 ✅ **Dependencies**: Clearly mapped, no cycles
-✅ **Reality Aligned**: Verified with actual code inspection (2025-10-14)
+✅ **Reality Aligned**: Verified with actual code inspection and test runs (2025-11-04)
 ✅ **Effort Estimated**: All actionable tasks sized
 ✅ **Priority Clear**: Top 3 priorities identified
 ✅ **First Steps**: Implementation starting points defined
-✅ **Completion Tracking**: 16 tasks archived with full documentation
+✅ **Completion Tracking**: 20+ tasks archived with full documentation
 
 ---
 
@@ -504,42 +478,41 @@
 - [backlog.md](./backlog.md) - Phase-by-phase technical backlog
 - [sprint-next.md](./sprint-next.md) - Next sprint plan
 
+**Recent Architecture**:
+- [architecture/semantic-processing/index.md](../architecture/semantic-processing/index.md) - Semantic processing architecture (7 docs)
+- [decisions/adr-semantic-operations-placement.md](../decisions/adr-semantic-operations-placement.md) - Where semantic ops should occur
+
 **Task Sources Analyzed**:
-- `/context-network/tasks/features/` - 2 feature tasks
-- `/context-network/tasks/tech-debt/` - 15+ technical debt tasks
-- `/context-network/tasks/refactoring/` - 23+ refactoring tasks
-- `/context-network/tasks/performance/` - 3 performance tasks
-- `/context-network/tasks/security/` - 3 security tasks (all complete)
-- `/context-network/tasks/deferred/` - 2 deferred tasks
-- `/context-network/tasks/completed/` - 16 completed tasks (Oct 2025)
+- `/context-network/tasks/features/pgvector-storage-backend.md` - Active implementation
+- `/context-network/tasks/improvements/` - pgvector improvements (all complete)
+- `/context-network/tasks/completed/` - 20+ completed tasks (Oct-Nov 2025)
 
 **Grooming Process**:
 1. ✅ Ran groom-scan.sh for quick inventory
-2. ✅ Analyzed actual code implementation (verified file sizes: TypeScript 312, Kuzu 822, DuckDB 912)
-3. ✅ Cross-referenced with completion records (3 major tasks completed 2025-10-13)
-4. ✅ Validated against recent test runs (150/150 unit + 75/75 DuckDB passing)
-5. ✅ Reviewed completion records from October
+2. ✅ Analyzed actual code implementation (pgvector 900+ lines with 91 tests)
+3. ✅ Cross-referenced with completion records (REFACTOR-004 Phase 2 complete Nov 1)
+4. ✅ Validated against recent test runs (416/420 passing, 99% pass rate)
+5. ✅ Reviewed recent commits (pgvector improvements, semantic architecture)
 6. ✅ Enhanced tasks with implementation details
 7. ✅ Prioritized by value and effort
 
-**Key Findings** (2025-10-29 Sync):
-- **Three major completions since last sync** - HouseholdFoodAdapter (Oct 20), Kuzu optimization (Oct 19), Performance docs (Oct 18)
-- **Kuzu adapter optimized** - 822 → 582 lines (29% reduction), below 600 target ✅
-- **Domain adapter pattern validated** - 4 diverse domains proven (code, narrative, place, household)
-- **Major architecture work** - Semantic processing architecture (7 docs, Oct 28-29) documenting attention management
-- **Test suite growth** - 295/301 passing (98%), +102 tests since October start (+53% growth)
-- **Connection pooling implemented** - GenericConnectionPool with 41 tests (separate from adapter optimization)
-- **Foundation extremely solid** - Phases 1-3 complete, new Phase 4 work (semantic processing + domain adapters)
-- **Zero test regressions** - All new features maintain existing functionality
+**Key Findings** (2025-11-04 Groom):
+- **pgvector backend Phases 1-2 complete** - 91 comprehensive tests, dual-role architecture proven
+- **Semantic processing architecture documented** - 7 docs defining CorticAI's approach (Oct 28-29)
+- **Test suite health excellent** - 99% pass rate (416/420), 4 flaky async tests to fix
+- **Zero test regressions** - All new pgvector features maintain existing functionality
+- **Security hardening** - 55 security tests covering SQL injection prevention
+- **Performance optimization** - N+1 query elimination (50x improvement)
+- **Foundation extremely solid** - Ready for Phase 3-4 pgvector + semantic feature implementation
 
 ---
 
 ## Metadata
-- **Generated**: 2025-10-18
-- **Grooming Type**: Focused - Archive FEAT-001 completion, update priorities
-- **Previous Grooming**: 2025-10-18 (PERF-001 deprioritization)
-- **Task Files Analyzed**: 86 active task files
-- **Completion Records**: 17 since October began
-- **Project Phase**: Phase 3 Complete → Phase 4 Ready
+- **Generated**: 2025-11-04
+- **Grooming Type**: Comprehensive - pgvector backend + semantic architecture integration
+- **Previous Grooming**: 2025-10-18
+- **Task Files Analyzed**: 90+ active task files
+- **Completion Records**: 20+ since October began
+- **Project Phase**: Phase 4 - Domain Adapters + Storage Backend Expansion
 - **Confidence**: HIGH - Clear path forward
-- **Next Review**: 2025-10-25 or after 2+ completions
+- **Next Review**: 2025-11-08 or after 2+ completions

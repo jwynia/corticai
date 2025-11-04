@@ -102,13 +102,29 @@ export class TSASTParser {
         filePath,
         content,
         ts.ScriptTarget.ESNext,
-        true
+        true // setParentNodes - needed for proper AST traversal
       );
 
       const imports: Import[] = [];
       const exports: Export[] = [];
       const dependencies: string[] = [];
       const errors: AnalysisError[] = [];
+
+      // Check for parse diagnostics (syntax errors) directly from source file
+      // This is much faster than ts.createProgram() which does full type checking
+      if ((sourceFile as any).parseDiagnostics) {
+        const parseDiagnostics = (sourceFile as any).parseDiagnostics as ts.Diagnostic[];
+        parseDiagnostics.forEach((diagnostic) => {
+          if (diagnostic.file && diagnostic.start !== undefined) {
+            const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+            errors.push({
+              type: 'parse',
+              message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+              location: { line: line + 1, column: character + 1 }
+            });
+          }
+        });
+      }
 
       // Parse the AST
       const visit = (node: ts.Node) => {
@@ -271,30 +287,10 @@ export class TSASTParser {
         ts.forEachChild(node, visit);
       };
 
-      // Check for syntax errors
-      const diagnostics = ts.getPreEmitDiagnostics(ts.createProgram([filePath], this.compilerOptions));
-
-      if (diagnostics.length > 0) {
-        diagnostics.forEach((diagnostic) => {
-          if (diagnostic.file && diagnostic.start !== undefined) {
-            const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
-            errors.push({
-              type: 'parse',
-              message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-              location: { line: line + 1, column: character + 1 }
-            });
-          }
-        });
-      }
-
-      // Visit AST unless there are critical syntax errors
-      const hasCriticalError = diagnostics.some(
-        (d) => d.category === ts.DiagnosticCategory.Error && d.code >= 1000 && d.code < 2000 // Syntax error codes
-      );
-
-      if (!hasCriticalError) {
-        visit(sourceFile);
-      }
+      // Skip expensive syntax checking to avoid performance issues
+      // Syntax errors will be caught during AST traversal in the visit() function's try-catch blocks
+      // This avoids the expensive ts.createProgram() call which was causing test timeouts
+      visit(sourceFile);
 
       // Resolve all dependencies asynchronously
       // Note: We collected dependency promises during AST traversal

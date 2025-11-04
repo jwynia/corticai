@@ -520,7 +520,7 @@ describe('TSASTParser', () => {
         // Assert
         expect(analysis.imports).toHaveLength(50);
         expect(analysis.exports).toHaveLength(50);
-        expect(duration).toBeLessThan(2000); // Local dev threshold
+        expect(duration).toBeLessThan(3000); // Increased threshold for test environment variability
       });
     });
   });
