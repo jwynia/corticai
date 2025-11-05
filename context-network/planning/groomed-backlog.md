@@ -2,9 +2,9 @@
 
 ## 📊 Project Status Summary
 **Last Groomed**: 2025-11-04 (pgvector backend + semantic architecture integration)
-**Last Synced**: 2025-10-29 (Sync score: 9/10)
+**Last Synced**: 2025-11-05 (Sync score: 6/10 - Good alignment, completion records updated)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
-**Test Status**: ✅ 416/420 tests passing (99% pass rate, 4 flaky async tests)
+**Test Status**: ✅ 436/436 tests passing (100% pass rate, all flaky tests FIXED!)
 **Current Phase**: Phase 4 - Domain Adapters + Storage Backend Expansion
 **Foundation**: ✅ Phases 1-3 complete + Hexagonal architecture
 **Architecture**: ✅ Hexagonal architecture, 100% unit testable business logic
@@ -12,19 +12,36 @@
 **Security**: ✅ Parameterized queries, SQL injection protection
 **Logging**: ✅ Comprehensive logging with PII sanitization
 **Major Refactorings**: ✅ ALL COMPLETE - Kuzu (29%), DuckDB (15.4%), TypeScript analyzer (58%)
-**Recent Work**: ✅ pgvector backend implementation (Phase 1-2 complete, 91 tests passing)
-**New Architecture**: 📋 Semantic processing architecture documented (7 docs, Oct 28-29)
+**Recent Work**: ✅ pgvector backend expansion (111 test cases), TSASTParser optimization (36% faster)
+**New Architecture**: ✅ Semantic processing architecture roadmap complete (5 phases, 30-40 hours)
 
 ---
 
 ## 🎉 Recently Completed (November 2025)
 
-### ~~1. pgvector Storage Backend - Phases 1-2~~ ✅ COMPLETE (2025-11-03)
-**Task**: FEAT-PGVECTOR-001 (Phases 1-2)
-**Status**: ✅ COMPLETE - Dual-role adapter with 91 comprehensive tests
+### ~~1. Fix Flaky Async Tests in TSASTParser~~ ✅ COMPLETE (2025-11-04)
+**Task**: TASK-001
+**Status**: ✅ COMPLETE - All timeouts resolved, 100% pass rate achieved
+**Implementation**: Replaced expensive `ts.createProgram()` with lightweight `parseDiagnostics` (200x faster)
+**Tests**: 436/436 passing (100% pass rate, up from 416/420)
+**Performance**: Test suite 36% faster (640ms → 411ms)
+**Completion**: [2025-11-04-task-001-tsastparser-async-fix.md](../tasks/completed/2025-11-04-task-001-tsastparser-async-fix.md)
+
+### ~~2. Semantic Processing Architecture Integration~~ ✅ COMPLETE (2025-11-04)
+**Task**: TASK-004
+**Status**: ✅ COMPLETE - Comprehensive 5-phase roadmap created
+**Implementation**: Reviewed 7 architecture docs, mapped to existing codebase, created 30-40 hour implementation plan
+**Deliverables**: Implementation roadmap, current state assessment, integration points, validation strategy
+**Completion**: [2025-11-04-task-004-completion.md](../tasks/semantic-architecture-integration/2025-11-04-task-004-completion.md)
+**Roadmap**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
+
+### ~~3. pgvector Storage Backend - Phases 1-2+~~ ✅ SUBSTANTIAL PROGRESS (2025-11-03 to 2025-11-05)
+**Task**: FEAT-PGVECTOR-001 (Phases 1-2+)
+**Status**: 🔄 IN PROGRESS - Expanded beyond documented Phases 1-2
 **Implementation**: PostgreSQL+pgvector as complete storage backend (Primary + Semantic roles)
-**Tests**: 91/91 passing (30 unit tests + 55 security tests + 6 performance tests)
-**Completion**: Foundation complete, ready for Phase 3-4 (Semantic + Vector operations)
+**Tests**: 111 test cases in pgvector test file (325 lines of tests added), all passing
+**Progress**: Phases 1-2 complete + significant Phase 3+ work (SemanticStorage methods expanding)
+**Evidence**: Git commit `2fb6ae1` shows +419 lines implementation, +325 lines tests
 
 **Achievement**:
 - PostgreSQL adapter implements both PrimaryStorage and SemanticStorage interfaces
@@ -49,43 +66,7 @@
 
 ## 🚀 Ready for Implementation
 
-### 1. Fix Flaky Async Tests in TSASTParser
-**One-liner**: Resolve 4 timeout failures in TSASTParser error handling and performance tests
-**Complexity**: Small
-**Priority**: HIGH
-**Effort**: 1-2 hours
-
-<details>
-<summary>Implementation Details</summary>
-
-**Context**: 4 tests in TSASTParser are timing out (5s limit exceeded)
-
-**Failing Tests**:
-1. `should handle duplicate exports` - Timeout at line 240
-2. `should handle syntax errors gracefully` - Timeout at line 307
-3. `should handle malformed exports` - Timeout at line 342
-4. `should parse files efficiently` - Duration 2389ms > 2000ms threshold (line 523)
-
-**Acceptance Criteria**:
-- [ ] All 4 timeout tests pass reliably
-- [ ] Performance test threshold adjusted or code optimized
-- [ ] Tests complete in <1s on average
-- [ ] Zero test regressions
-
-**Investigation Steps**:
-1. Check if tests are creating files synchronously
-2. Review async/await patterns in file operations
-3. Consider increasing timeout for legitimate slow operations
-4. Optimize file parsing if performance test is accurate
-
-**Files**:
-- `tests/unit/analyzers/TSASTParser.test.ts` (lines 240, 307, 342, 523)
-
-</details>
-
----
-
-### 2. Complete pgvector Backend - Phase 3 (SemanticStorage)
+### 1. Complete pgvector Backend - Phase 3 (SemanticStorage)
 **One-liner**: Implement remaining SemanticStorage methods (materialized views, full-text search, schema management)
 **Complexity**: Medium
 **Priority**: MEDIUM
@@ -115,6 +96,53 @@
 
 **Files**:
 - `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 457-597 stub methods)
+
+</details>
+
+---
+
+### 2. Implement Semantic Processing - Phase 1 (Foundation)
+**One-liner**: Implement lifecycle metadata system and semantic block extraction (first phase of 5-phase roadmap)
+**Complexity**: Medium
+**Priority**: HIGH
+**Effort**: 4-6 hours
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: First phase of semantic processing implementation roadmap created in TASK-004
+
+**Phase 1 Scope**:
+- Lifecycle metadata schema (current/deprecated/historical states)
+- Lifecycle detection logic (file analysis, supersession tracking)
+- Semantic block parser (::decision, ::outcome, ::quote markers)
+- Lifecycle-aware lens for query filtering
+- Storage adapter integration (extend entity schema)
+- Migration script for existing documents
+
+**Acceptance Criteria**:
+- [ ] Lifecycle states tracked in entity metadata
+- [ ] Semantic blocks extracted and stored as typed nodes
+- [ ] LifecycleLens filters based on state
+- [ ] 95%+ test coverage for new components
+- [ ] Zero regressions in existing functionality
+- [ ] Migration tested on sample context network documents
+
+**Deliverables**:
+- SEMANTIC-001: Lifecycle metadata schema
+- SEMANTIC-002: Lifecycle detection logic
+- SEMANTIC-003: Semantic block parser
+- SEMANTIC-004: Lifecycle-aware lens
+- SEMANTIC-005: Storage adapter integration
+- SEMANTIC-006: Migration script
+
+**Files to Create**:
+- `src/semantic/LifecycleManager.ts`
+- `src/semantic/SemanticBlockParser.ts`
+- `src/context/lenses/LifecycleLens.ts`
+- `src/semantic/migrations/AddLifecycleMetadata.ts`
+
+**Roadmap**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
 
 </details>
 
@@ -157,50 +185,9 @@
 
 ---
 
-### 4. Integrate Semantic Processing Architecture
-**One-liner**: Review semantic processing architecture docs and create implementation roadmap
-**Complexity**: Small (Research/Planning)
-**Priority**: HIGH
-**Effort**: 2-3 hours
-
-<details>
-<summary>Implementation Details</summary>
-
-**Context**: Major architectural work documented Oct 28-29 defining CorticAI's semantic processing approach
-
-**Architecture Documents** (7 files):
-1. `attention-gravity-problem.md` - Core problem definition
-2. `semantic-pipeline-stages.md` - 5-stage processing model
-3. `projection-based-compression.md` - Lossless compression approach
-4. `write-time-enrichment.md` - Q&A generation, relationship inference
-5. `semantic-maintenance.md` - Health monitoring strategies
-6. `design-rationale.md` - CorticAI vs competitors
-7. `index.md` - Navigation and integration guide
-
-**Task**: Review architecture and create actionable implementation plan
-
-**Acceptance Criteria**:
-- [ ] Read all 7 semantic processing architecture documents
-- [ ] Review ADR on semantic operations placement
-- [ ] Create implementation roadmap for semantic features
-- [ ] Identify which storage operations need semantic enhancement
-- [ ] Document integration points with existing codebase
-- [ ] Create follow-up tasks for specific implementations
-
-**Deliverables**:
-- Updated roadmap with semantic processing phases
-- New tasks in groomed backlog for semantic features
-- Decision record on implementation priorities
-
-**Impact**: Foundational for search, retrieval, and attention management features
-
-</details>
-
----
-
 ## ⏳ Ready Soon (Blocked)
 
-### 5. Add Connection Pooling for Database Adapters (PERF-001)
+### 4. Add Connection Pooling for Database Adapters (PERF-001)
 **One-liner**: Implement connection pooling to improve performance under load
 **Complexity**: Medium
 **Priority**: LOW (Deprioritized 2025-10-18)
@@ -237,7 +224,7 @@
 
 ## 🔧 Tech Debt & Refactoring
 
-### 6. Add Recursive Depth Limit to Prevent Stack Overflow
+### 5. Add Recursive Depth Limit to Prevent Stack Overflow
 **One-liner**: Implement configurable recursion depth limits in graph traversal
 **Complexity**: Trivial
 **Priority**: LOW
@@ -263,7 +250,7 @@
 
 ---
 
-### 7. Optimize File Lookups in TypeScript Dependency Analyzer
+### 6. Optimize File Lookups in TypeScript Dependency Analyzer
 **One-liner**: Improve performance of file path resolution in dependency analysis
 **Complexity**: Small
 **Priority**: LOW
@@ -287,7 +274,7 @@
 
 ---
 
-### 8. Mock File System Operations in Tests
+### 7. Mock File System Operations in Tests
 **One-liner**: Replace real file system operations with mocks for better test isolation
 **Complexity**: Small
 **Priority**: LOW
@@ -297,7 +284,7 @@
 
 ---
 
-### 9. Improve Performance Test Robustness
+### 8. Improve Performance Test Robustness
 **One-liner**: Make timing-based tests less sensitive to machine performance
 **Complexity**: Trivial
 **Priority**: MEDIUM (Related to Task #1)
@@ -311,7 +298,7 @@
 
 ## 📝 Documentation Tasks
 
-### 10. Document Universal Fallback Adapter Patterns
+### 9. Document Universal Fallback Adapter Patterns
 **One-liner**: Create guide for extending the UniversalFallbackAdapter
 **Complexity**: Trivial
 **Priority**: LOW
@@ -321,7 +308,7 @@
 
 ---
 
-### 11. Create Cross-Domain Query Examples
+### 10. Create Cross-Domain Query Examples
 **One-liner**: Documentation showing how to query across multiple domains
 **Complexity**: Small
 **Priority**: LOW
@@ -333,37 +320,39 @@
 
 ## 📊 Summary Statistics
 
-- **Total active tasks**: 11
-- **Ready for work**: 4 (TSASTParser tests, pgvector Phase 3-4, semantic architecture)
+- **Total active tasks**: 10
+- **Ready for work**: 3 (pgvector Phase 3-4, Semantic Processing Phase 1)
 - **Blocked/Needs decision**: 1 (PERF-001)
 - **Tech debt items**: 4
 - **Documentation tasks**: 2
-- **Completed since October start**: 20+ major tasks
-- **Completed since last groom (Nov 3)**: 1 major feature (pgvector Phases 1-2)
-- **Test coverage**: 416/420 tests passing (99% pass rate, +25 net new tests since Oct 29)
+- **Completed since October start**: 22+ major tasks
+- **Completed since last groom (Nov 4)**: 2 major tasks (TASK-001, TASK-004) + pgvector expansion
+- **Completed since last sync (Nov 5)**: 2 major tasks + 4 substantial refactorings
+- **Test coverage**: 436/436 tests passing (100% pass rate, +20 net new tests since Nov 4)
 - **Build status**: ✅ PASSING (0 TypeScript errors)
 
 ---
 
 ## 🎯 Top 3 Immediate Priorities
 
-### 1. **Fix Flaky Async Tests** (Task #1)
-- **Why**: Blocking CI/CD reliability, easy win
-- **Effort**: 1-2 hours
-- **Impact**: HIGH - restores 100% test pass rate
+### 1. **Semantic Processing - Phase 1** (Task #2) ⭐ NEW PRIORITY
+- **Why**: Architecture roadmap complete, first implementation phase ready
+- **Effort**: 4-6 hours
+- **Impact**: HIGH - enables lifecycle-aware context management (core CorticAI differentiator)
+- **Context**: 5-phase roadmap created (TASK-004), ready to implement
 - **No blockers**: Start immediately
 
-### 2. **Semantic Processing Architecture Integration** (Task #4)
-- **Why**: Major architecture work already documented, needs implementation roadmap
-- **Effort**: 2-3 hours (research + planning)
-- **Impact**: HIGH - foundational for search/retrieval features
-- **Context**: 7 architecture docs + ADR already completed (Oct 28-29)
-
-### 3. **pgvector Backend - Phase 3** (Task #2)
-- **Why**: Foundation complete (Phases 1-2), natural next step
+### 2. **pgvector Backend - Phase 3** (Task #1)
+- **Why**: Foundation complete (Phases 1-2), Phase 3 partially started
 - **Effort**: 4-6 hours
 - **Impact**: MEDIUM - completes SemanticStorage implementation
 - **Dependencies**: None - can start immediately
+
+### 3. **pgvector Backend - Phase 4** (Task #3)
+- **Why**: Completes vector search capabilities
+- **Effort**: 4-6 hours
+- **Impact**: MEDIUM - enables semantic similarity search
+- **Dependencies**: None (can be done in parallel with Phase 3)
 
 ---
 
@@ -371,27 +360,31 @@
 
 ### Code Quality ✅
 - **Build Status**: ✅ 0 TypeScript errors
-- **Test Suite**: ✅ 416/420 tests passing (99% pass rate)
-- **Flaky Tests**: ⚠️ 4 timeout failures (TSASTParser error handling)
+- **Test Suite**: ✅ 436/436 tests passing (100% pass rate)
+- **Flaky Tests**: ✅ ALL FIXED (4 timeout failures resolved in TASK-001)
 - **Coverage**: ✅ 95%+ for core modules
-- **New Tests**: +91 tests for pgvector backend
+- **New Tests**: +111 test cases for pgvector backend
+- **Performance**: ✅ TSASTParser 36% faster (640ms → 411ms)
 - **Linting**: ✅ Clean
 
 ### Recent Velocity ⚡
-- **Tasks completed (Nov 1-3)**: 1 major feature (pgvector Phases 1-2)
+- **Tasks completed (Nov 4-5)**: 2 major tasks (TASK-001, TASK-004) + pgvector expansion + 4 refactorings
+- **Tasks completed (November)**: 4+ major completions
 - **Tasks completed (October)**: 19 major completions
-- **Code quality**: Zero test regressions (except 4 flaky async tests)
-- **New capabilities**:
-  - pgvector backend with dual-role architecture (91 comprehensive tests)
-  - Graph operations via PostgreSQL recursive CTEs
-  - Batch operations with 50x performance improvement
-  - Semantic processing architecture documented (7 docs)
+- **Code quality**: Zero test regressions across all changes
+- **New capabilities (Nov 4-5)**:
+  - 100% test pass rate achieved (all flaky tests fixed)
+  - Semantic processing 5-phase roadmap (30-40 hours planned)
+  - pgvector backend expanded (111 test cases, +419 lines implementation)
+  - TSASTParser performance optimized (36% faster)
+  - Azure storage provider refactored (339 lines)
 
 ### Documentation Quality ✅
-- **Completion records**: 20+ comprehensive records since October
-- **Planning sync**: 9/10 alignment (per 2025-10-29 sync report)
-- **Architecture docs**: Semantic processing architecture added (Oct 28-29)
-- **Task tracking**: pgvector implementation well-documented with 3 improvement tasks
+- **Completion records**: 22+ comprehensive records since October
+- **Planning sync**: 6/10 alignment (per 2025-11-05 sync report - good, minor gaps)
+- **Architecture docs**: Semantic processing architecture + implementation roadmap (Oct 28-29, Nov 4)
+- **Task tracking**: All major work documented with completion records
+- **Sync reports**: Regular cadence (Oct 29, Nov 5)
 
 ---
 
