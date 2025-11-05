@@ -6,54 +6,14 @@
  */
 
 import { Storage, BatchStorage } from '../interfaces/Storage'
+import { PrimaryStorage } from '../interfaces/PrimaryStorage'
+import { SemanticStorage, SearchOptions as SemanticSearchOptions } from '../interfaces/SemanticStorage'
+
+// Re-export for backwards compatibility
+export { PrimaryStorage, SemanticStorage }
 
 /**
- * Primary storage role interface for flexible, universal operations
- * Used for graph data, entities, relationships - optimized for flexibility
- */
-export interface PrimaryStorage<T = any> extends BatchStorage<T> {
-  /**
-   * Graph-specific operations for traversal and relationships
-   */
-  traverse?(sourceId: string, relationshipType?: string, maxDepth?: number): Promise<T[]>
-  findConnected?(entityId: string, connectionType?: string): Promise<T[]>
-
-  /**
-   * Entity and relationship management
-   */
-  addEntity?(entity: T): Promise<void>
-  addRelationship?(from: string, to: string, type: string, properties?: any): Promise<void>
-  getEntity?(id: string): Promise<T | undefined>
-  getRelationships?(entityId: string): Promise<T[]>
-}
-
-/**
- * Semantic storage role interface for typed, optimized operations
- * Used for analytics, search, materialized views - optimized for performance
- */
-export interface SemanticStorage<T = any> extends BatchStorage<T> {
-  /**
-   * Search and query operations
-   */
-  search?(query: string, options?: SearchOptions): Promise<T[]>
-  aggregate?(operation: AggregateOperation): Promise<any>
-
-  /**
-   * Materialized view management
-   */
-  createView?(name: string, query: string): Promise<void>
-  refreshView?(name: string): Promise<void>
-  getView?(name: string): Promise<T[]>
-
-  /**
-   * Index management
-   */
-  createIndex?(fields: string[]): Promise<void>
-  dropIndex?(fields: string[]): Promise<void>
-}
-
-/**
- * Search options for semantic storage
+ * Search options for semantic storage (simplified version for provider compatibility)
  */
 export interface SearchOptions {
   limit?: number
@@ -64,7 +24,7 @@ export interface SearchOptions {
 }
 
 /**
- * Aggregate operation definition
+ * Aggregate operation definition (simplified version for provider compatibility)
  */
 export interface AggregateOperation {
   type: 'count' | 'sum' | 'avg' | 'min' | 'max' | 'group'

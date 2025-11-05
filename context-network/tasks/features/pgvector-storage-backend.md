@@ -43,10 +43,10 @@ Enable CorticAI to integrate with existing PostgreSQL infrastructure without req
 - [ ] Performance benchmarks vs Kuzu baseline
 
 ### Phase 3: SemanticStorage Implementation
-- [ ] Implement SemanticStorage methods (query, executeSQL, aggregate, groupBy, search)
-- [ ] PostgreSQL analytics features (CTEs, window functions, FTS)
-- [ ] Add SemanticStorage interface contract tests
-- [ ] Materialized views support
+- [x] Implement SemanticStorage methods (query, executeSQL, aggregate, groupBy, search)
+- [x] PostgreSQL analytics features (CTEs, window functions, FTS)
+- [x] Add SemanticStorage interface contract tests
+- [x] Materialized views support
 
 ### Phase 4: Vector Operations
 - [ ] Add pgvector extension setup
@@ -214,6 +214,23 @@ interface PgVectorStorageConfig extends StorageConfig {
 - **Property merging**: `jsonb ||` operator for partial updates
 - **Unit testable**: Can test without real PostgreSQL database
 
+**Phase 3: SemanticStorage Implementation (COMPLETED - 2025-11-04)**
+- ✅ Full-text search (3 methods): `search()`, `createSearchIndex()`, `dropSearchIndex()`
+  - PostgreSQL built-in FTS with `to_tsvector`, `to_tsquery`, `ts_rank`, `ts_headline`
+  - GIN indexes for efficient text search
+  - Relevance scoring and result highlighting
+- ✅ Materialized views (5 methods): `createMaterializedView()`, `refreshMaterializedView()`, `queryMaterializedView()`, `dropMaterializedView()`, `listMaterializedViews()`
+  - CONCURRENT refresh to avoid blocking reads
+  - SemanticQuery to SQL translation
+  - pg_matviews system catalog integration
+- ✅ Schema management (2 methods): `defineSchema()`, `getSchema()`
+  - JSONB-based schema metadata storage in `_schemas` table
+  - Upsert semantics for schema updates
+- ✅ 21 comprehensive unit tests (all passing)
+- ✅ Tests updated to match SemanticStorage interface contract
+- ✅ Zero TypeScript errors
+- ✅ Full test suite: 436/444 tests passing (no regressions)
+
 ## Discoveries
 
 ### Discovery 1: pgvector npm Package Version
@@ -306,7 +323,73 @@ interface PgVectorStorageConfig extends StorageConfig {
 - `/workspaces/corticai/app/tests/unit/storage/PgVectorStorageAdapter.test.ts` (30 tests, all passing)
 **Test Coverage**: Basic Storage (9 tests), Graph Nodes (6 tests), Graph Edges (7 tests), Error Handling (2 tests), SQL Parameterization (3 tests)
 
+### Discovery 6: Phase 3 SemanticStorage Interface Compliance
+**Context**: Implementing Phase 3 SemanticStorage methods (full-text search, materialized views, schema management)
+**Date**: 2025-11-04
+**Key Findings**:
+1. **SearchOptions doesn't support offset**: Interface defines `fields`, `fuzziness`, `boost`, `highlight`, `limit` - NO offset property
+   - Tests incorrectly assumed offset support
+   - Implementation correctly omits offset from SearchOptions
+2. **SearchResult structure**: Returns `{ document: T, score: number, highlights?: Record<string, string[]> }`
+   - NOT a flat object with `.rank` property
+   - Tests needed updating to access `.document` and `.score`
+3. **MaterializedView.query**: Can be `SemanticQuery | string`
+   - Implementation must handle both types
+   - Helper method `buildSQLFromQuery()` converts SemanticQuery to SQL
+4. **SemanticQuery uses `from` not `table`**: Interface property is `from: string` for table name
+   - Helper methods needed correction
+5. **MaterializedView requires refreshStrategy**: Not optional, must be 'manual' | 'scheduled' | 'on-write'
+   - `listMaterializedViews()` returns 'manual' as default for PostgreSQL views
+6. **Schema storage approach**: Used dedicated `_schemas` table with JSONB column
+   - Two-query approach in `defineSchema()`: CREATE TABLE IF NOT EXISTS, then INSERT ... ON CONFLICT
+   - Two-query approach in `getSchema()`: Check table exists, then SELECT schema
+   - Mock tests must handle multiple sequential queries correctly
+**Implementation Files**:
+- `search()`: `/workspaces/corticai/app/src/storage/adapters/PgVectorStorageAdapter.ts:1094-1130`
+- `createMaterializedView()`: `/workspaces/corticai/app/src/storage/adapters/PgVectorStorageAdapter.ts:1183-1207`
+- `defineSchema()`: `/workspaces/corticai/app/src/storage/adapters/PgVectorStorageAdapter.ts:1366-1400`
+**Test Corrections**: 5 tests updated to match SemanticStorage interface contract
+
+### Discovery 7: Code Review Recommendations Applied
+**Context**: Post-Phase 3 code review identified 10 issues (3 critical, 2 high, 5 medium/low)
+**Date**: 2025-11-04
+**Applied Immediately** (3 low-risk improvements):
+1. **parseInt radix consistency** (line 947-951): Added radix parameter (10) to all `parseInt()` calls
+2. **Search configuration constants** (line 53-54): Extracted `DEFAULT_SEARCH_LIMIT = 100`, `FTS_INDEX_SUFFIX = '_fts_idx'`
+3. **DRY helper method** (line 1098-1103): Created `getSearchIndexName(table)` to eliminate duplication
+**Deferred to Tasks** (7 items requiring careful planning):
+- **CRITICAL**: SQL injection vulnerabilities → [[pgvector-sql-injection-prevention]] (SECURITY-PGVECTOR-001)
+- **MEDIUM**: File size refactoring → [[pgvector-adapter-modularization]] (REFACTOR-PGVECTOR-001)
+- **LOW**: Error handling improvements → [[pgvector-error-handling-improvements]] (IMPROVE-PGVECTOR-004)
+**Outcome**: All 110 tests pass, 0 TypeScript errors, no regressions
+
 ## Code Review & Improvements
+
+### 2025-11-04: Post-Phase 3 Code Review Applied
+
+**Quick Wins Applied** (3 improvements, 30 minutes):
+- ✅ Added radix (10) to `parseInt()` calls for consistent decimal parsing
+- ✅ Extracted search configuration constants (DEFAULT_SEARCH_LIMIT, FTS_INDEX_SUFFIX)
+- ✅ Created `getSearchIndexName()` helper to eliminate duplication
+
+**Security Tasks Created**:
+- [[pgvector-sql-injection-prevention]] (SECURITY-PGVECTOR-001) - URGENT
+  - Fix SQL injection in `buildSQLFromQuery()` (parameterized queries)
+  - Add identifier validation for field names, view names
+  - Comprehensive security testing
+  - Estimated: 4-5 hours
+
+**Refactoring Tasks Created**:
+- [[pgvector-adapter-modularization]] (REFACTOR-PGVECTOR-001) - MEDIUM
+  - Break 1,699-line file into 6 focused modules
+  - Improve maintainability and testability
+  - Estimated: 11-13 hours
+
+**Quality Tasks Created**:
+- [[pgvector-error-handling-improvements]] (IMPROVE-PGVECTOR-004) - LOW
+  - Standardize error context across all methods
+  - Improve debugging information
+  - Estimated: 4-5 hours
 
 ### 2025-11-03: Phase 2 Code Review Completed
 

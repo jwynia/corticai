@@ -580,4 +580,52 @@ export class KuzuStorageAdapter
     return this.performanceMonitor
   }
 
+  /**
+   * Check if performance monitoring is enabled
+   */
+  isPerformanceMonitoringEnabled(): boolean {
+    return this.performanceMonitor.isEnabled()
+  }
+
+  /**
+   * Enable or disable performance monitoring
+   */
+  setPerformanceMonitoring(enabled: boolean): void {
+    if (enabled) {
+      this.performanceMonitor.enable()
+    } else {
+      this.performanceMonitor.disable()
+    }
+  }
+
+  /**
+   * Get operation metrics
+   */
+  getOperationMetrics(operation: string): any {
+    return this.performanceMonitor.getMetrics(operation)
+  }
+
+  /**
+   * Get all performance metrics
+   */
+  getPerformanceMetrics(): any {
+    return this.performanceMonitor.getAllMetrics()
+  }
+
+  /**
+   * Clear all performance metrics or metrics for a specific operation
+   */
+  clearPerformanceMetrics(operation?: string): void {
+    // TODO: Implement clear() or clearOperation() methods on PerformanceMonitor
+    if (operation) {
+      // Clear specific operation metrics - not implemented in PerformanceMonitor yet
+      // For now, do nothing
+    } else {
+      // Clear all metrics - create a new instance
+      this.performanceMonitor = new PerformanceMonitor({
+        enabled: this.performanceMonitor.isEnabled()
+      })
+    }
+  }
+
 }

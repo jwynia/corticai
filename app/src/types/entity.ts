@@ -10,21 +10,31 @@
 export interface Entity {
   /** Unique identifier for this entity */
   id: string;
-  
-  /** The type of entity - universal across domains */
-  type: 'document' | 'section' | 'paragraph' | 'reference' | 'container' | 'list' | 'list-item';
-  
+
+  /** The type of entity - universal across domains plus domain-specific extensions */
+  type: 'document' | 'section' | 'paragraph' | 'reference' | 'container' | 'list' | 'list-item'
+    | 'recipe' | 'ingredient' | 'pantry-item' | 'meal' | 'meal-plan' | 'shopping-list'; // Household food domain
+
   /** Human-readable name or title */
   name: string;
-  
+
   /** The actual content (optional for containers) */
   content?: string;
-  
+
   /** Additional metadata about the entity */
   metadata?: EntityMetadata;
-  
+
   /** Relationships to other entities */
   relationships?: Relationship[];
+
+  /** Source identifier (optional, for domain-specific tracking) */
+  source?: string;
+
+  /** Creation timestamp (optional, for temporal tracking) */
+  createdAt?: string | Date;
+
+  /** Update timestamp (optional, for temporal tracking) */
+  updatedAt?: string | Date;
 }
 
 /**
@@ -51,14 +61,21 @@ export interface EntityMetadata {
  * Represents a relationship between entities
  */
 export interface Relationship {
-  /** Type of relationship */
-  type: 'contains' | 'references' | 'part-of' | 'follows' | 'precedes' | 'calls';
+  /** Unique identifier for this relationship (optional) */
+  id?: string;
+
+  /** Type of relationship - universal plus domain-specific extensions */
+  type: 'contains' | 'references' | 'part-of' | 'follows' | 'precedes' | 'calls'
+    | 'REQUIRES' | 'IS' | 'USES'; // Household food domain relationships
 
   /** ID of the target entity */
   target: string;
 
   /** Optional metadata about the relationship */
   metadata?: any;
+
+  /** Source identifier (optional, for domain-specific tracking) */
+  source?: string;
 }
 
 /**
@@ -67,18 +84,21 @@ export interface Relationship {
 export interface FileMetadata {
   /** Full file path */
   path: string;
-  
+
   /** Just the filename */
   filename: string;
-  
+
   /** File extension (e.g., '.md', '.txt') */
   extension: string;
-  
+
   /** File size in bytes */
   size?: number;
-  
+
   /** File encoding */
   encoding?: string;
+
+  /** Full file path (alias for path, for compatibility) */
+  filePath?: string;
 }
 
 /**

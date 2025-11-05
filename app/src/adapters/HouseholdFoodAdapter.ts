@@ -419,7 +419,7 @@ export class HouseholdFoodAdapter extends UniversalFallbackAdapter implements Do
         if (mealEntry.meal || mealEntry.recipe) {
           // Try to find matching recipe
           const recipeName = mealEntry.meal || mealEntry.recipe;
-          const matchingRecipe = recipes.find(r => r.name === recipeName);
+          const matchingRecipe = recipes.find((r: Entity) => r.name === recipeName);
           if (matchingRecipe && matchingRecipe.ingredients) {
             for (const ingredient of matchingRecipe.ingredients) {
               const key = ingredient.name.toLowerCase();

@@ -25,7 +25,7 @@
  */
 
 import { PrimaryStorage } from '../interfaces/PrimaryStorage';
-import { SemanticStorage, SemanticQuery, SemanticQueryResult, SearchOptions, SearchResult } from '../interfaces/SemanticStorage';
+import { SemanticStorage, SemanticQuery, SemanticQueryResult, SearchOptions, SearchResult, MaterializedView, QueryFilter, AggregationOperator, Aggregation } from '../interfaces/SemanticStorage';
 import { BatchStorage, Operation, BatchResult, PgVectorStorageConfig } from '../interfaces/Storage';
 import { GraphNode, GraphEdge, GraphPath, GraphEntity, TraversalPattern, GraphQueryResult, GraphStats } from '../types/GraphTypes';
 import { BaseStorageAdapter } from '../base/BaseStorageAdapter';
@@ -48,6 +48,10 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
   private static readonly DEFAULT_TRAVERSAL_DEPTH = 3;
   private static readonly MAX_TRAVERSAL_DEPTH = 20;
   private static readonly ABSOLUTE_MAX_DEPTH = 50; // Prevent DOS attacks
+
+  // Full-text search configuration
+  private static readonly DEFAULT_SEARCH_LIMIT = 100;
+  private static readonly FTS_INDEX_SUFFIX = '_fts_idx';
 
   private pg: IPostgreSQLClient;
   protected config: Required<PgVectorStorageConfig>;
@@ -944,11 +948,11 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
       const sizeRow = sizeResult.rows[0] || {};
 
       return {
-        nodeCount: parseInt(nodeRow.total_nodes || '0'),
-        edgeCount: parseInt(edgeRow.total_edges || '0'),
+        nodeCount: parseInt(nodeRow.total_nodes || '0', 10),
+        edgeCount: parseInt(edgeRow.total_edges || '0', 10),
         nodesByType: nodeRow.nodes_by_type || {},
         edgesByType: edgeRow.edges_by_type || {},
-        databaseSize: parseInt(sizeRow.size || '0'),
+        databaseSize: parseInt(sizeRow.size || '0', 10),
         lastUpdated: new Date()
       };
     } catch (error) {
@@ -1018,6 +1022,41 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
     }
   }
 
+  async findByPattern(pattern: Record<string, any>): Promise<T[]> {
+    await this.ensureLoaded();
+    // TODO: Implement pattern matching
+    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+  }
+
+  async createIndex(entityType: string, property: string): Promise<void> {
+    await this.ensureLoaded();
+    // TODO: Implement index creation
+    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+  }
+
+  async listIndexes(entityType: string): Promise<string[]> {
+    await this.ensureLoaded();
+    // TODO: Implement index listing
+    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+  }
+
+  async updateEdge(
+    from: string,
+    to: string,
+    type: string,
+    properties: Partial<GraphEdge['properties']>
+  ): Promise<boolean> {
+    await this.ensureLoaded();
+    // TODO: Implement edge update
+    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+  }
+
+  async batchGraphOperations(operations: any[]): Promise<any> {
+    await this.ensureLoaded();
+    // TODO: Implement batch graph operations
+    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+  }
+
   // ============================================================================
   // SEMANTIC STORAGE INTERFACE - ANALYTICS & QUERIES
   // ============================================================================
@@ -1028,46 +1067,392 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
     throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
   }
 
-  async executeSQL<R = any>(sql: string, params?: any[]): Promise<R[]> {
+  async executeSQL<R = any>(sql: string, params?: any[]): Promise<SemanticQueryResult<R>> {
     await this.ensureLoaded();
     // TODO: Implement SQL execution
     throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
   }
 
-  async aggregate(table: string, aggregations: any[], groupBy?: string[]): Promise<any[]> {
+  async aggregate(
+    table: string,
+    operator: AggregationOperator,
+    field: string,
+    filters?: QueryFilter[]
+  ): Promise<number> {
     await this.ensureLoaded();
     // TODO: Implement aggregation
     throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
   }
 
-  async groupBy(table: string, fields: string[], aggregations: any[]): Promise<any[]> {
+  async groupBy(
+    table: string,
+    groupBy: string[],
+    aggregations: Aggregation[],
+    filters?: QueryFilter[]
+  ): Promise<Record<string, any>[]> {
     await this.ensureLoaded();
     // TODO: Implement group by
     throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
   }
 
+  /**
+   * Helper: Get full-text search index name for a table
+   */
+  private getSearchIndexName(table: string): string {
+    return `${table}${PgVectorStorageAdapter.FTS_INDEX_SUFFIX}`;
+  }
+
   async search<R = any>(table: string, searchText: string, options?: SearchOptions): Promise<SearchResult<R>[]> {
     await this.ensureLoaded();
-    // TODO: Implement full-text search
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(table);
+      const limit = options?.limit || PgVectorStorageAdapter.DEFAULT_SEARCH_LIMIT;
+
+      // Use PostgreSQL full-text search with ts_rank for relevance scoring
+      const query = `
+        SELECT
+          *,
+          ts_rank(to_tsvector('english', COALESCE(properties::text, '')), to_tsquery('english', $1)) as rank,
+          ts_headline('english', COALESCE(properties::text, ''), to_tsquery('english', $1)) as headline
+        FROM ${tableName}
+        WHERE to_tsvector('english', COALESCE(properties::text, '')) @@ to_tsquery('english', $1)
+        ORDER BY rank DESC
+        LIMIT $2
+      `;
+
+      const result = await this.pg.query(query, [searchText, limit]);
+
+      return result.rows.map(row => {
+        const { rank, headline, ...document } = row;
+        return {
+          document: document as R,
+          score: parseFloat(rank) || 0,
+          highlights: options?.highlight ? { content: [headline] } : undefined
+        };
+      });
+    } catch (error) {
+      throw new StorageError(
+        `Full-text search failed on table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table, searchText }
+      );
+    }
   }
 
   async createSearchIndex(table: string, fields: string[]): Promise<void> {
     await this.ensureLoaded();
-    // TODO: Implement search index creation
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(table);
+      const indexName = this.getSearchIndexName(table);
+
+      // Create GIN index for full-text search on specified fields
+      // Concatenate fields into a single tsvector for efficient searching
+      const tsvectorExpression = fields.map(field =>
+        `to_tsvector('english', COALESCE(${field}::text, ''))`
+      ).join(' || ');
+
+      const query = `
+        CREATE INDEX IF NOT EXISTS ${indexName}
+        ON ${tableName}
+        USING GIN ((${tsvectorExpression}))
+      `;
+
+      await this.pg.query(query);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to create search index on table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table, fields }
+      );
+    }
   }
 
-  async createMaterializedView(name: string, query: SemanticQuery): Promise<void> {
+  async dropSearchIndex(table: string): Promise<void> {
     await this.ensureLoaded();
-    // TODO: Implement materialized view creation
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const indexName = this.getSearchIndexName(table);
+
+      const query = `DROP INDEX IF EXISTS ${this.config.schema}.${indexName}`;
+
+      await this.pg.query(query);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to drop search index on table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table }
+      );
+    }
   }
 
-  async refreshMaterializedView(name: string): Promise<void> {
+  // ============================================================================
+  // MATERIALIZED VIEWS
+  // ============================================================================
+
+  async createMaterializedView(view: MaterializedView): Promise<void> {
     await this.ensureLoaded();
-    // TODO: Implement materialized view refresh
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const qualifiedViewName = `${this.config.schema}.${view.name}`;
+
+      // Handle both SemanticQuery and raw SQL string
+      const sqlQuery = typeof view.query === 'string'
+        ? view.query
+        : this.buildSQLFromQuery(view.query);
+
+      const createQuery = `
+        CREATE MATERIALIZED VIEW ${qualifiedViewName} AS
+        ${sqlQuery}
+      `;
+
+      await this.pg.query(createQuery);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to create materialized view "${view.name}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, view }
+      );
+    }
+  }
+
+  async refreshMaterializedView(viewName: string): Promise<void> {
+    await this.ensureLoaded();
+
+    try {
+      const qualifiedViewName = `${this.config.schema}.${viewName}`;
+
+      // Use CONCURRENTLY to avoid blocking reads during refresh
+      const query = `REFRESH MATERIALIZED VIEW CONCURRENTLY ${qualifiedViewName}`;
+
+      await this.pg.query(query);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to refresh materialized view "${viewName}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, viewName }
+      );
+    }
+  }
+
+  async queryMaterializedView<R = any>(
+    viewName: string,
+    filters?: QueryFilter[]
+  ): Promise<SemanticQueryResult<R>> {
+    await this.ensureLoaded();
+
+    try {
+      const startTime = Date.now();
+      const qualifiedViewName = `${this.config.schema}.${viewName}`;
+
+      let query = `SELECT * FROM ${qualifiedViewName}`;
+      const params: any[] = [];
+
+      // Add filter conditions if provided
+      if (filters && filters.length > 0) {
+        const whereClauses = filters.map((filter, index) => {
+          params.push(filter.value);
+          return `${filter.field} ${filter.operator} $${index + 1}`;
+        });
+        query += ` WHERE ${whereClauses.join(' AND ')}`;
+      }
+
+      const result = await this.pg.query(query, params);
+
+      return {
+        data: result.rows as R[],
+        metadata: {
+          executionTime: Date.now() - startTime,
+          rowsScanned: result.rowCount || 0,
+          fromCache: true // Materialized views are pre-computed
+        }
+      };
+    } catch (error) {
+      throw new StorageError(
+        `Failed to query materialized view "${viewName}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, viewName, filters }
+      );
+    }
+  }
+
+  async dropMaterializedView(viewName: string): Promise<void> {
+    await this.ensureLoaded();
+
+    try {
+      const qualifiedViewName = `${this.config.schema}.${viewName}`;
+
+      const query = `DROP MATERIALIZED VIEW IF EXISTS ${qualifiedViewName}`;
+
+      await this.pg.query(query);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to drop materialized view "${viewName}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, viewName }
+      );
+    }
+  }
+
+  async listMaterializedViews(): Promise<MaterializedView[]> {
+    await this.ensureLoaded();
+
+    try {
+      const query = `
+        SELECT
+          schemaname,
+          matviewname as viewname,
+          pg_get_viewdef((schemaname || '.' || matviewname)::regclass) as definition
+        FROM pg_matviews
+        WHERE schemaname = $1
+      `;
+
+      const result = await this.pg.query(query, [this.config.schema]);
+
+      return result.rows.map(row => ({
+        name: row.viewname,
+        query: row.definition, // Store raw SQL as string
+        refreshStrategy: 'manual' as const // PostgreSQL materialized views are manual refresh by default
+      }));
+    } catch (error) {
+      throw new StorageError(
+        `Failed to list materialized views: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error }
+      );
+    }
+  }
+
+  /**
+   * Helper: Build SQL query from SemanticQuery object
+   */
+  private buildSQLFromQuery(query: SemanticQuery): string {
+    const tableName = this.qualifiedTableName(query.from);
+
+    const selectClause = query.select && query.select.length > 0
+      ? query.select.join(', ')
+      : '*';
+
+    let sql = `SELECT ${selectClause} FROM ${tableName}`;
+
+    // Add WHERE clause if filters exist
+    if (query.where && query.where.length > 0) {
+      const whereConditions = query.where.map(filter =>
+        `${filter.field} ${filter.operator} '${filter.value}'`
+      ).join(' AND ');
+      sql += ` WHERE ${whereConditions}`;
+    }
+
+    // Add GROUP BY clause
+    if (query.groupBy && query.groupBy.length > 0) {
+      sql += ` GROUP BY ${query.groupBy.join(', ')}`;
+    }
+
+    // Add ORDER BY clause
+    if (query.orderBy && query.orderBy.length > 0) {
+      const orderClauses = query.orderBy.map(sort =>
+        `${sort.field} ${sort.direction || 'ASC'}`
+      ).join(', ');
+      sql += ` ORDER BY ${orderClauses}`;
+    }
+
+    // Add LIMIT clause
+    if (query.limit) {
+      sql += ` LIMIT ${query.limit}`;
+    }
+
+    // Add OFFSET clause
+    if (query.offset) {
+      sql += ` OFFSET ${query.offset}`;
+    }
+
+    return sql;
+  }
+
+  // ============================================================================
+  // SCHEMA MANAGEMENT
+  // ============================================================================
+
+  async defineSchema(table: string, schema: Record<string, any>): Promise<void> {
+    await this.ensureLoaded();
+
+    try {
+      const schemaTable = this.qualifiedTableName('_schemas');
+
+      // Ensure schema metadata table exists
+      await this.pg.query(`
+        CREATE TABLE IF NOT EXISTS ${schemaTable} (
+          table_name TEXT PRIMARY KEY,
+          schema_definition JSONB NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Insert or update schema definition
+      const query = `
+        INSERT INTO ${schemaTable} (table_name, schema_definition, updated_at)
+        VALUES ($1, $2, CURRENT_TIMESTAMP)
+        ON CONFLICT (table_name)
+        DO UPDATE SET
+          schema_definition = EXCLUDED.schema_definition,
+          updated_at = CURRENT_TIMESTAMP
+      `;
+
+      await this.pg.query(query, [table, JSON.stringify(schema)]);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to define schema for table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table, schema }
+      );
+    }
+  }
+
+  async getSchema(table: string): Promise<Record<string, any> | null> {
+    await this.ensureLoaded();
+
+    try {
+      const schemaTable = this.qualifiedTableName('_schemas');
+
+      // Check if schema table exists first
+      const tableExistsQuery = `
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.tables
+          WHERE table_schema = $1
+          AND table_name = '_schemas'
+        )
+      `;
+
+      const existsResult = await this.pg.query(tableExistsQuery, [this.config.schema]);
+
+      if (!existsResult.rows[0].exists) {
+        return null;
+      }
+
+      // Retrieve schema definition
+      const query = `
+        SELECT schema_definition
+        FROM ${schemaTable}
+        WHERE table_name = $1
+      `;
+
+      const result = await this.pg.query(query, [table]);
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return result.rows[0].schema_definition;
+    } catch (error) {
+      throw new StorageError(
+        `Failed to get schema for table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table }
+      );
+    }
   }
 
   // ============================================================================

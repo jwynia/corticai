@@ -1313,4 +1313,329 @@ describe('PgVectorStorageAdapter (Unit Tests)', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // PHASE 3: SEMANTIC STORAGE - FULL-TEXT SEARCH
+  // ==========================================================================
+
+  describe('Full-Text Search', () => {
+    describe('search()', () => {
+      it('should perform full-text search with relevance ranking', async () => {
+        mockPg.mockQueryResult({
+          rows: [
+            {
+              id: 'doc-1',
+              content: 'PostgreSQL full-text search tutorial',
+              rank: 0.95,
+              headline: '<b>PostgreSQL</b> <b>full-text</b> <b>search</b> tutorial'
+            },
+            {
+              id: 'doc-2',
+              content: 'Advanced search techniques',
+              rank: 0.75,
+              headline: 'Advanced <b>search</b> techniques'
+            }
+          ],
+          rowCount: 2
+        });
+
+        const results = await adapter.search('documents', 'PostgreSQL search', {
+          fields: ['content'],
+          limit: 10,
+          highlight: true
+        });
+
+        expect(results).toHaveLength(2);
+        expect(results[0].score).toBeGreaterThan(results[1].score);
+        expect(results[0].document.id).toBe('doc-1');
+        expect(results[1].document.id).toBe('doc-2');
+        expect(mockPg.wasQueryExecuted('ts_rank')).toBe(true);
+        expect(mockPg.wasQueryExecuted('to_tsquery')).toBe(true);
+      });
+
+      it('should handle empty search results', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const results = await adapter.search('documents', 'nonexistent', {
+          fields: ['content']
+        });
+
+        expect(results).toHaveLength(0);
+      });
+
+      it('should apply search options (limit)', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(params).toContain(5); // limit
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.search('documents', 'test', { fields: ['content'], limit: 5 });
+      });
+    });
+
+    describe('createSearchIndex()', () => {
+      it('should create GIN index for full-text search', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('CREATE INDEX');
+          expect(sql).toContain('GIN');
+          expect(sql).toContain('to_tsvector');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createSearchIndex('documents', ['title', 'content']);
+
+        expect(mockPg.getExecutedQueries().length).toBeGreaterThan(0);
+      });
+
+      it('should handle single field index', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('to_tsvector');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createSearchIndex('documents', ['content']);
+      });
+    });
+
+    describe('dropSearchIndex()', () => {
+      it('should drop search index', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('DROP INDEX');
+          expect(sql).toContain('IF EXISTS');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.dropSearchIndex('documents');
+
+        expect(mockPg.wasQueryExecuted('DROP INDEX')).toBe(true);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // PHASE 3: SEMANTIC STORAGE - MATERIALIZED VIEWS
+  // ==========================================================================
+
+  describe('Materialized Views', () => {
+    describe('createMaterializedView()', () => {
+      it('should create materialized view with query', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('CREATE MATERIALIZED VIEW');
+          expect(sql).toContain('node_stats');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createMaterializedView({
+          name: 'node_stats',
+          query: {
+            table: 'nodes',
+            select: ['type', 'COUNT(*) as count'],
+            groupBy: ['type']
+          }
+        });
+
+        expect(mockPg.wasQueryExecuted('CREATE MATERIALIZED VIEW')).toBe(true);
+      });
+
+      it('should handle complex query with filters', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        await adapter.createMaterializedView({
+          name: 'active_nodes',
+          query: {
+            table: 'nodes',
+            select: ['*'],
+            where: [{ field: 'active', operator: '=', value: true }]
+          }
+        });
+
+        expect(mockPg.wasQueryExecuted('WHERE')).toBe(true);
+      });
+    });
+
+    describe('refreshMaterializedView()', () => {
+      it('should refresh materialized view concurrently', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('REFRESH MATERIALIZED VIEW');
+          expect(sql).toContain('CONCURRENTLY');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.refreshMaterializedView('node_stats');
+
+        expect(mockPg.wasQueryExecuted('REFRESH')).toBe(true);
+      });
+
+      it('should handle non-existent view gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('relation "nonexistent_view" does not exist');
+        });
+
+        await expect(adapter.refreshMaterializedView('nonexistent_view'))
+          .rejects.toThrow('does not exist');
+      });
+    });
+
+    describe('queryMaterializedView()', () => {
+      it('should query materialized view with filters', async () => {
+        mockPg.mockQueryResult({
+          rows: [
+            { type: 'Person', count: 100 },
+            { type: 'Document', count: 50 }
+          ],
+          rowCount: 2
+        });
+
+        const result = await adapter.queryMaterializedView('node_stats', [
+          { field: 'count', operator: '>', value: 10 }
+        ]);
+
+        expect(result.data).toHaveLength(2);
+        expect(result.metadata).toBeDefined();
+        expect(mockPg.wasQueryExecuted('SELECT')).toBe(true);
+      });
+
+      it('should return empty result for no matches', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const result = await adapter.queryMaterializedView('node_stats');
+
+        expect(result.data).toHaveLength(0);
+      });
+    });
+
+    describe('dropMaterializedView()', () => {
+      it('should drop materialized view', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('DROP MATERIALIZED VIEW');
+          expect(sql).toContain('IF EXISTS');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.dropMaterializedView('node_stats');
+
+        expect(mockPg.wasQueryExecuted('DROP')).toBe(true);
+      });
+    });
+
+    describe('listMaterializedViews()', () => {
+      it('should list all materialized views in schema', async () => {
+        mockPg.mockQueryResult({
+          rows: [
+            { viewname: 'node_stats', definition: 'SELECT ...' },
+            { viewname: 'edge_stats', definition: 'SELECT ...' }
+          ],
+          rowCount: 2
+        });
+
+        const views = await adapter.listMaterializedViews();
+
+        expect(views).toHaveLength(2);
+        expect(views[0].name).toBe('node_stats');
+        expect(mockPg.wasQueryExecuted('pg_matviews')).toBe(true);
+      });
+
+      it('should return empty array when no views exist', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const views = await adapter.listMaterializedViews();
+
+        expect(views).toHaveLength(0);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // PHASE 3: SEMANTIC STORAGE - SCHEMA MANAGEMENT
+  // ==========================================================================
+
+  describe('Schema Management', () => {
+    describe('defineSchema()', () => {
+      it('should store schema definition', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          // Handle CREATE TABLE query
+          if (sql.includes('CREATE TABLE')) {
+            return { rows: [], rowCount: 0 };
+          }
+          // Handle INSERT query
+          if (sql.includes('INSERT')) {
+            expect(params).toContain('users');
+            return { rows: [], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.defineSchema('users', {
+          id: { type: 'uuid', primaryKey: true },
+          name: { type: 'text', nullable: false },
+          email: { type: 'text', unique: true },
+          created_at: { type: 'timestamp', default: 'now()' }
+        });
+
+        expect(mockPg.wasQueryExecuted('INSERT')).toBe(true);
+      });
+
+      it('should update existing schema definition', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Handle CREATE TABLE query
+          if (sql.includes('CREATE TABLE')) {
+            return { rows: [], rowCount: 0 };
+          }
+          // Handle INSERT query
+          if (sql.includes('INSERT')) {
+            return { rows: [], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.defineSchema('users', { id: { type: 'uuid' } });
+
+        expect(mockPg.wasQueryExecuted('ON CONFLICT')).toBe(true);
+      });
+    });
+
+    describe('getSchema()', () => {
+      it('should retrieve schema definition', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Handle EXISTS check
+          if (sql.includes('information_schema.tables')) {
+            return { rows: [{ exists: true }], rowCount: 1 };
+          }
+          // Handle schema SELECT
+          if (sql.includes('schema_definition')) {
+            return {
+              rows: [{
+                schema_definition: {
+                  id: { type: 'uuid', primaryKey: true },
+                  name: { type: 'text', nullable: false }
+                }
+              }],
+              rowCount: 1
+            };
+          }
+          return { rows: [], rowCount: 0 };
+        });
+
+        const schema = await adapter.getSchema('users');
+
+        expect(schema).toBeDefined();
+        expect(schema?.id.type).toBe('uuid');
+        expect(schema?.name.type).toBe('text');
+      });
+
+      it('should return null for non-existent table', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Handle EXISTS check - return false
+          if (sql.includes('information_schema.tables')) {
+            return { rows: [{ exists: false }], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        });
+
+        const schema = await adapter.getSchema('nonexistent');
+
+        expect(schema).toBeNull();
+      });
+    });
+  });
 });
