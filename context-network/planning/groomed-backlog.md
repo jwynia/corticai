@@ -1,19 +1,18 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-11-04 (pgvector backend + semantic architecture integration)
+**Last Groomed**: 2025-11-05 (Reality check + comprehensive grooming)
 **Last Synced**: 2025-11-05 (Sync score: 6/10 - Good alignment, completion records updated)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
-**Test Status**: ✅ 436/436 tests passing (100% pass rate, all flaky tests FIXED!)
-**Current Phase**: Phase 4 - Domain Adapters + Storage Backend Expansion
+**Test Status**: ✅ 436/436 tests passing (100% pass rate, ALL flaky tests FIXED!)
+**Current Phase**: Phase 4 - Semantic Processing + Storage Backend Expansion
 **Foundation**: ✅ Phases 1-3 complete + Hexagonal architecture
 **Architecture**: ✅ Hexagonal architecture, 100% unit testable business logic
 **Lens System**: ✅ DebugLens + DocumentationLens proving intelligent filtering
 **Security**: ✅ Parameterized queries, SQL injection protection
 **Logging**: ✅ Comprehensive logging with PII sanitization
-**Major Refactorings**: ✅ ALL COMPLETE - Kuzu (29%), DuckDB (15.4%), TypeScript analyzer (58%)
-**Recent Work**: ✅ pgvector backend expansion (111 test cases), TSASTParser optimization (36% faster)
-**New Architecture**: ✅ Semantic processing architecture roadmap complete (5 phases, 30-40 hours)
+**Recent Work**: ✅ TSASTParser optimization (36% faster), Semantic architecture roadmap (5 phases, 30-40 hours)
+**New Architecture**: ✅ Semantic processing architecture complete (7 docs, implementation roadmap ready)
 
 ---
 
@@ -35,13 +34,12 @@
 **Completion**: [2025-11-04-task-004-completion.md](../tasks/semantic-architecture-integration/2025-11-04-task-004-completion.md)
 **Roadmap**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
 
-### ~~3. pgvector Storage Backend - Phases 1-2+~~ ✅ SUBSTANTIAL PROGRESS (2025-11-03 to 2025-11-05)
-**Task**: FEAT-PGVECTOR-001 (Phases 1-2+)
-**Status**: 🔄 IN PROGRESS - Expanded beyond documented Phases 1-2
-**Implementation**: PostgreSQL+pgvector as complete storage backend (Primary + Semantic roles)
-**Tests**: 111 test cases in pgvector test file (325 lines of tests added), all passing
-**Progress**: Phases 1-2 complete + significant Phase 3+ work (SemanticStorage methods expanding)
-**Evidence**: Git commit `2fb6ae1` shows +419 lines implementation, +325 lines tests
+### ~~3. pgvector Storage Backend - Initial Implementation~~ ✅ SUBSTANTIAL PROGRESS (2025-11-03 to 2025-11-05)
+**Task**: FEAT-PGVECTOR-001
+**Status**: 🔄 IN PROGRESS - Foundation complete, stub methods remain
+**Implementation**: PostgreSQL+pgvector as dual-role storage backend (Primary + Semantic)
+**Tests**: 91 test cases passing across 3 test files
+**Progress**: Core graph operations complete, SemanticStorage and VectorOperations have stub methods
 
 **Achievement**:
 - PostgreSQL adapter implements both PrimaryStorage and SemanticStorage interfaces
@@ -51,57 +49,146 @@
 - Security hardening with input validation and parameterized queries
 
 **Files Created**:
-- `PgVectorStorageAdapter.ts` (900+ lines with comprehensive graph operations)
-- `PgVectorSchemaManager.ts` (303 lines for table/index management)
+- `PgVectorStorageAdapter.ts` (1704 lines with comprehensive graph operations + stubs)
+- `PgVectorSchemaManager.ts` (320 lines for table/index management)
 - `IPostgreSQLClient.ts` + `PostgreSQLClient.ts` (dependency injection)
 - `MockPostgreSQLClient.ts` (unit testing without real database)
 - Comprehensive test suite (91 tests across 3 test files)
 
-**Related Tasks Completed**:
-- IMPROVE-PGVECTOR-001: SQL injection prevention (55 security tests)
-- IMPROVE-PGVECTOR-002: N+1 query optimization (50x performance improvement)
-- IMPROVE-PGVECTOR-003: Code quality improvements (all addressed)
+**What's Left**: 14 TODO stub methods (SemanticStorage: 7, VectorOperations: 3, PrimaryStorage: 4)
 
 ---
 
 ## 🚀 Ready for Implementation
 
-### 1. Complete pgvector Backend - Phase 3 (SemanticStorage)
-**One-liner**: Implement remaining SemanticStorage methods (materialized views, full-text search, schema management)
+### 1. Complete pgvector Backend - SemanticStorage Methods (Phase 3)
+**One-liner**: Implement 7 SemanticStorage stub methods (materialized views, full-text search, aggregations, schema management)
 **Complexity**: Medium
-**Priority**: MEDIUM
+**Priority**: HIGH
 **Effort**: 4-6 hours
 
 <details>
 <summary>Implementation Details</summary>
 
-**Context**: Phases 1-2 complete (Basic storage + PrimaryStorage). Phase 3 adds SemanticStorage capabilities.
+**Context**: pgvector backend has 1704 lines with 14 TODO stub methods. SemanticStorage methods are the largest gap.
 
-**Phase 3 Scope**:
-- Materialized views support (5 stub methods)
-- Full-text search with PostgreSQL FTS
-- Schema management (defineSchema, getSchema)
-- Analytics features (CTEs, window functions)
+**Current State** (`PgVectorStorageAdapter.ts`):
+- Line 1066: `executeSemanticQuery()` - TODO
+- Line 1072: `executeSql()` - TODO
+- Line 1083: `aggregate()` - TODO
+- Line 1094: `groupBy()` - TODO
+- Line 1422: `createMaterializedView()` - TODO (stub exists)
+- Line 1432: `refreshMaterializedView()` - TODO (stub exists)
+- Line 1442: `dropMaterializedView()` - TODO (stub exists)
 
 **Acceptance Criteria**:
-- [ ] Implement `createMaterializedView()` with refresh strategies
-- [ ] Implement `search()` with PostgreSQL full-text search (tsvector/tsquery)
-- [ ] Implement `createSearchIndex()` for FTS optimization
-- [ ] Implement schema management methods
-- [ ] Add SemanticStorage contract tests
-- [ ] Performance benchmarks vs DuckDB baseline
-- [ ] Zero test regressions
+- [ ] Implement `executeSemanticQuery()` with SemanticQuery → SQL conversion
+- [ ] Implement `executeSql()` with security validation (parameterized queries only)
+- [ ] Implement `aggregate()` with SUM/AVG/MIN/MAX/COUNT operators
+- [ ] Implement `groupBy()` with GROUP BY clause generation
+- [ ] Implement materialized view CRUD (create, refresh, drop)
+- [ ] Add SemanticStorage contract tests (30+ tests)
+- [ ] Zero test regressions (436/436 tests continue passing)
+- [ ] Security: SQL injection protection for all methods
 
-**Pattern**: Follow existing TDD approach from Phase 1-2
+**Pattern**: Follow existing TDD approach from graph operations implementation
 
 **Files**:
-- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 457-597 stub methods)
+- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 1066-1442)
+- Create: `app/tests/unit/storage/PgVectorSemanticStorage.test.ts` (new test file)
+
+**Dependencies**: None - can start immediately
+
+**Performance Targets**:
+- Aggregations: <100ms for 10K records
+- Materialized views: <5s for initial creation, <500ms for refresh
 
 </details>
 
 ---
 
-### 2. Implement Semantic Processing - Phase 1 (Foundation)
+### 2. Complete pgvector Backend - Vector Operations (Phase 4)
+**One-liner**: Implement 3 vector search stub methods (index creation, similarity search, embedding insertion)
+**Complexity**: Medium
+**Priority**: MEDIUM
+**Effort**: 3-4 hours
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Enable semantic similarity search using pgvector extension
+
+**Current State** (`PgVectorStorageAdapter.ts`):
+- Line 1467: `createVectorIndex()` - TODO
+- Line 1481: `vectorSearch()` - TODO
+- Line 1490: `insertWithEmbedding()` - TODO
+
+**Acceptance Criteria**:
+- [ ] Implement `createVectorIndex()` with IVFFLAT or HNSW index types
+- [ ] Implement `vectorSearch()` with cosine/euclidean/dot product distance metrics
+- [ ] Implement `insertWithEmbedding()` for bulk vector loading
+- [ ] Support configurable index parameters (ivfLists, hnswM, efConstruction)
+- [ ] Add vector operation tests (20+ tests)
+- [ ] Performance benchmarks for various index sizes
+- [ ] Documentation of embedding strategies
+
+**Pattern**: Follow pgvector extension best practices
+
+**Files**:
+- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 1467-1490)
+- Create: `app/tests/unit/storage/PgVectorVectorOps.test.ts` (new test file)
+
+**Dependencies**: Requires pgvector extension installed in PostgreSQL
+
+**Performance Targets**:
+- Vector search: <50ms for 10K vectors with IVFFLAT
+- Vector search: <20ms for 10K vectors with HNSW
+- Index creation: <30s for 100K vectors
+
+</details>
+
+---
+
+### 3. Complete pgvector Backend - Remaining PrimaryStorage Methods
+**One-liner**: Implement 4 PrimaryStorage stub methods (pattern matching, indexing, edge updates, batch operations)
+**Complexity**: Small
+**Priority**: MEDIUM
+**Effort**: 2-3 hours
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Complete PrimaryStorage interface implementation
+
+**Current State** (`PgVectorStorageAdapter.ts`):
+- Line 906: `matchPattern()` - TODO
+- Line 1027: `matchPattern()` (edge pattern) - TODO
+- Line 1033: `createIndex()` - TODO
+- Line 1039: `listIndexes()` - TODO
+- Line 1050: `updateEdge()` - TODO
+- Line 1056: `executeBatch()` (graph batch ops) - TODO
+
+**Acceptance Criteria**:
+- [ ] Implement pattern matching for nodes and edges
+- [ ] Implement index creation with BTREE/HASH/GIN types
+- [ ] Implement index listing/inspection
+- [ ] Implement edge property updates
+- [ ] Implement batch graph operations (multi-node/edge inserts)
+- [ ] Add PrimaryStorage completion tests (15+ tests)
+- [ ] Zero test regressions
+
+**Pattern**: Follow existing graph operations implementation
+
+**Files**:
+- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 906-1056)
+
+**Dependencies**: None
+
+</details>
+
+---
+
+### 4. Implement Semantic Processing - Phase 1 (Foundation)
 **One-liner**: Implement lifecycle metadata system and semantic block extraction (first phase of 5-phase roadmap)
 **Complexity**: Medium
 **Priority**: HIGH
@@ -113,9 +200,9 @@
 **Context**: First phase of semantic processing implementation roadmap created in TASK-004
 
 **Phase 1 Scope**:
-- Lifecycle metadata schema (current/deprecated/historical states)
-- Lifecycle detection logic (file analysis, supersession tracking)
-- Semantic block parser (::decision, ::outcome, ::quote markers)
+- Lifecycle metadata schema (current/stable/evolving/deprecated/historical/archived states)
+- Lifecycle detection logic (pattern-based: "deprecated", "superseded", etc.)
+- Semantic block parser (`::decision{}`, `::outcome{}`, `::quote{}` markers)
 - Lifecycle-aware lens for query filtering
 - Storage adapter integration (extend entity schema)
 - Migration script for existing documents
@@ -123,9 +210,9 @@
 **Acceptance Criteria**:
 - [ ] Lifecycle states tracked in entity metadata
 - [ ] Semantic blocks extracted and stored as typed nodes
-- [ ] LifecycleLens filters based on state
-- [ ] 95%+ test coverage for new components
-- [ ] Zero regressions in existing functionality
+- [ ] LifecycleLens filters based on lifecycle state
+- [ ] 95%+ test coverage for new components (30+ tests)
+- [ ] Zero regressions in existing functionality (436/436 tests continue passing)
 - [ ] Migration tested on sample context network documents
 
 **Deliverables**:
@@ -137,57 +224,23 @@
 - SEMANTIC-006: Migration script
 
 **Files to Create**:
-- `src/semantic/LifecycleManager.ts`
-- `src/semantic/SemanticBlockParser.ts`
-- `src/context/lenses/LifecycleLens.ts`
-- `src/semantic/migrations/AddLifecycleMetadata.ts`
+- `src/semantic/LifecycleManager.ts` (lifecycle state management)
+- `src/semantic/SemanticBlockParser.ts` (block extraction)
+- `src/context/lenses/LifecycleLens.ts` (lifecycle filtering)
+- `src/semantic/migrations/AddLifecycleMetadata.ts` (migration)
+- `tests/unit/semantic/` (test directory)
 
 **Roadmap**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
 
-</details>
-
----
-
-### 3. Complete pgvector Backend - Phase 4 (Vector Operations)
-**One-liner**: Implement vector search with pgvector extension (embeddings, similarity search, hybrid queries)
-**Complexity**: Medium
-**Priority**: MEDIUM
-**Effort**: 4-6 hours
-
-<details>
-<summary>Implementation Details</summary>
-
-**Context**: Enable semantic similarity search using pgvector extension
-
-**Phase 4 Scope**:
-- pgvector extension setup and initialization
-- Vector index creation (IVFFLAT or HNSW)
-- Similarity search with distance metrics (cosine, euclidean, dot product)
-- Embedding storage and retrieval
-- Hybrid search (vector + keyword + filters)
-
-**Acceptance Criteria**:
-- [ ] Implement `createVectorIndex()` with configurable index type
-- [ ] Implement `vectorSearch()` with distance metrics
-- [ ] Implement `insertWithEmbedding()` for bulk vector loading
-- [ ] Support auto-generated embeddings (optional OpenAI integration)
-- [ ] Hybrid search combining vector similarity + metadata filters
-- [ ] Performance benchmarks for various index sizes
-- [ ] Documentation of embedding strategies
-
-**Pattern**: Follow existing TDD approach with comprehensive tests
-
-**Files**:
-- Create `PgVectorVectorOperations.ts` (new module)
-- Update `PgVectorStorageAdapter.ts` (delegate to vector operations)
+**Dependencies**: None - can start immediately (storage interfaces already support metadata)
 
 </details>
 
 ---
 
-## ⏳ Ready Soon (Blocked)
+## ⏳ Ready Soon (Needs Decision)
 
-### 4. Add Connection Pooling for Database Adapters (PERF-001)
+### 5. Add Connection Pooling for Database Adapters (PERF-001)
 **One-liner**: Implement connection pooling to improve performance under load
 **Complexity**: Medium
 **Priority**: LOW (Deprioritized 2025-10-18)
@@ -224,8 +277,8 @@
 
 ## 🔧 Tech Debt & Refactoring
 
-### 5. Add Recursive Depth Limit to Prevent Stack Overflow
-**One-liner**: Implement configurable recursion depth limits in graph traversal
+### 6. Add Recursive Depth Limit to Prevent Stack Overflow (Kuzu)
+**One-liner**: Implement configurable recursion depth limits in Kuzu graph traversal
 **Complexity**: Trivial
 **Priority**: LOW
 **Effort**: 1-2 hours
@@ -250,7 +303,7 @@
 
 ---
 
-### 6. Optimize File Lookups in TypeScript Dependency Analyzer
+### 7. Optimize File Lookups in TypeScript Dependency Analyzer
 **One-liner**: Improve performance of file path resolution in dependency analysis
 **Complexity**: Small
 **Priority**: LOW
@@ -274,25 +327,13 @@
 
 ---
 
-### 7. Mock File System Operations in Tests
+### 8. Mock File System Operations in Tests
 **One-liner**: Replace real file system operations with mocks for better test isolation
 **Complexity**: Small
 **Priority**: LOW
 **Effort**: 3-4 hours
 
 **Benefit**: Faster tests, no environment dependencies, better CI/CD compatibility
-
----
-
-### 8. Improve Performance Test Robustness
-**One-liner**: Make timing-based tests less sensitive to machine performance
-**Complexity**: Trivial
-**Priority**: MEDIUM (Related to Task #1)
-**Effort**: 2 hours
-
-**Approach**: Use relative performance comparisons instead of absolute timing thresholds
-
-**Related**: Task #1 (TSASTParser performance test failure at 2389ms vs 2000ms threshold)
 
 ---
 
@@ -321,13 +362,12 @@
 ## 📊 Summary Statistics
 
 - **Total active tasks**: 10
-- **Ready for work**: 3 (pgvector Phase 3-4, Semantic Processing Phase 1)
+- **Ready for work**: 4 (pgvector completion tasks + Semantic Processing Phase 1)
 - **Blocked/Needs decision**: 1 (PERF-001)
-- **Tech debt items**: 4
+- **Tech debt items**: 3
 - **Documentation tasks**: 2
-- **Completed since October start**: 22+ major tasks
-- **Completed since last groom (Nov 4)**: 2 major tasks (TASK-001, TASK-004) + pgvector expansion
-- **Completed since last sync (Nov 5)**: 2 major tasks + 4 substantial refactorings
+- **Completed since October start**: 23+ major tasks
+- **Completed since last groom (Nov 4)**: 2 major tasks (TASK-001, TASK-004) + pgvector foundation
 - **Test coverage**: 436/436 tests passing (100% pass rate, +20 net new tests since Nov 4)
 - **Build status**: ✅ PASSING (0 TypeScript errors)
 
@@ -335,24 +375,24 @@
 
 ## 🎯 Top 3 Immediate Priorities
 
-### 1. **Semantic Processing - Phase 1** (Task #2) ⭐ NEW PRIORITY
-- **Why**: Architecture roadmap complete, first implementation phase ready
+### 1. **Semantic Processing - Phase 1** (Task #4) ⭐ NEW TOP PRIORITY
+- **Why**: Architecture roadmap complete, implementation ready, enables core CorticAI differentiator
 - **Effort**: 4-6 hours
-- **Impact**: HIGH - enables lifecycle-aware context management (core CorticAI differentiator)
-- **Context**: 5-phase roadmap created (TASK-004), ready to implement
+- **Impact**: HIGH - enables lifecycle-aware context management
+- **Context**: 5-phase roadmap created (TASK-004), architectural foundation documented (7 docs)
 - **No blockers**: Start immediately
 
-### 2. **pgvector Backend - Phase 3** (Task #1)
-- **Why**: Foundation complete (Phases 1-2), Phase 3 partially started
+### 2. **pgvector Backend - SemanticStorage Methods** (Task #1)
+- **Why**: Largest gap in pgvector implementation (7 stub methods)
 - **Effort**: 4-6 hours
-- **Impact**: MEDIUM - completes SemanticStorage implementation
+- **Impact**: MEDIUM-HIGH - completes analytics capabilities
 - **Dependencies**: None - can start immediately
 
-### 3. **pgvector Backend - Phase 4** (Task #3)
-- **Why**: Completes vector search capabilities
-- **Effort**: 4-6 hours
-- **Impact**: MEDIUM - enables semantic similarity search
-- **Dependencies**: None (can be done in parallel with Phase 3)
+### 3. **pgvector Backend - Vector Operations** (Task #2)
+- **Why**: Enables semantic similarity search (core pgvector value)
+- **Effort**: 3-4 hours
+- **Impact**: MEDIUM - enables vector search capabilities
+- **Dependencies**: Requires pgvector extension (can verify installation first)
 
 ---
 
@@ -363,52 +403,49 @@
 - **Test Suite**: ✅ 436/436 tests passing (100% pass rate)
 - **Flaky Tests**: ✅ ALL FIXED (4 timeout failures resolved in TASK-001)
 - **Coverage**: ✅ 95%+ for core modules
-- **New Tests**: +111 test cases for pgvector backend
 - **Performance**: ✅ TSASTParser 36% faster (640ms → 411ms)
 - **Linting**: ✅ Clean
 
 ### Recent Velocity ⚡
-- **Tasks completed (Nov 4-5)**: 2 major tasks (TASK-001, TASK-004) + pgvector expansion + 4 refactorings
-- **Tasks completed (November)**: 4+ major completions
-- **Tasks completed (October)**: 19 major completions
+- **Tasks completed (Nov 4-5)**: 2 major tasks (TASK-001, TASK-004) + pgvector foundation
+- **Tasks completed (November)**: 3+ major completions
+- **Tasks completed (October)**: 22 major completions
 - **Code quality**: Zero test regressions across all changes
 - **New capabilities (Nov 4-5)**:
   - 100% test pass rate achieved (all flaky tests fixed)
   - Semantic processing 5-phase roadmap (30-40 hours planned)
-  - pgvector backend expanded (111 test cases, +419 lines implementation)
+  - pgvector backend foundation (1704 lines, 91 tests, 14 TODOs remain)
   - TSASTParser performance optimized (36% faster)
-  - Azure storage provider refactored (339 lines)
 
 ### Documentation Quality ✅
-- **Completion records**: 22+ comprehensive records since October
-- **Planning sync**: 6/10 alignment (per 2025-11-05 sync report - good, minor gaps)
-- **Architecture docs**: Semantic processing architecture + implementation roadmap (Oct 28-29, Nov 4)
+- **Completion records**: 23+ comprehensive records since October
+- **Planning sync**: 6/10 alignment (per 2025-11-05 sync report)
+- **Architecture docs**: Semantic processing architecture complete (7 docs, Oct 28-29)
+- **Implementation roadmap**: Semantic processing 5-phase plan (TASK-004, Nov 4)
 - **Task tracking**: All major work documented with completion records
-- **Sync reports**: Regular cadence (Oct 29, Nov 5)
 
 ---
 
 ## 🔄 Process Notes
 
 ### Recent Wins 🏆
-1. **pgvector Backend Foundation**: Phases 1-2 complete with 91 comprehensive tests
-2. **TDD Excellence**: Full RED-GREEN-REFACTOR cycle for pgvector implementation
-3. **Security First**: 55 security tests covering SQL injection prevention
-4. **Performance Optimization**: N+1 query elimination (50x improvement)
-5. **Dependency Injection**: Pure unit tests without real database
-6. **Code Quality**: All non-null assertions replaced with type guards
+1. **Test Suite Stability**: 100% pass rate achieved (436/436 tests)
+2. **Semantic Architecture**: 7 comprehensive architecture documents + 5-phase implementation roadmap
+3. **pgvector Foundation**: 1704 lines with dual-role implementation (Primary + Semantic)
+4. **Performance Optimization**: TSASTParser 36% faster via lightweight diagnostics
+5. **Dependency Injection**: Pure unit tests without real database (91 tests passing)
 
 ### Patterns to Continue
 - ✅ Test-First Development for all new features
-- ✅ Security testing as first-class concern
-- ✅ Performance benchmarking before and after optimizations
+- ✅ Comprehensive architecture documentation before implementation
+- ✅ Reality-checked grooming (verify code state before planning)
+- ✅ Same-day completion records for major tasks
 - ✅ Dependency injection for testability
-- ✅ Document discoveries immediately
-- ✅ Extract helper modules when complexity increases
 
 ### Grooming Frequency
 - **Current cadence**: As needed (working well)
-- **Last groom**: 2025-11-04 (pgvector + semantic architecture)
+- **Last groom**: 2025-11-05 (reality check + comprehensive grooming)
+- **Previous groom**: 2025-11-04 (pgvector + semantic architecture)
 - **Next groom**: After 2+ task completions or major discoveries
 
 ---
@@ -421,32 +458,43 @@
 
 ### Technical Risk: LOW
 - **Foundation solid**: Phases 1-3 complete, well-tested
-- **New backend proven**: pgvector Phases 1-2 complete with comprehensive tests
-- **Quality high**: 99% test pass rate (4 flaky tests)
+- **Architecture documented**: 7 semantic processing docs + implementation roadmap
+- **Test coverage**: 100% pass rate (436/436 tests)
+- **Build health**: 0 TypeScript errors
 
 ### Process Risk: LOW
-- **Sync excellent**: 9/10 alignment
-- **Documentation**: Same-day completion records for pgvector
-- **Test coverage**: 91 new tests for pgvector backend
+- **Sync status**: 6/10 alignment (good)
+- **Documentation**: Comprehensive completion records
+- **Quality**: Zero test regressions pattern established
 
 ---
 
 ## 📅 Next Steps
 
-### This Week (2025-11-04 to 2025-11-08)
-1. Fix 4 flaky async tests in TSASTParser (Task #1) - 1-2 hours
-2. Review semantic processing architecture (Task #4) - 2-3 hours
-3. Begin pgvector Phase 3 (SemanticStorage) if time allows - 4-6 hours
+### This Week (2025-11-05 to 2025-11-08)
+**Option A: Semantic Processing Focus**
+1. Implement Semantic Processing Phase 1 (Task #4) - 4-6 hours
+2. Begin pgvector SemanticStorage methods (Task #1) - 2-3 hours partial
+
+**Option B: pgvector Completion Focus**
+1. Complete pgvector SemanticStorage methods (Task #1) - 4-6 hours
+2. Complete pgvector Vector operations (Task #2) - 3-4 hours
+3. Complete pgvector PrimaryStorage stubs (Task #3) - 2-3 hours
+
+**Recommendation**: Option A - prioritize Semantic Processing Phase 1
+- Architecture is fresh (completed Nov 4)
+- Enables core CorticAI differentiator (lifecycle-aware context)
+- pgvector can follow (foundation is solid)
 
 ### Next Sprint (2025-11-08+)
-1. Complete pgvector Phase 3 (SemanticStorage methods)
-2. Complete pgvector Phase 4 (Vector operations)
-3. Implement first semantic processing feature from architecture review
+1. Complete remaining pgvector stub methods (Tasks #1-3)
+2. Implement Semantic Processing Phase 2 (Q&A generation)
+3. Validate semantic processing with real context network data
 
 ### Strategic Planning
-- Integrate semantic processing architecture into implementation roadmap
-- Define success criteria for Phase 4 domain adapter expansion
-- Plan third/fourth domain adapters (CodeDomainAdapter? MediaAdapter?)
+- Continue semantic processing phases (2-5) per implementation roadmap
+- Evaluate third storage backend (SQLite for local/embedded use?)
+- Plan additional domain adapters based on semantic processing capabilities
 
 ---
 
@@ -454,11 +502,11 @@
 
 ✅ **Task Clarity**: All tasks have acceptance criteria
 ✅ **Dependencies**: Clearly mapped, no cycles
-✅ **Reality Aligned**: Verified with actual code inspection and test runs (2025-11-04)
+✅ **Reality Aligned**: Verified with actual code inspection and test runs (2025-11-05)
 ✅ **Effort Estimated**: All actionable tasks sized
-✅ **Priority Clear**: Top 3 priorities identified
+✅ **Priority Clear**: Top 3 priorities identified with rationale
 ✅ **First Steps**: Implementation starting points defined
-✅ **Completion Tracking**: 20+ tasks archived with full documentation
+✅ **Completion Tracking**: 23+ tasks archived with full documentation
 
 ---
 
@@ -470,42 +518,46 @@
 - [roadmap.md](./roadmap.md) - Strategic phases
 - [backlog.md](./backlog.md) - Phase-by-phase technical backlog
 - [sprint-next.md](./sprint-next.md) - Next sprint plan
+- [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md) - 5-phase implementation roadmap
 
-**Recent Architecture**:
+**Architecture**:
 - [architecture/semantic-processing/index.md](../architecture/semantic-processing/index.md) - Semantic processing architecture (7 docs)
 - [decisions/adr-semantic-operations-placement.md](../decisions/adr-semantic-operations-placement.md) - Where semantic ops should occur
 
 **Task Sources Analyzed**:
-- `/context-network/tasks/features/pgvector-storage-backend.md` - Active implementation
-- `/context-network/tasks/improvements/` - pgvector improvements (all complete)
-- `/context-network/tasks/completed/` - 20+ completed tasks (Oct-Nov 2025)
+- `/context-network/planning/groomed-backlog.md` - Previous groomed backlog (2025-11-04)
+- `/context-network/planning/semantic-processing-implementation/README.md` - Implementation roadmap
+- `/context-network/tasks/completed/` - 23+ completed tasks (Oct-Nov 2025)
+- Actual codebase: `PgVectorStorageAdapter.ts` (1704 lines, 14 TODOs)
 
 **Grooming Process**:
 1. ✅ Ran groom-scan.sh for quick inventory
-2. ✅ Analyzed actual code implementation (pgvector 900+ lines with 91 tests)
-3. ✅ Cross-referenced with completion records (REFACTOR-004 Phase 2 complete Nov 1)
-4. ✅ Validated against recent test runs (416/420 passing, 99% pass rate)
-5. ✅ Reviewed recent commits (pgvector improvements, semantic architecture)
-6. ✅ Enhanced tasks with implementation details
-7. ✅ Prioritized by value and effort
+2. ✅ Analyzed actual code implementation (pgvector 1704 lines with 14 TODOs)
+3. ✅ Verified test status (436/436 passing, 100% pass rate)
+4. ✅ Reviewed semantic processing architecture (7 docs, 5-phase roadmap)
+5. ✅ Reviewed recent commits and completion records (TASK-001, TASK-004)
+6. ✅ Cross-referenced with previous grooming (2025-11-04)
+7. ✅ Enhanced tasks with implementation details and file references
+8. ✅ Prioritized by strategic value and dependencies
 
-**Key Findings** (2025-11-04 Groom):
-- **pgvector backend Phases 1-2 complete** - 91 comprehensive tests, dual-role architecture proven
-- **Semantic processing architecture documented** - 7 docs defining CorticAI's approach (Oct 28-29)
-- **Test suite health excellent** - 99% pass rate (416/420), 4 flaky async tests to fix
-- **Zero test regressions** - All new pgvector features maintain existing functionality
-- **Security hardening** - 55 security tests covering SQL injection prevention
-- **Performance optimization** - N+1 query elimination (50x improvement)
-- **Foundation extremely solid** - Ready for Phase 3-4 pgvector + semantic feature implementation
+**Key Findings** (2025-11-05 Groom):
+- **pgvector backend foundation complete** - 1704 lines, 91 tests, 14 TODO stub methods remain
+- **Semantic processing architecture documented** - 7 docs + 5-phase implementation roadmap (30-40 hours)
+- **Test suite health excellent** - 100% pass rate (436/436), all flaky tests fixed
+- **Zero test regressions** - All new work maintains existing functionality
+- **Build health perfect** - 0 TypeScript errors
+- **Foundation extremely solid** - Ready for Phase 4 (semantic processing + storage completion)
 
 ---
 
 ## Metadata
-- **Generated**: 2025-11-04
-- **Grooming Type**: Comprehensive - pgvector backend + semantic architecture integration
-- **Previous Grooming**: 2025-10-18
+- **Generated**: 2025-11-05
+- **Grooming Type**: Comprehensive - Reality check + task classification
+- **Previous Grooming**: 2025-11-04 (pgvector + semantic architecture)
 - **Task Files Analyzed**: 90+ active task files
-- **Completion Records**: 20+ since October began
-- **Project Phase**: Phase 4 - Domain Adapters + Storage Backend Expansion
-- **Confidence**: HIGH - Clear path forward
+- **Completion Records**: 23+ since October began
+- **Code Analysis**: PgVectorStorageAdapter.ts (1704 lines, 14 TODOs identified)
+- **Test Verification**: 436/436 tests passing (100% pass rate)
+- **Project Phase**: Phase 4 - Semantic Processing + Storage Backend Expansion
+- **Confidence**: VERY HIGH - Clear implementation path, solid foundation
 - **Next Review**: 2025-11-08 or after 2+ completions
