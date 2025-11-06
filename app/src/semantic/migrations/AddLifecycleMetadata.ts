@@ -272,8 +272,19 @@ export class LifecycleMetadataMigration {
    */
   private async scanDirectory(dirPath: string): Promise<string[]> {
     const files: string[] = []
+    const MAX_DEPTH = 50
 
-    async function scan(dir: string, excludeDirs: string[]): Promise<void> {
+    async function scan(
+      dir: string,
+      excludeDirs: string[],
+      depth = 0
+    ): Promise<void> {
+      // Prevent stack overflow from deeply nested or circular directories
+      if (depth > MAX_DEPTH) {
+        console.warn(`Skipping directory beyond max depth (${MAX_DEPTH}): ${dir}`)
+        return
+      }
+
       const entries = await fs.readdir(dir, { withFileTypes: true })
 
       for (const entry of entries) {
@@ -285,7 +296,7 @@ export class LifecycleMetadataMigration {
             continue
           }
 
-          await scan(fullPath, excludeDirs)
+          await scan(fullPath, excludeDirs, depth + 1)
         } else if (entry.isFile() && entry.name.endsWith('.md')) {
           files.push(fullPath)
         }
@@ -302,7 +313,85 @@ export class LifecycleMetadataMigration {
    */
   private getEntityIdFromPath(filePath: string): string {
     const relativePath = path.relative(this.config.rootPath, filePath)
+
+    // Detect path traversal attempts
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      throw new Error(
+        `Security: File path is outside root directory: ${filePath}`
+      )
+    }
+
     return relativePath.replace(/\\/g, '/').replace(/\.md$/, '')
+  }
+
+  /**
+   * Check if content already has YAML frontmatter
+   */
+  private hasFrontmatter(content: string): boolean {
+    return content.trimStart().startsWith('---')
+  }
+
+  /**
+   * Merge lifecycle metadata with existing frontmatter
+   */
+  private mergeFrontmatter(content: string, lifecycle: any): string {
+    // Find the end of existing frontmatter
+    const lines = content.split('\n')
+    let frontmatterEnd = -1
+
+    if (lines[0].trim() === '---') {
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '---') {
+          frontmatterEnd = i
+          break
+        }
+      }
+    }
+
+    if (frontmatterEnd === -1) {
+      // Malformed frontmatter, treat as no frontmatter
+      return content
+    }
+
+    // Extract existing frontmatter lines (excluding --- markers)
+    const existingLines = lines.slice(1, frontmatterEnd)
+
+    // Filter out existing lifecycle keys to avoid duplication
+    const filteredLines = existingLines.filter(
+      line =>
+        !line.startsWith('lifecycle:') &&
+        !line.startsWith('lifecycle_confidence:') &&
+        !line.startsWith('lifecycle_manual:') &&
+        !line.startsWith('superseded_by:') &&
+        !line.startsWith('lifecycle_reason:')
+    )
+
+    // Add new lifecycle metadata
+    const newLines = ['---', ...filteredLines]
+
+    if (lifecycle) {
+      newLines.push(`lifecycle: ${lifecycle.state}`)
+      if (lifecycle.confidence) {
+        newLines.push(`lifecycle_confidence: ${lifecycle.confidence}`)
+      }
+      if (lifecycle.manual) {
+        newLines.push('lifecycle_manual: true')
+      }
+      if (lifecycle.supersededBy) {
+        const escaped = this.escapeYamlString(lifecycle.supersededBy)
+        newLines.push(`superseded_by: "${escaped}"`)
+      }
+      if (lifecycle.reason) {
+        const escaped = this.escapeYamlString(lifecycle.reason)
+        newLines.push(`lifecycle_reason: "${escaped}"`)
+      }
+    }
+
+    newLines.push('---')
+
+    // Reconstruct the file
+    const remainingContent = lines.slice(frontmatterEnd + 1).join('\n')
+    return newLines.join('\n') + '\n' + remainingContent
   }
 
   /**
@@ -317,12 +406,31 @@ export class LifecycleMetadataMigration {
     // 2. Keep semantic blocks in-place (they're part of content)
     // 3. Optionally add metadata comments
 
-    const frontmatter = this.generateFrontmatter(entity)
     const content = entity.content || ''
 
-    const fullContent = frontmatter ? `${frontmatter}\n\n${content}` : content
+    // Check if file already has frontmatter
+    if (this.hasFrontmatter(content)) {
+      // Merge with existing frontmatter
+      const merged = this.mergeFrontmatter(content, entity.metadata?.lifecycle)
+      await fs.writeFile(filePath, merged, 'utf-8')
+    } else {
+      // Add new frontmatter
+      const frontmatter = this.generateFrontmatter(entity)
+      const fullContent = frontmatter ? `${frontmatter}\n\n${content}` : content
+      await fs.writeFile(filePath, fullContent, 'utf-8')
+    }
+  }
 
-    await fs.writeFile(filePath, fullContent, 'utf-8')
+  /**
+   * Escape YAML special characters to prevent injection
+   */
+  private escapeYamlString(value: string): string {
+    return value
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/"/g, '\\"')     // Escape double quotes
+      .replace(/\n/g, '\\n')    // Escape newlines
+      .replace(/\r/g, '\\r')    // Escape carriage returns
+      .replace(/\t/g, '\\t')    // Escape tabs
   }
 
   /**
@@ -346,11 +454,13 @@ export class LifecycleMetadataMigration {
     }
 
     if (supersededBy) {
-      lines.push(`superseded_by: ${supersededBy}`)
+      const escaped = this.escapeYamlString(supersededBy)
+      lines.push(`superseded_by: "${escaped}"`)
     }
 
     if (reason) {
-      lines.push(`lifecycle_reason: "${reason}"`)
+      const escaped = this.escapeYamlString(reason)
+      lines.push(`lifecycle_reason: "${escaped}"`)
     }
 
     lines.push('---')

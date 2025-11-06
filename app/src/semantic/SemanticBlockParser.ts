@@ -51,7 +51,7 @@ export interface ParseError {
  */
 const BLOCK_START_PATTERN = /^::([a-z-]+)\s*\{([^}]*)\}\s*$/
 const BLOCK_END_PATTERN = /^::\s*$/
-const ATTRIBUTE_PATTERN = /(\w+)=["']([^"']*)["']/g
+// ATTRIBUTE_PATTERN moved into parseAttributes() to avoid global flag lastIndex issues
 
 /**
  * Valid semantic block types
@@ -77,6 +77,12 @@ const VALID_IMPORTANCE_LEVELS: Set<string> = new Set([
 ])
 
 /**
+ * Maximum size for a single semantic block (in characters)
+ * Prevents memory exhaustion from unclosed blocks in large files
+ */
+const MAX_BLOCK_SIZE = 100000 // 100KB
+
+/**
  * Generate a unique ID for a block
  */
 function generateBlockId(type: string, parentId: string, index: number): string {
@@ -92,8 +98,11 @@ function generateBlockId(type: string, parentId: string, index: number): string 
 function parseAttributes(attributeString: string): Record<string, string> {
   const attributes: Record<string, string> = {}
 
+  // Create new regex instance to avoid lastIndex issues with global flag
+  const pattern = /(\w+)=["']([^"']*)["']/g
+
   let match: RegExpExecArray | null
-  while ((match = ATTRIBUTE_PATTERN.exec(attributeString)) !== null) {
+  while ((match = pattern.exec(attributeString)) !== null) {
     const [, key, value] = match
     attributes[key] = value
   }
@@ -135,6 +144,7 @@ export class SemanticBlockParser {
     const lines = content.split('\n')
     let currentBlock: Partial<SemanticBlock> | null = null
     let blockContent: string[] = []
+    let blockContentSize = 0
     let blockStartLine = 0
     let blockIndex = 0
 
@@ -179,6 +189,7 @@ export class SemanticBlockParser {
 
         blockStartLine = lineNumber
         blockContent = []
+        blockContentSize = 0
         continue
       }
 
@@ -227,12 +238,28 @@ export class SemanticBlockParser {
         // Reset state
         currentBlock = null
         blockContent = []
+        blockContentSize = 0
         continue
       }
 
       // Accumulate block content
       if (currentBlock) {
+        // Check block size limit to prevent memory exhaustion
+        const lineSize = line.length + 1 // +1 for newline
+        if (blockContentSize + lineSize > MAX_BLOCK_SIZE) {
+          errors.push({
+            message: `Semantic block exceeds maximum size (${MAX_BLOCK_SIZE} characters)`,
+            line: blockStartLine,
+          })
+          // Reset block state to prevent further accumulation
+          currentBlock = null
+          blockContent = []
+          blockContentSize = 0
+          continue
+        }
+
         blockContent.push(line)
+        blockContentSize += lineSize
       }
     }
 

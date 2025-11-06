@@ -19,7 +19,28 @@ import type {
   QueryContext,
   LensConfig,
 } from './types'
-import type { LifecycleState } from '../../semantic/types'
+import type { LifecycleState, LifecycleMetadata } from '../../semantic/types'
+
+/**
+ * Type guard to check if an object has lifecycle metadata
+ */
+interface HasLifecycleMetadata {
+  metadata?: {
+    lifecycle?: LifecycleMetadata
+  }
+  _lensMetadata?: any
+}
+
+/**
+ * Type guard function to check if a value has lifecycle metadata structure
+ */
+function hasLifecycleMetadata(value: unknown): value is HasLifecycleMetadata {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'metadata' in value
+  )
+}
 
 /**
  * Configuration for lifecycle lens
@@ -132,14 +153,11 @@ export class LifecycleLens extends BaseLens {
    */
   private filterResults<T>(results: T[]): T[] {
     return results.filter(result => {
-      if (typeof result !== 'object' || result === null) {
-        return true
+      if (!hasLifecycleMetadata(result)) {
+        return true // Include results without lifecycle metadata
       }
 
-      const resultObj = result as any
-      const lifecycleState = resultObj.metadata?.lifecycle?.state as
-        | LifecycleState
-        | undefined
+      const lifecycleState = result.metadata?.lifecycle?.state
 
       if (!lifecycleState) {
         return true // Include results without lifecycle metadata
@@ -188,20 +206,17 @@ export class LifecycleLens extends BaseLens {
    * Get relevance weight for a result
    */
   private getRelevanceWeight<T>(result: T): number {
-    if (typeof result !== 'object' || result === null) {
+    if (!hasLifecycleMetadata(result)) {
       return DEFAULT_STATE_WEIGHTS.stable
     }
 
-    const resultObj = result as any
-    const metadata = resultObj._lensMetadata?.lifecycle
+    const metadata = result._lensMetadata?.lifecycle
 
     if (metadata?.relevanceWeight !== undefined) {
       return metadata.relevanceWeight
     }
 
-    const lifecycleState = resultObj.metadata?.lifecycle?.state as
-      | LifecycleState
-      | undefined
+    const lifecycleState = result.metadata?.lifecycle?.state
 
     if (!lifecycleState) {
       return DEFAULT_STATE_WEIGHTS.stable
@@ -217,23 +232,19 @@ export class LifecycleLens extends BaseLens {
    * Process single result to add lifecycle metadata
    */
   protected processResult<T>(result: T, context: QueryContext): T {
-    if (typeof result !== 'object' || result === null) {
+    if (!hasLifecycleMetadata(result)) {
       return result
     }
 
-    const resultObj = result as any
-
     // Extract lifecycle state
-    const lifecycleState = resultObj.metadata?.lifecycle?.state as
-      | LifecycleState
-      | undefined
+    const lifecycleState = result.metadata?.lifecycle?.state
 
     if (!lifecycleState) {
       // No lifecycle metadata - treat as stable
       return {
         ...result,
         _lensMetadata: {
-          ...resultObj._lensMetadata,
+          ...result._lensMetadata,
           lifecycle: {
             state: 'stable',
             relevanceWeight: DEFAULT_STATE_WEIGHTS.stable,
@@ -252,13 +263,13 @@ export class LifecycleLens extends BaseLens {
     return {
       ...result,
       _lensMetadata: {
-        ...resultObj._lensMetadata,
+        ...result._lensMetadata,
         lifecycle: {
           state: lifecycleState,
           relevanceWeight,
           source: 'explicit',
-          confidence: resultObj.metadata.lifecycle.confidence,
-          manual: resultObj.metadata.lifecycle.manual,
+          confidence: result.metadata?.lifecycle?.confidence,
+          manual: result.metadata?.lifecycle?.manual,
         },
       },
     }

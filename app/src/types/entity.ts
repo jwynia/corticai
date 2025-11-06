@@ -60,7 +60,8 @@ export interface EntityMetadata {
     manual?: boolean;
     supersededBy?: string;
     reason?: string;
-    stateChangedAt?: string | Date;
+    /** ISO 8601 timestamp string */
+    stateChangedAt?: string;
     stateChangedBy?: 'manual' | 'automatic' | 'migration';
   };
 

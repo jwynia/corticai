@@ -64,9 +64,10 @@ export interface LifecycleMetadata {
   reason?: string
 
   /**
-   * When the lifecycle state was last updated
+   * When the lifecycle state was last updated (ISO 8601 string)
+   * @example "2025-11-06T15:30:00.000Z"
    */
-  stateChangedAt?: Date | string
+  stateChangedAt?: string
 
   /**
    * Who/what changed the lifecycle state
@@ -162,8 +163,8 @@ export interface SemanticRelationship {
   /** How this relationship was detected */
   detectedBy: 'manual' | 'automatic' | 'inferred'
 
-  /** When this relationship was created */
-  createdAt?: Date | string
+  /** When this relationship was created (ISO 8601 string) */
+  createdAt?: string
 
   /** Additional context about the relationship */
   context?: string

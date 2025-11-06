@@ -98,17 +98,36 @@ export class SemanticEnrichmentProcessor {
    * @returns Enrichment result with enriched entity
    */
   enrich(entity: Entity): EnrichmentResult {
+    // Create consistent timestamp for this enrichment operation
+    const enrichmentTimestamp = new Date().toISOString()
+
     const warnings: string[] = []
     let hasLifecycle = false
     let hasSemanticBlocks = false
     let blockCount = 0
 
-    // Clone entity to avoid mutation
+    // Deep clone entity to avoid mutation
     const enrichedEntity: Entity = {
       ...entity,
-      metadata: {
+      metadata: entity.metadata ? {
         ...entity.metadata,
-      },
+        // Deep clone nested arrays and objects
+        blocks: entity.metadata.blocks?.map(block => ({
+          ...block,
+          attributes: block.attributes ? { ...block.attributes } : undefined,
+          location: block.location ? [...block.location] : undefined,
+        })),
+        lifecycle: entity.metadata.lifecycle ? {
+          ...entity.metadata.lifecycle,
+        } : undefined,
+        topics: entity.metadata.topics ? [...entity.metadata.topics] : undefined,
+        technologies: entity.metadata.technologies ? [...entity.metadata.technologies] : undefined,
+        participants: entity.metadata.participants ? [...entity.metadata.participants] : undefined,
+      } : undefined,
+      relationships: entity.relationships?.map(rel => ({
+        ...rel,
+        metadata: rel.metadata ? { ...rel.metadata } : undefined,
+      })),
     }
 
     // Extract semantic blocks if enabled and content exists
@@ -116,6 +135,9 @@ export class SemanticEnrichmentProcessor {
       const parseResult = this.blockParser.parse(entity.content, entity.id)
 
       if (parseResult.blocks.length > 0) {
+        // Note: We intentionally omit parentId when storing blocks in entity metadata
+        // because they're already contained within the entity. The parentId is only
+        // needed when blocks are extracted/returned independently (see extractBlocks()).
         enrichedEntity.metadata!.blocks = parseResult.blocks.map(block => ({
           id: block.id,
           type: block.type,
@@ -150,7 +172,7 @@ export class SemanticEnrichmentProcessor {
           confidence: detectionResult.confidence,
           manual: false, // Automatic detection
           supersededBy: detectionResult.supersededBy,
-          stateChangedAt: new Date().toISOString(),
+          stateChangedAt: enrichmentTimestamp,
           stateChangedBy: 'automatic',
         }
 
@@ -171,7 +193,7 @@ export class SemanticEnrichmentProcessor {
           state: this.config.defaultLifecycleState,
           confidence: 'low',
           manual: false,
-          stateChangedAt: new Date().toISOString(),
+          stateChangedAt: enrichmentTimestamp,
           stateChangedBy: 'automatic',
         }
 

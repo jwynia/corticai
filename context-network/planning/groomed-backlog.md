@@ -337,9 +337,253 @@
 
 ---
 
+### 9. Add Config Validation to LifecycleDetector
+**One-liner**: Validate LifecycleDetectorConfig in constructor (invalid patterns, empty arrays, etc.)
+**Complexity**: Trivial
+**Priority**: LOW
+**Effort**: 1 hour
+**Source**: Code review MINOR issue #1 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: LifecycleDetector constructor accepts config but doesn't validate it
+
+**Acceptance Criteria**:
+- [ ] Validate pattern arrays are not empty
+- [ ] Validate regex patterns compile successfully
+- [ ] Validate confidence thresholds are in valid range
+- [ ] Throw clear errors with helpful messages
+- [ ] Add tests for invalid config scenarios
+
+**Files**:
+- `app/src/semantic/LifecycleDetector.ts`
+- `app/tests/unit/semantic/LifecycleDetector.test.ts`
+
+</details>
+
+---
+
+### 10. Make Default Lifecycle State Configurable
+**One-liner**: Remove hard-coded 'stable' default and make it a configuration option
+**Complexity**: Trivial
+**Priority**: LOW
+**Effort**: 30 minutes
+**Source**: Code review MINOR issue #2 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Currently 'stable' is hard-coded as fallback lifecycle state
+
+**Acceptance Criteria**:
+- [ ] Add `defaultLifecycleState` to configuration
+- [ ] Update all hard-coded 'stable' fallbacks
+- [ ] Document the default value clearly
+- [ ] Add tests for custom default state
+
+**Files**:
+- `app/src/semantic/SemanticEnrichmentProcessor.ts`
+- `app/src/context/lenses/LifecycleLens.ts`
+
+**Note**: Partially addressed in SemanticEnrichmentProcessor, but needs consistency across all components
+
+</details>
+
+---
+
+### 11. Extract Magic Numbers to Named Constants
+**One-liner**: Replace magic confidence thresholds with named constants
+**Complexity**: Trivial
+**Priority**: LOW
+**Effort**: 30 minutes
+**Source**: Code review MINOR issue #3 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Confidence scoring uses magic numbers (0.8, 0.6, etc.)
+
+**Acceptance Criteria**:
+- [ ] Define named constants for confidence thresholds
+- [ ] Add explanatory comments for why these values were chosen
+- [ ] Make thresholds configurable if appropriate
+- [ ] Update documentation
+
+**Files**:
+- `app/src/semantic/LifecycleDetector.ts`
+
+**Examples**:
+```typescript
+const HIGH_CONFIDENCE_THRESHOLD = 0.8  // Multiple strong signals
+const MEDIUM_CONFIDENCE_THRESHOLD = 0.6  // Single strong or multiple weak signals
+```
+
+</details>
+
+---
+
+### 12. Standardize Error Handling in Semantic Processing
+**One-liner**: Make error handling consistent (decide when to throw vs. warn)
+**Complexity**: Small
+**Priority**: LOW
+**Effort**: 2 hours
+**Source**: Code review MINOR issue #4 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Some components throw errors, others collect warnings - inconsistent
+
+**Acceptance Criteria**:
+- [ ] Define error handling policy (when to throw vs. warn)
+- [ ] Document the policy clearly
+- [ ] Make all components follow the policy
+- [ ] Add tests for error scenarios
+- [ ] Ensure error messages are actionable
+
+**Files**:
+- `app/src/semantic/LifecycleDetector.ts`
+- `app/src/semantic/SemanticBlockParser.ts`
+- `app/src/semantic/SemanticEnrichmentProcessor.ts`
+
+**Recommended Policy**:
+- **Throw**: Invalid configuration, programmer errors, unrecoverable failures
+- **Warn**: Parse errors, low confidence detections, recoverable issues
+
+</details>
+
+---
+
+### 13. Add Input Validation to Semantic Processing Methods
+**One-liner**: Validate inputs (empty strings, null values, etc.) at method boundaries
+**Complexity**: Trivial
+**Priority**: LOW
+**Effort**: 1-2 hours
+**Source**: Code review MINOR issue #5 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Public methods don't validate inputs thoroughly
+
+**Acceptance Criteria**:
+- [ ] Validate non-empty content strings
+- [ ] Validate non-empty entity IDs
+- [ ] Validate required fields are present
+- [ ] Add guard clauses at method entry
+- [ ] Add tests for invalid inputs
+
+**Files**:
+- `app/src/semantic/LifecycleDetector.ts` (detect method)
+- `app/src/semantic/SemanticBlockParser.ts` (parse method)
+- `app/src/semantic/SemanticEnrichmentProcessor.ts` (enrich method)
+
+</details>
+
+---
+
+### 14. Document Lens Priority Scale and Guidelines
+**One-liner**: Create documentation explaining lens priority values (80, 60, 90) and when to use each
+**Complexity**: Trivial
+**Priority**: LOW
+**Effort**: 1 hour
+**Source**: Code review MINOR issue #6 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: Lens priorities (80, 60, 90) are unclear - what do they mean?
+
+**Acceptance Criteria**:
+- [ ] Document priority scale (0-100)
+- [ ] Explain what each range means
+- [ ] Provide guidelines for choosing priority values
+- [ ] List all current lenses with their priorities
+- [ ] Add priority constants to avoid magic numbers
+
+**Files**:
+- Create: `app/src/context/lenses/README.md`
+- `app/src/context/lenses/LifecycleLens.ts`
+
+**Recommended Scale**:
+- 90-100: Critical lenses (override everything)
+- 70-89: High priority (normal filtering)
+- 50-69: Medium priority (supplemental filtering)
+- 0-49: Low priority (suggestions only)
+
+</details>
+
+---
+
+### 15. Add Examples for Custom Lifecycle Pattern Configuration
+**One-liner**: Document how to add custom lifecycle detection patterns
+**Complexity**: Small
+**Priority**: LOW
+**Effort**: 1-2 hours
+**Source**: Code review MINOR issue #8 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: No examples showing how to configure custom patterns
+
+**Acceptance Criteria**:
+- [ ] Add cookbook-style examples
+- [ ] Show common use cases (domain-specific terms, etc.)
+- [ ] Document pattern syntax and matching behavior
+- [ ] Explain confidence scoring implications
+- [ ] Add integration tests using custom patterns
+
+**Files**:
+- `app/src/semantic/LifecycleDetector.ts` (JSDoc examples)
+- Create: `app/tests/integration/semantic/CustomPatternExamples.test.ts`
+
+**Example Use Cases**:
+- Detecting "WIP" or "TODO" as evolving
+- Detecting "LEGACY" as deprecated
+- Custom supersession patterns ("moved to X")
+
+</details>
+
+---
+
+### 16. Document Lens Activation Rule Types and Configuration
+**One-liner**: Create comprehensive documentation for lens activation rules
+**Complexity**: Small
+**Priority**: LOW
+**Effort**: 1-2 hours
+**Source**: Code review MINOR issue #7 (Semantic Phase 1 implementation)
+
+<details>
+<summary>Implementation Details</summary>
+
+**Context**: ActivationRule types exist but lack documentation and examples
+
+**Acceptance Criteria**:
+- [ ] Document each activation rule type (file_pattern, file_extension, etc.)
+- [ ] Explain how weights work (0.0-1.0 scale)
+- [ ] Provide examples of common activation patterns
+- [ ] Show how multiple rules combine
+- [ ] Add integration tests demonstrating activation logic
+
+**Files**:
+- `app/src/context/lenses/types.ts` (improve JSDoc)
+- Create: `app/src/context/lenses/ACTIVATION_RULES.md`
+- Create: `app/tests/integration/lenses/ActivationRuleExamples.test.ts`
+
+**Example Patterns**:
+- Activate DebugLens when viewing test files
+- Activate DocumentationLens for README files
+- Activate LifecycleLens based on project type
+
+</details>
+
+---
+
 ## 📝 Documentation Tasks
 
-### 9. Document Universal Fallback Adapter Patterns
+### 17. Document Universal Fallback Adapter Patterns
 **One-liner**: Create guide for extending the UniversalFallbackAdapter
 **Complexity**: Trivial
 **Priority**: LOW
@@ -349,7 +593,7 @@
 
 ---
 
-### 10. Create Cross-Domain Query Examples
+### 18. Create Cross-Domain Query Examples
 **One-liner**: Documentation showing how to query across multiple domains
 **Complexity**: Small
 **Priority**: LOW
@@ -361,10 +605,10 @@
 
 ## 📊 Summary Statistics
 
-- **Total active tasks**: 10
+- **Total active tasks**: 18
 - **Ready for work**: 4 (pgvector completion tasks + Semantic Processing Phase 1)
 - **Blocked/Needs decision**: 1 (PERF-001)
-- **Tech debt items**: 3
+- **Tech debt items**: 11 (3 pre-existing + 8 from Semantic Phase 1 code review)
 - **Documentation tasks**: 2
 - **Completed since October start**: 23+ major tasks
 - **Completed since last groom (Nov 4)**: 2 major tasks (TASK-001, TASK-004) + pgvector foundation
