@@ -43,16 +43,47 @@ export interface Entity {
 export interface EntityMetadata {
   /** Original filename if applicable */
   filename?: string;
-  
+
   /** Line numbers in source file [start, end] */
   lineNumbers?: [number, number];
-  
+
   /** File format/extension */
   format?: string;
-  
+
   /** Heading level for sections (1-6 for markdown) */
   level?: number;
-  
+
+  /** Lifecycle metadata (semantic processing) */
+  lifecycle?: {
+    state: 'current' | 'stable' | 'evolving' | 'deprecated' | 'historical' | 'archived';
+    confidence?: 'high' | 'medium' | 'low';
+    manual?: boolean;
+    supersededBy?: string;
+    reason?: string;
+    /** ISO 8601 timestamp string */
+    stateChangedAt?: string;
+    stateChangedBy?: 'manual' | 'automatic' | 'migration';
+  };
+
+  /** Semantic blocks extracted from this entity */
+  blocks?: Array<{
+    id: string;
+    type: string;
+    content: string;
+    importance?: string;
+    attributes?: Record<string, string>;
+    location?: [number, number];
+  }>;
+
+  /** Topics/tags for semantic categorization */
+  topics?: string[];
+
+  /** Technologies mentioned (semantic processing) */
+  technologies?: string[];
+
+  /** Participants involved (semantic processing) */
+  participants?: string[];
+
   /** Additional domain-specific metadata */
   [key: string]: any;
 }
