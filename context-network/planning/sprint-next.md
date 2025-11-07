@@ -1,253 +1,177 @@
 # Next Sprint Plan
 
 ## Sprint Overview
-**Sprint Goal**: Strategic planning for semantic processing and domain adapter expansion
+**Sprint Goal**: Complete pgvector backend implementation (Phases 3-4) and plan Semantic Processing Phase 2
 **Duration**: 1-2 weeks
-**Priority**: Architecture integration + domain adapter strategy
-**Last Updated**: 2025-10-29 (post-sync, aligned with groomed-backlog.md)
-**Status**: Previous sprint completed successfully (edge testing + Kuzu optimization done)
+**Priority**: Storage backend completion + Phase 2 planning
+**Last Updated**: 2025-11-07 (post-sync, aligned with groomed-backlog.md)
+**Status**: Semantic Processing Phase 1 complete (Nov 6) - major milestone achieved!
 
-## Previous Sprint Completions (Oct 11-20)
+## Previous Sprint Completions (Nov 4-6)
 
-The previous sprint goals were exceeded with 4 major completions:
+The previous sprint achieved major milestone with 3 critical completions:
 
-### ✅ 1. Improve Logger Property Encapsulation - ✅ COMPLETE (2025-10-11)
-**Effort**: 30 minutes (actual)
-**Completed**: 2025-10-11
-**Priority**: MEDIUM - Code quality
+### ✅ 1. TASK-001: Fix Flaky Async Tests in TSASTParser - ✅ COMPLETE (2025-11-04)
+**Effort**: 1.5 hours (estimated 1-2 hours)
+**Priority**: HIGH - Test suite stability
 
-**Description**: Made logger private/readonly in KuzuSecureQueryBuilder using module-level logger pattern.
+**Achievement**: Restored 100% test pass rate, 36% performance improvement
+**Implementation**: Replaced expensive `ts.createProgram()` with lightweight `parseDiagnostics` (200x faster)
+**Tests**: 436/436 passing (100% pass rate, up from 416/420)
+**Performance**: Test suite 36% faster (640ms → 411ms)
+**Completion Record**: [2025-11-04-task-001-tsastparser-async-fix.md](../../tasks/completed/2025-11-04-task-001-tsastparser-async-fix.md)
 
-**Acceptance Criteria**: ALL MET ✅
-- [x] Create module-level logger for external function
-- [x] Make class logger `private readonly`
-- [x] Update `executeSecureQueryWithMonitoring` to use module logger
-- [x] All tests pass without modification (50/50 tests passing)
+### ✅ 2. TASK-004: Integrate Semantic Processing Architecture - ✅ COMPLETE (2025-11-04)
+**Effort**: 2.5 hours (estimated 2-3 hours)
+**Priority**: HIGH - Strategic planning
 
-**Files Modified**:
-- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts` (lines 12, 37, 451-452)
+**Achievement**: Comprehensive 5-phase implementation roadmap (30-40 hours total effort)
+**Deliverables**: 465-line roadmap, current state assessment, integration points, validation strategy
+**Impact**: Created clear path for core CorticAI differentiator (lifecycle-aware context management)
+**Completion Record**: [2025-11-04-task-004-completion.md](../../tasks/semantic-architecture-integration/2025-11-04-task-004-completion.md)
+**Roadmap**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
 
-**Test File Created**:
-- `app/src/storage/adapters/KuzuSecureQueryBuilder.logger-encapsulation.unit.test.ts` (18 tests)
+### ✅ 3. SEMANTIC-PHASE-1: Semantic Processing Phase 1 - Foundation - ✅ COMPLETE (2025-11-06)
+**Effort**: 4-6 hours (as estimated)
+**Priority**: HIGH - Core differentiator
 
-**Completion Record**: [2025-10-11-logger-encapsulation-complete.md](../../tasks/completed/2025-10-11-logger-encapsulation-complete.md)
+**Achievement**: Complete lifecycle metadata system and semantic block extraction infrastructure
+**Implementation**: 9 source files (~2,500 lines), 5 test files (~1,800 lines)
+**Tests**: 598/598 passing (162 new comprehensive tests, >95% coverage)
+**Code Quality**: 19 issues found in review (4 critical + 7 major FIXED, 8 minor documented as tech debt)
+**Security**: YAML injection fixed, path traversal protection, recursion limits, type safety improvements
+**Impact**: Core CorticAI differentiator - solves attention gravity problem with lifecycle-aware context management
+**Completion Record**: [2025-11-06-phase-1-completion.md](../../tasks/semantic-architecture-integration/2025-11-06-phase-1-completion.md)
 
-### ✅ 2. Move Performance Alternatives to Documentation (TASK-DOC-001) - ✅ COMPLETE (2025-10-18)
-**Effort**: 1 hour (actual)
-**Priority**: LOW - Code maintainability
-
-**Achievement**: Removed 60+ lines of commented code, created comprehensive research documentation
-**Tests**: 234/234 passing (0 regressions)
-**Completion Record**: [2025-10-18-task-doc-001-performance-docs.md](../../tasks/completed/2025-10-18-task-doc-001-performance-docs.md)
-
-### ✅ 3. Optimize KuzuStorageAdapter (REFACTOR-003) - ✅ COMPLETE (2025-10-19)
-**Effort**: 4.5 hours (actual, estimated 3-4)
-**Priority**: MEDIUM - Code quality
-
-**Achievement**: 29% reduction (822 → 582 lines), 6 focused modules, 26 new schema management tests
-**Tests**: 260/260 passing (+26 new tests)
-**Completion Record**: [2025-10-19-refactor-003-kuzu-adapter-optimization.md](../../tasks/completed/2025-10-19-refactor-003-kuzu-adapter-optimization.md)
-
-### ✅ 4. Implement HouseholdFoodAdapter - ✅ COMPLETE (2025-10-20)
-**Effort**: ~3 hours (actual)
-**Priority**: MEDIUM - Domain adapter validation
-
-**Achievement**: Third domain adapter proving universal pattern, 41 comprehensive tests, practical household features
-**Tests**: 295/301 passing (35 new tests for adapter, 0 regressions)
-**Completion Record**: [2025-10-20-household-food-adapter-implementation.md](../../tasks/completed/2025-10-20-household-food-adapter-implementation.md)
-
-**Sprint Summary**: All goals exceeded - comprehensive testing ✅, Kuzu optimization ✅, domain adapter expansion ✅
+**Sprint Summary**: Major milestone achieved - Semantic Processing Phase 1 fully complete with comprehensive code review ✅
 
 ---
 
-## New Discoveries (Oct 28-29)
+## Next Sprint Tasks (Nov 7-14)
 
-### Major Architecture Work: Semantic Processing System
+### Priority 1: pgvector Backend Completion
 
-Significant architectural documentation was created defining CorticAI's approach to attention management and semantic operations:
-
-**Files Created** (7 architecture documents):
-1. `attention-gravity-problem.md` - Problem definition
-2. `semantic-pipeline-stages.md` - 5-stage processing model
-3. `projection-based-compression.md` - Lossless compression approach
-4. `write-time-enrichment.md` - Q&A generation, relationship inference
-5. `semantic-maintenance.md` - Health monitoring strategies
-6. `design-rationale.md` - CorticAI vs competitors
-7. `index.md` - Navigation and integration guide
-
-**ADR Created**:
-- `adr-semantic-operations-placement.md` - Where semantic ops should occur
-
-**Research Created**:
-- `llm-memory-pruning-strategies.md` - Survey of existing approaches
-- `wiki-architecture-analysis.md` - Comparison with Wikipedia
-
-**Impact**: Foundational architecture for search, retrieval, and attention management features
-
----
-
-## Next Sprint Tasks (Strategic Planning)
-
-### Active Tasks (In Progress)
-
-#### 1. Review and Integrate Semantic Processing Architecture
-**Effort**: 1-2 hours
+#### Task 1. Complete pgvector Backend - Phase 3 (SemanticStorage)
+**Effort**: 4-6 hours
 **Assignee**: Available
-**Priority**: HIGH - Test coverage before enhancement
-**Current State**: Basic tests exist, need comprehensive expansion
+**Priority**: MEDIUM - Storage backend expansion
+**Status**: READY (no blockers)
 
-**Description**: Expand existing edge test coverage in `KuzuStorageAdapter.unit.test.ts` to cover all edge scenarios and Kuzu result formats.
+**Description**: Implement 7 SemanticStorage stub methods to complete semantic storage capabilities.
 
-**Existing Coverage** ✅:
-- Basic edge retrieval (lines 85-159 in unit test)
-- Edge filtering by type
-- Graph traversal with edges
-
-**Missing Coverage** (To Add):
-- [ ] Test with no edges (empty result)
-- [ ] Test with complex properties (nested JSON)
-- [ ] Test with malformed data (invalid JSON)
-- [ ] Test with null/undefined properties
-- [ ] Test with self-referential edges
-- [ ] Test with bidirectional edges (A->B and B->A)
-- [ ] Test error conditions (connection failure, invalid node ID)
-- [ ] Test incoming vs outgoing edge distinction
-- [ ] Test performance (>100 edges from single node)
-
-**Approach**: Expand existing `KuzuStorageAdapter.unit.test.ts` or create dedicated test file
-
-**Reference**: [groomed-backlog.md#task-5](./groomed-backlog.md)
-
----
-
-### Core Implementation (Day 3-5)
-**Prerequisites**: Complete Task #2 first for test coverage
-
-#### 3. Enhance getEdges() Implementation
-**Effort**: 2-3 hours
-**Assignee**: Available
-**Priority**: HIGH - Core functionality
-
-**Description**: Enhance the existing getEdges() implementation with better property handling, error handling, and performance optimization.
+**Stub Methods to Implement**:
+- `executeSemanticQuery()` - SemanticQuery → SQL conversion
+- `executeSql()` - Security validation (parameterized queries only)
+- `aggregate()` - SUM/AVG/MIN/MAX/COUNT operators
+- `groupBy()` - GROUP BY clause generation
+- `createMaterializedView()`, `refreshMaterializedView()`, `dropMaterializedView()` - Materialized view support
 
 **Acceptance Criteria**:
-- [ ] Enhanced property extraction for nested/complex properties
-- [ ] Comprehensive error handling distinguishing "no edges" from "query error"
-- [ ] Performance optimization with batch loading
-- [ ] Comprehensive test coverage (from task #2)
-- [ ] Documentation of Kuzu result format quirks
-
-**Implementation Steps**:
-1. Enhance property handling (1 hour)
-2. Improve error handling (30 mins)
-3. Add comprehensive tests (1 hour) - integrated with task #2
-4. Performance optimization (30 mins)
-
-**Files to Modify**:
-- `app/src/storage/adapters/KuzuStorageAdapter.ts` (lines 69-114)
+- [ ] All 7 SemanticStorage methods implemented
+- [ ] SemanticStorage contract tests (30+ tests)
+- [ ] Zero test regressions (598/598 tests continue passing)
+- [ ] SQL injection protection for all methods
+- [ ] Performance targets: Aggregations <100ms for 10K records
 
 **Reference**: [groomed-backlog.md#task-1](./groomed-backlog.md)
 
----
-
-### Performance Optimization (Optional - If Time Permits)
-
-#### 4. Optimize Edge Type Filtering in Variable-Length Paths
-**Effort**: 2-3 hours
+#### Task 2. Complete pgvector Backend - Phase 4 (Vector Operations)
+**Effort**: 3-4 hours
 **Assignee**: Available
-**Priority**: MEDIUM - Performance optimization
-**Prerequisites**: Task #3 complete
+**Priority**: MEDIUM - Vector search enablement
+**Status**: READY (can start after Phase 3 or in parallel)
 
-**Description**: Move edge type filtering from post-processing to Cypher query if Kuzu 0.11.2 supports it.
+**Description**: Implement 3 vector search methods to enable semantic similarity search.
+
+**Methods to Implement**:
+- `createVectorIndex()` - IVFFLAT or HNSW index types
+- `vectorSearch()` - Cosine/euclidean/dot product distance metrics
+- `insertWithEmbedding()` - Bulk vector loading
 
 **Acceptance Criteria**:
-- [ ] Research Kuzu 0.11.2 edge filtering capabilities
-- [ ] Create performance benchmark (1K nodes, 10K edges)
-- [ ] Implement query-level filtering if supported
-- [ ] Compare performance (expect 2-10x improvement)
-- [ ] Update KuzuSecureQueryBuilder with new pattern
+- [ ] All 3 vector operation methods implemented
+- [ ] Vector operation tests (20+ tests)
+- [ ] Support configurable index parameters (ivfLists, hnswM, efConstruction)
+- [ ] Performance benchmarks for various index sizes
+- [ ] Performance targets: Vector search <50ms for 10K vectors with IVFFLAT
 
-**Files to Modify**:
-- `app/src/storage/adapters/KuzuSecureQueryBuilder.ts` (query building)
-- `app/src/storage/adapters/KuzuStorageAdapter.ts` (traverse method, lines 171-184)
-- `app/tests/storage/adapters/KuzuStorageAdapter.performance.test.ts` (new benchmarks)
-
-**Reference**: [groomed-backlog.md#task-4](./groomed-backlog.md)
+**Reference**: [groomed-backlog.md#task-2](./groomed-backlog.md)
 
 ---
+
+### Priority 2: Semantic Processing Phase 2 Planning
+
+#### Task 3. Plan Semantic Processing Phase 2 (Q&A Generation)
+**Effort**: 1-2 hours
+**Assignee**: Available
+**Priority**: HIGH - Next major feature
+**Status**: NEEDS GROOMING
+
+**Description**: Detailed planning for Phase 2 implementation (Q&A generation and relationship inference).
+
+**Planning Deliverables**:
+- [ ] Review Phase 2 scope from implementation roadmap
+- [ ] Design LLM integration approach for Q&A generation
+- [ ] Design relationship inference patterns
+- [ ] Prepare test data for write-time enrichment
+- [ ] Create groomed task with acceptance criteria
+
+**Reference**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
 
 ## Sprint Success Criteria
 
-### Minimum Success (Day 1-3)
-- [x] Logger encapsulation improved (Task #1) ✅ COMPLETE
-- [ ] Comprehensive edge tests added (Task #2) - IN PROGRESS
-- [ ] getEdges() enhanced (Task #3)
-- [x] All tests passing (50/50) ✅
-- [x] Zero TypeScript errors ✅
+### Minimum Success (Sprint Week 1)
+- [ ] pgvector Phase 3 (SemanticStorage) complete
+- [ ] All tests passing (598/598 minimum)
+- [ ] Zero TypeScript errors
+- [ ] Zero test regressions
 
-### Full Success (Day 1-5)
-- [x] Logger encapsulation complete ✅
-- [ ] Comprehensive edge test coverage (20+ tests)
-- [ ] getEdges() enhancement complete
-- [ ] Performance optimization research complete (Task #4)
-- [ ] Graph operations production-ready
+### Full Success (Sprint Week 2)
+- [ ] pgvector Phase 3 complete ✅
+- [ ] pgvector Phase 4 (Vector Operations) complete ✅
+- [ ] Semantic Processing Phase 2 groomed and ready
+- [ ] All acceptance criteria met for implemented tasks
 - [ ] Documentation updated
 
 ### Stretch Goal
-- [ ] Edge type filtering optimization implemented
-- [ ] Performance benchmarks showing 2-10x improvement
-- [ ] Begin large file refactoring (KuzuStorageAdapter split)
+- [ ] Semantic Processing Phase 2 implementation started
+- [ ] Integration tests for Phase 1 + Phase 2 together
+- [ ] Performance benchmarks for vector search
 
 ## Sprint Metrics
 
 **Target Outcomes**:
-- Graph operations fully functional and tested
-- Code quality improved with better encapsulation
-- Test coverage for critical graph operations
-- Foundation for performance optimization
+- pgvector backend fully functional (all storage capabilities complete)
+- Vector search capabilities operational
+- Clear roadmap for Phase 2 semantic processing
 
 **Success Indicators**:
-- Can retrieve edges with all property types reliably
-- Tests cover 90%+ of edge scenarios
-- Query performance measured and optimized
+- SemanticStorage methods operational and tested
+- Vector search performing within targets (<50ms for 10K vectors)
 - Clean build with zero errors
-
-## Risk Mitigation
-
-**Low Risk Tasks** (Tasks #1, #2):
-- Logger encapsulation: Simple refactoring, well-understood
-- Edge tests: Only adds tests, no functionality changes
-
-**Medium Risk Tasks** (Task #3):
-- getEdges enhancement: Modifies existing working code
-- Mitigation: Comprehensive tests before and after changes
-
-**Research Tasks** (Task #4):
-- Edge filtering optimization: Kuzu capabilities unknown
-- Mitigation: Research phase first, implement only if beneficial
+- 100% test pass rate maintained
 
 ## Notes
 
-This sprint prioritizes comprehensive testing and enhancement of core graph functionality. The foundation (Phases 1-3) is complete, security is hardened, logging is production-ready, and logger encapsulation is complete.
+This sprint focuses on completing the pgvector storage backend (filling remaining gaps from Phases 3-4) and planning the next major feature (Semantic Processing Phase 2).
 
-**Sprint Progress (2025-10-12)**:
-- ✅ Task #1 (Logger Encapsulation) - COMPLETE (Oct 11)
-- 🔄 Task #2 (Comprehensive Edge Tests) - IN PROGRESS
-- ⏳ Task #3 (getEdges Enhancement) - READY (waiting for Task #2)
-- ⏳ Task #4 (Edge Filtering Optimization) - OPTIONAL
+**Current State (2025-11-07)**:
+- ✅ Semantic Processing Phase 1 - COMPLETE (Nov 6)
+- ✅ Test suite at 100% pass rate (598/598 tests)
+- ✅ Code review process integrated
+- ⏳ pgvector Phases 3-4 - READY to implement
 
 **Why This Sprint**:
-- Test coverage is critical before enhancement work
-- getEdges() is core functionality needed for graph traversal
-- Performance optimization demonstrates measurable improvements
-- Task #1 completed early, building momentum
+- pgvector backend has substantial foundation, completing it provides full storage backend
+- Phase 1 complete provides strong foundation for Phase 2 planning
+- Grooming Phase 2 while implementing pgvector maximizes productivity
 
 **Risk Mitigation**:
-- Task #2 (edge tests) has no risk - only adds test coverage
-- Task #3 depends on Task #2 for safety net
-- Task #4 is optional research task
+- pgvector tasks are well-defined with clear acceptance criteria
+- Phase 2 planning is research/design work, low implementation risk
+- All tasks can be completed independently
 
-**Next Sprint Preview**: Depending on completion, next sprint would focus on large file refactoring (KuzuStorageAdapter, DuckDBStorageAdapter) or additional lens implementations (TestLens, PerformanceLens).
+**Next Sprint Preview**: Semantic Processing Phase 2 implementation (Q&A generation + relationship inference) or additional storage/domain adapter work.
 
 ## Context Integration
 
@@ -257,5 +181,6 @@ This sprint prioritizes comprehensive testing and enhancement of core graph func
 - [groomed-backlog.md](./groomed-backlog.md) - Source of sprint tasks
 - [backlog.md](./backlog.md) - Technical backlog with phase details
 - [roadmap.md](./roadmap.md) - Strategic direction
+- [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md) - Phase 2-5 roadmap
 
-**Grooming Source**: All tasks selected from [groomed-backlog.md](./groomed-backlog.md) top priorities (2025-10-11)
+**Grooming Source**: All tasks selected from [groomed-backlog.md](./groomed-backlog.md) top priorities (2025-11-07)
