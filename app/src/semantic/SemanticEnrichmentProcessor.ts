@@ -107,6 +107,7 @@ export class SemanticEnrichmentProcessor {
     let blockCount = 0
 
     // Deep clone entity to avoid mutation
+    // IMPORTANT: Always initialize metadata as an object, even if original is undefined
     const enrichedEntity: Entity = {
       ...entity,
       metadata: entity.metadata ? {
@@ -123,7 +124,7 @@ export class SemanticEnrichmentProcessor {
         topics: entity.metadata.topics ? [...entity.metadata.topics] : undefined,
         technologies: entity.metadata.technologies ? [...entity.metadata.technologies] : undefined,
         participants: entity.metadata.participants ? [...entity.metadata.participants] : undefined,
-      } : undefined,
+      } : {},  // Initialize as empty object instead of undefined
       relationships: entity.relationships?.map(rel => ({
         ...rel,
         metadata: rel.metadata ? { ...rel.metadata } : undefined,

@@ -48,10 +48,14 @@ const BUILT_IN_PATTERNS: LifecyclePattern[] = [
     state: 'deprecated',
     patterns: [
       /\bdeprecated\b/i,
-      /\bno\s+longer\s+(used|maintained|supported|recommended)\b/i,
+      // Note: "no longer X" patterns match deprecated UNLESS "obsolete" is also present
+      // which should match archived instead (higher finality)
+      /\bno\s+longer\s+(use|used|support|supported|recommend|recommended)\b(?!.*\bobsolete\b)/i,
       /\bsuperseded\s+by\b/i,
       /\breplaced\s+by\b/i,
       /\bmoved\s+(away\s+)?from\s+[\w\s]+\s+to\b/i,
+      /\bmoved\s+to\b/i,
+      /\bsee\s+.+?\s+instead\b/i,
       /\bswitched\s+(from|away\s+from)\b/i,
     ],
     confidence: 'high',
@@ -62,6 +66,9 @@ const BUILT_IN_PATTERNS: LifecyclePattern[] = [
       /\bold\s+(approach|implementation|design|architecture)\b/i,
       /\bprevious(ly)?\s+(used|implemented)\b/i,
       /\blegacy\b/i,
+      // "no longer maintained" is medium confidence for deprecated
+      // (unless "obsolete" is present, which makes it archived)
+      /\bno\s+longer\s+maintained\b(?!.*\bobsolete\b)/i,
     ],
     confidence: 'medium',
   },

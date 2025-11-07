@@ -48,8 +48,9 @@ export interface ParseError {
 
 /**
  * Regular expression patterns for semantic block parsing
+ * Note: 'm' flag enables multiline mode so ^ and $ match line boundaries
  */
-const BLOCK_START_PATTERN = /^::([a-z-]+)\s*\{([^}]*)\}\s*$/
+const BLOCK_START_PATTERN = /^::([a-z-]+)\s*\{([^}]*)\}\s*$/m
 const BLOCK_END_PATTERN = /^::\s*$/
 // ATTRIBUTE_PATTERN moved into parseAttributes() to avoid global flag lastIndex issues
 
