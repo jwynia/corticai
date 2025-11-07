@@ -1,6 +1,6 @@
 # Ready Tasks
 
-**Last Updated**: 2025-11-07 (Test fixes complete)
+**Last Updated**: 2025-11-07 (Phase 2 groomed and ready)
 **Source**: [groomed-backlog.md](../../planning/groomed-backlog.md)
 
 Tasks that are fully groomed, unblocked, and ready for immediate implementation.
@@ -13,7 +13,43 @@ Tasks that are fully groomed, unblocked, and ready for immediate implementation.
 
 ## High Priority
 
-*No high priority ready tasks at this time - Phase 1 complete, ready for Phase 2 planning*
+### ⭐ SEMANTIC-PHASE-2: Implement Semantic Processing - Phase 2 (Write-Time Enrichment)
+**Title**: Implement Q&A generation and relationship inference for write-time semantic enrichment
+**Complexity**: Large
+**Effort**: 6-8 hours
+**Priority**: HIGH
+**Branch**: `semantic/phase-2-qa-relationships`
+
+**Why this task**:
+- Phase 1 (lifecycle + semantic blocks) complete and all tests passing
+- Enables vocabulary bridging via Q&A generation
+- Implements semantic relationship inference
+- Core CorticAI differentiator
+
+**Scope** (from roadmap):
+1. **Q&A Generation** - Generate natural questions from document content
+2. **Relationship Inference** - Extract semantic relationships between entities
+3. **Write-Time Processing** - Enrich entities once during ingestion
+
+**Deliverables**:
+- SEMANTIC-007: Q&A generation engine with configurable LLM integration
+- SEMANTIC-008: Question storage and indexing in SemanticStorage
+- SEMANTIC-009: Relationship inference patterns (mentions, references, supersedes)
+- SEMANTIC-010: Enhanced semantic enrichment pipeline
+- SEMANTIC-011: Enrichment testing with real context network data
+
+**Acceptance Criteria**:
+- [ ] Q&A generator integrated with SemanticEnrichmentProcessor
+- [ ] Generated Q&A stored in semantic storage with full-text index
+- [ ] Relationship inference detects mentions, references, supersessions
+- [ ] Vocabulary bridging validates with test queries
+- [ ] Performance: <30s enrichment for typical document
+- [ ] 30+ comprehensive tests
+- [ ] Zero test regressions (589/605 continue passing)
+
+**Start with**: Design Q&A generation API (abstract LLM integration), then implement question generator with prompt engineering
+
+**Roadmap Reference**: [semantic-processing-implementation/README.md](../../planning/semantic-processing-implementation/README.md) - Phase 2
 
 ---
 
