@@ -239,7 +239,7 @@ export class LifecycleMetadataMigration {
     }
 
     // Enrich entity
-    const result = this.processor.enrich(entity)
+    const result = await this.processor.enrich(entity)
 
     // Log results
     if (result.hasLifecycle) {

@@ -246,50 +246,83 @@
 
 ## 🔧 Tech Debt & Refactoring
 
-### 5. Add Config Validation to LifecycleDetector
-**Source**: Code review MINOR issue #1
+### 5. Implement Bounded LRU Cache for QuestionGenerator ⭐ NEW
+**Source**: Phase 2 code review (2025-11-09)
+**Complexity**: Medium
+**Effort**: 30-60 minutes
+**Priority**: HIGH
+**Risk**: Medium - Changes caching behavior
+**Files**: `app/src/semantic/QuestionGenerator.ts:115`
+**Details**: [tasks/tech-debt/semantic-question-cache-bounds.md](../tasks/tech-debt/semantic-question-cache-bounds.md)
+
+**Why Important**: Unbounded cache could cause memory leaks in long-running processes
+
+### 6. Add ReDoS Protection to RelationshipInference ⭐ NEW
+**Source**: Phase 2 code review (2025-11-09)
+**Complexity**: Small
+**Effort**: 15-30 minutes
+**Priority**: MEDIUM (Security)
+**Risk**: Medium - Security-related
+**Files**: `app/src/semantic/RelationshipInference.ts` (multiple locations)
+**Details**: [tasks/tech-debt/semantic-redos-protection.md](../tasks/tech-debt/semantic-redos-protection.md)
+
+**Why Important**: Complex regex patterns vulnerable to ReDoS attacks
+
+### 7. Refactor Duplicate Relationship Detection Logic ⭐ NEW
+**Source**: Phase 2 code review (2025-11-09)
+**Complexity**: Small
+**Effort**: 20-30 minutes
+**Priority**: MEDIUM
+**Risk**: Medium - Refactoring needs testing
+**Files**: `app/src/semantic/RelationshipInference.ts:210-278`
+**Details**: [tasks/refactoring/semantic-relationship-dry.md](../tasks/refactoring/semantic-relationship-dry.md)
+
+**Why Important**: ~90 lines of duplicated code, harder to maintain
+
+### 9. Add Config Validation to LifecycleDetector
+**Source**: Code review MINOR issue #1 (Phase 1)
 **Complexity**: Trivial
 **Effort**: 1 hour
 **Files**: `app/src/semantic/LifecycleDetector.ts`
 
-### 6. Make Default Lifecycle State Configurable
-**Source**: Code review MINOR issue #2
+### 10. Make Default Lifecycle State Configurable
+**Source**: Code review MINOR issue #2 (Phase 1)
 **Complexity**: Trivial
 **Effort**: 30 minutes
 **Files**: `app/src/semantic/SemanticEnrichmentProcessor.ts`, `app/src/context/lenses/LifecycleLens.ts`
 
-### 7. Extract Magic Numbers to Named Constants
-**Source**: Code review MINOR issue #3
-**Complexity**: Trivial
-**Effort**: 30 minutes
-**Files**: `app/src/semantic/LifecycleDetector.ts`
+### 11. ~~Extract Magic Numbers to Named Constants~~ ✅ COMPLETED (2025-11-09)
+**Source**: Code review MINOR issue #3 (Phase 1) + Phase 2 code review
+**Status**: Applied immediately during code review
+**Files**: `app/src/semantic/QuestionGenerator.ts`
 
-### 8. Standardize Error Handling in Semantic Processing
-**Source**: Code review MINOR issue #4
+### 12. Standardize Error Handling in Semantic Processing
+**Source**: Code review MINOR issue #4 (Phase 1)
 **Complexity**: Small
 **Effort**: 2 hours
 **Files**: `app/src/semantic/*.ts`
 
-### 9. Add Input Validation to Semantic Processing Methods
-**Source**: Code review MINOR issue #5
-**Complexity**: Trivial
-**Effort**: 1-2 hours
+### 13. ~~Add Input Validation to Semantic Processing Methods~~ ✅ PARTIALLY COMPLETE
+**Source**: Code review MINOR issue #5 (Phase 1)
+**Status**: Documentation added for QuestionGenerator (2025-11-09), validation exists in code
+**Remaining**: Document validation in other semantic processing methods
+**Effort**: 30 minutes
 **Files**: `app/src/semantic/*.ts`
 
-### 10. Document Lens Priority Scale and Guidelines
-**Source**: Code review MINOR issue #6
+### 14. Document Lens Priority Scale and Guidelines
+**Source**: Code review MINOR issue #6 (Phase 1)
 **Complexity**: Trivial
 **Effort**: 1 hour
 **Files**: Create `app/src/context/lenses/README.md`
 
-### 11. Add Examples for Custom Lifecycle Pattern Configuration
-**Source**: Code review MINOR issue #8
+### 15. Add Examples for Custom Lifecycle Pattern Configuration
+**Source**: Code review MINOR issue #8 (Phase 1)
 **Complexity**: Small
 **Effort**: 1-2 hours
 **Files**: `app/src/semantic/LifecycleDetector.ts`
 
-### 12. Document Lens Activation Rule Types and Configuration
-**Source**: Code review MINOR issue #7
+### 16. Document Lens Activation Rule Types and Configuration
+**Source**: Code review MINOR issue #7 (Phase 1)
 **Complexity**: Small
 **Effort**: 1-2 hours
 **Files**: Create `app/src/context/lenses/ACTIVATION_RULES.md`
@@ -298,7 +331,7 @@
 
 ## ⏳ Blocked (Needs Decision)
 
-### 13. Add Connection Pooling for Database Adapters (PERF-001)
+### 17. Add Connection Pooling for Database Adapters (PERF-001)
 **Blocker**: 🚫 Awaiting scope & priority decisions
 **Priority**: LOW (Deprioritized 2025-10-18)
 **Note**: pgvector backend already has connection pooling via `pg` library

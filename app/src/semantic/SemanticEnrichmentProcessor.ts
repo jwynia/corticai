@@ -11,6 +11,8 @@
 import type { Entity } from '../types/entity'
 import { LifecycleDetector } from './LifecycleDetector'
 import { SemanticBlockParser } from './SemanticBlockParser'
+import { QuestionGenerator, type QuestionGeneratorConfig } from './QuestionGenerator'
+import { RelationshipInference, type RelationshipInferenceConfig } from './RelationshipInference'
 import type {
   LifecycleMetadata,
   SemanticBlock,
@@ -24,11 +26,23 @@ export interface EnrichmentConfig {
   /** Configuration for lifecycle detection */
   lifecycleDetector?: LifecycleDetectorConfig
 
+  /** Configuration for question generation */
+  questionGenerator?: QuestionGeneratorConfig
+
+  /** Configuration for relationship inference */
+  relationshipInference?: RelationshipInferenceConfig
+
   /** Whether to extract semantic blocks (default: true) */
   extractSemanticBlocks?: boolean
 
   /** Whether to detect lifecycle state (default: true) */
   detectLifecycle?: boolean
+
+  /** Whether to generate questions (default: true) */
+  generateQuestions?: boolean
+
+  /** Whether to infer relationships (default: true) */
+  inferRelationships?: boolean
 
   /**
    * Default lifecycle state when detection fails or is disabled
@@ -53,6 +67,18 @@ export interface EnrichmentResult {
   /** Number of semantic blocks extracted */
   blockCount: number
 
+  /** Whether questions were generated */
+  hasQuestions: boolean
+
+  /** Number of questions generated */
+  questionCount: number
+
+  /** Whether relationships were inferred */
+  hasRelationships: boolean
+
+  /** Number of relationships inferred */
+  relationshipCount: number
+
   /** Any warnings or issues encountered */
   warnings: string[]
 }
@@ -67,10 +93,14 @@ export interface EnrichmentResult {
 export class SemanticEnrichmentProcessor {
   private lifecycleDetector: LifecycleDetector
   private blockParser: SemanticBlockParser
+  private questionGenerator: QuestionGenerator
+  private relationshipInference: RelationshipInference
   private config: {
     lifecycleDetector?: LifecycleDetectorConfig
     extractSemanticBlocks: boolean
     detectLifecycle: boolean
+    generateQuestions: boolean
+    inferRelationships: boolean
     defaultLifecycleState: 'current' | 'stable' | 'evolving'
   }
 
@@ -82,11 +112,15 @@ export class SemanticEnrichmentProcessor {
   constructor(config?: EnrichmentConfig) {
     this.lifecycleDetector = new LifecycleDetector(config?.lifecycleDetector)
     this.blockParser = new SemanticBlockParser()
+    this.questionGenerator = new QuestionGenerator(config?.questionGenerator)
+    this.relationshipInference = new RelationshipInference(config?.relationshipInference)
 
     this.config = {
       lifecycleDetector: config?.lifecycleDetector,
       extractSemanticBlocks: config?.extractSemanticBlocks ?? true,
       detectLifecycle: config?.detectLifecycle ?? true,
+      generateQuestions: config?.generateQuestions ?? true,
+      inferRelationships: config?.inferRelationships ?? true,
       defaultLifecycleState: config?.defaultLifecycleState ?? 'stable',
     }
   }
@@ -97,7 +131,7 @@ export class SemanticEnrichmentProcessor {
    * @param entity Entity to enrich
    * @returns Enrichment result with enriched entity
    */
-  enrich(entity: Entity): EnrichmentResult {
+  async enrich(entity: Entity): Promise<EnrichmentResult> {
     // Create consistent timestamp for this enrichment operation
     const enrichmentTimestamp = new Date().toISOString()
 
@@ -105,6 +139,10 @@ export class SemanticEnrichmentProcessor {
     let hasLifecycle = false
     let hasSemanticBlocks = false
     let blockCount = 0
+    let hasQuestions = false
+    let questionCount = 0
+    let hasRelationships = false
+    let relationshipCount = 0
 
     // Deep clone entity to avoid mutation
     // IMPORTANT: Always initialize metadata as an object, even if original is undefined
@@ -202,11 +240,53 @@ export class SemanticEnrichmentProcessor {
       }
     }
 
+    // Generate questions if enabled and content exists (Phase 2)
+    if (this.config.generateQuestions && entity.content) {
+      const questionResult = await this.questionGenerator.generate(enrichedEntity)
+
+      if (questionResult.questions.length > 0) {
+        // Store questions in entity metadata
+        enrichedEntity.metadata!.questions = questionResult.questions
+        hasQuestions = true
+        questionCount = questionResult.questions.length
+      }
+
+      // Collect warnings from question generation
+      if (questionResult.warnings.length > 0) {
+        questionResult.warnings.forEach(warning => {
+          warnings.push(`Question generation: ${warning}`)
+        })
+      }
+    }
+
+    // Infer relationships if enabled and content exists (Phase 2)
+    if (this.config.inferRelationships && entity.content) {
+      const inferenceResult = await this.relationshipInference.infer(enrichedEntity)
+
+      if (inferenceResult.relationships.length > 0) {
+        // Store inferred relationships in entity metadata
+        enrichedEntity.metadata!.inferredRelationships = inferenceResult.relationships
+        hasRelationships = true
+        relationshipCount = inferenceResult.relationships.length
+      }
+
+      // Collect warnings from relationship inference
+      if (inferenceResult.warnings.length > 0) {
+        inferenceResult.warnings.forEach(warning => {
+          warnings.push(`Relationship inference: ${warning}`)
+        })
+      }
+    }
+
     return {
       entity: enrichedEntity,
       hasLifecycle,
       hasSemanticBlocks,
       blockCount,
+      hasQuestions,
+      questionCount,
+      hasRelationships,
+      relationshipCount,
       warnings,
     }
   }
@@ -217,8 +297,8 @@ export class SemanticEnrichmentProcessor {
    * @param entities Entities to enrich
    * @returns Array of enrichment results
    */
-  enrichBatch(entities: Entity[]): EnrichmentResult[] {
-    return entities.map(entity => this.enrich(entity))
+  async enrichBatch(entities: Entity[]): Promise<EnrichmentResult[]> {
+    return Promise.all(entities.map(entity => this.enrich(entity)))
   }
 
   /**
@@ -258,12 +338,12 @@ export class SemanticEnrichmentProcessor {
    * @param preserveManual Whether to preserve manual lifecycle assignments (default: true)
    * @returns Enrichment result
    */
-  reEnrich(entity: Entity, preserveManual = true): EnrichmentResult {
+  async reEnrich(entity: Entity, preserveManual = true): Promise<EnrichmentResult> {
     // If preserving manual assignments, check if lifecycle was manually set
     const hadManualLifecycle = entity.metadata?.lifecycle?.manual === true
 
     // Perform enrichment
-    const result = this.enrich(entity)
+    const result = await this.enrich(entity)
 
     // Restore manual lifecycle if requested
     if (preserveManual && hadManualLifecycle && entity.metadata?.lifecycle) {
@@ -400,7 +480,7 @@ export const defaultEnrichmentProcessor = new SemanticEnrichmentProcessor()
  * @param entity Entity to enrich
  * @returns Enrichment result
  */
-export function enrichEntity(entity: Entity): EnrichmentResult {
+export function enrichEntity(entity: Entity): Promise<EnrichmentResult> {
   return defaultEnrichmentProcessor.enrich(entity)
 }
 
@@ -410,6 +490,6 @@ export function enrichEntity(entity: Entity): EnrichmentResult {
  * @param entities Entities to enrich
  * @returns Array of enrichment results
  */
-export function enrichEntities(entities: Entity[]): EnrichmentResult[] {
+export function enrichEntities(entities: Entity[]): Promise<EnrichmentResult[]> {
   return defaultEnrichmentProcessor.enrichBatch(entities)
 }
