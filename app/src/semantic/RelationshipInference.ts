@@ -95,15 +95,29 @@ export interface RelationshipInferenceConfig {
  * types of relationships.
  */
 export class RelationshipInference {
+  /**
+   * Maximum content length for regex operations (ReDoS protection)
+   *
+   * Content longer than this limit is truncated before regex processing
+   * to prevent catastrophic backtracking in complex patterns.
+   *
+   * @see https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS
+   */
+  private static readonly MAX_REGEX_CONTENT_LENGTH = 50000
+
   private config: Required<RelationshipInferenceConfig>
 
   constructor(config?: RelationshipInferenceConfig) {
+    // Use the smaller of user-specified maxContentLength or ReDoS protection limit
+    const requestedMax = config?.maxContentLength ?? 10000
+    const effectiveMax = Math.min(requestedMax, RelationshipInference.MAX_REGEX_CONTENT_LENGTH)
+
     this.config = {
       minConfidence: config?.minConfidence ?? 0.6,
       detectMentions: config?.detectMentions ?? true,
       detectReferences: config?.detectReferences ?? true,
       detectSupersessions: config?.detectSupersessions ?? true,
-      maxContentLength: config?.maxContentLength ?? 10000,
+      maxContentLength: effectiveMax,
     }
   }
 
@@ -199,6 +213,51 @@ export class RelationshipInference {
   }
 
   /**
+   * Extract relationships from content using a regex pattern
+   *
+   * Helper method to reduce code duplication across detection methods.
+   * Extracts target from either markdown link format or plain path.
+   *
+   * @param content Document content to search
+   * @param entityId Source entity ID
+   * @param regex Pattern to match (should have capture groups for link text and path)
+   * @param relationshipType Type of relationship being detected
+   * @param confidence Confidence score for this pattern type
+   * @returns Array of detected relationships
+   */
+  private extractRelationshipsFromPattern(
+    content: string,
+    entityId: string,
+    regex: RegExp,
+    relationshipType: RelationshipType,
+    confidence: number
+  ): InferredRelationship[] {
+    const relationships: InferredRelationship[] = []
+    let match: RegExpExecArray | null
+
+    while ((match = regex.exec(content)) !== null) {
+      // Extract target from either markdown link (match[2]) or plain path (match[3])
+      const target = match[2] || match[3]
+      const matchStart = match.index
+      const matchEnd = match.index + match[0].length
+
+      if (target) {
+        relationships.push({
+          type: relationshipType,
+          fromEntityId: entityId,
+          toEntityIdOrPattern: target,
+          confidence,
+          evidence: match[0],
+          sourceLocation: { start: matchStart, end: matchEnd },
+          resolved: false,
+        })
+      }
+    }
+
+    return relationships
+  }
+
+  /**
    * Detect supersession relationships
    *
    * Looks for patterns like "superseded by X", "see X instead", "moved to X"
@@ -213,66 +272,35 @@ export class RelationshipInference {
   ): InferredRelationship[] {
     const relationships: InferredRelationship[] = []
 
-    // Detect "superseded by X" patterns
-    const supersededByRegex = /(?:superseded by|replaced by)\s+(?:\[([^\]]+)\]\(([^)]+)\)|([a-zA-Z0-9_/-]+\.[a-zA-Z0-9]+))/gi
-    let match: RegExpExecArray | null
-    while ((match = supersededByRegex.exec(content)) !== null) {
-      // Extract target from either markdown link or plain file path
-      const target = match[2] || match[3] // markdown path or plain path
-      const matchStart = match.index
-      const matchEnd = match.index + match[0].length
+    // Define patterns with their confidence scores
+    const patterns: Array<{ regex: RegExp; confidence: number }> = [
+      {
+        // "superseded by X" or "replaced by X"
+        regex: /(?:superseded by|replaced by)\s+(?:\[([^\]]+)\]\(([^)]+)\)|([a-zA-Z0-9_/-]+\.[a-zA-Z0-9]+))/gi,
+        confidence: 0.9, // Very high confidence
+      },
+      {
+        // "see X instead" or "use X instead"
+        regex: /(?:see|use|refer to)\s+(?:\[([^\]]+)\]\(([^)]+)\)|([a-zA-Z0-9_/-]+\.[a-zA-Z0-9]+))\s+instead/gi,
+        confidence: 0.85, // High confidence
+      },
+      {
+        // "moved to X" or "relocated to X"
+        regex: /(?:moved to|relocated to|now at)\s+(?:\[([^\]]+)\]\(([^)]+)\)|([a-zA-Z0-9_/-]+\.[a-zA-Z0-9]+))/gi,
+        confidence: 0.85, // High confidence
+      },
+    ]
 
-      if (target) {
-        relationships.push({
-          type: 'supersedes',
-          fromEntityId: entityId,
-          toEntityIdOrPattern: target,
-          confidence: 0.9, // Very high confidence for explicit supersession
-          evidence: match[0],
-          sourceLocation: { start: matchStart, end: matchEnd },
-          resolved: false,
-        })
-      }
-    }
-
-    // Detect "see X instead" patterns
-    const seeInsteadRegex = /(?:see|use|refer to)\s+(?:\[([^\]]+)\]\(([^)]+)\)|([a-zA-Z0-9_/-]+\.[a-zA-Z0-9]+))\s+instead/gi
-    while ((match = seeInsteadRegex.exec(content)) !== null) {
-      const target = match[2] || match[3]
-      const matchStart = match.index
-      const matchEnd = match.index + match[0].length
-
-      if (target) {
-        relationships.push({
-          type: 'supersedes',
-          fromEntityId: entityId,
-          toEntityIdOrPattern: target,
-          confidence: 0.85, // High confidence for "instead" pattern
-          evidence: match[0],
-          sourceLocation: { start: matchStart, end: matchEnd },
-          resolved: false,
-        })
-      }
-    }
-
-    // Detect "moved to X" patterns
-    const movedToRegex = /(?:moved to|relocated to|now at)\s+(?:\[([^\]]+)\]\(([^)]+)\)|([a-zA-Z0-9_/-]+\.[a-zA-Z0-9]+))/gi
-    while ((match = movedToRegex.exec(content)) !== null) {
-      const target = match[2] || match[3]
-      const matchStart = match.index
-      const matchEnd = match.index + match[0].length
-
-      if (target) {
-        relationships.push({
-          type: 'supersedes',
-          fromEntityId: entityId,
-          toEntityIdOrPattern: target,
-          confidence: 0.85, // High confidence for move pattern
-          evidence: match[0],
-          sourceLocation: { start: matchStart, end: matchEnd },
-          resolved: false,
-        })
-      }
+    // Extract relationships using each pattern
+    for (const { regex, confidence } of patterns) {
+      const detected = this.extractRelationshipsFromPattern(
+        content,
+        entityId,
+        regex,
+        'supersedes',
+        confidence
+      )
+      relationships.push(...detected)
     }
 
     return relationships

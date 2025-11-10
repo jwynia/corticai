@@ -95,6 +95,17 @@ export interface QuestionGeneratorConfig {
 
   /** Enable caching of generated questions (default: true) */
   enableCaching?: boolean
+
+  /** Maximum cache size (default: 1000 entries) */
+  maxCacheSize?: number
+}
+
+/**
+ * Cache entry with LRU tracking
+ */
+interface CacheEntry {
+  questions: QuestionAnswerPair[]
+  lastAccessed: number
 }
 
 /**
@@ -112,13 +123,14 @@ export class QuestionGenerator {
   private static readonly RULE_BASED_CONFIDENCE_WHEN = 0.5 as const
 
   private llmProvider?: LLMProvider
-  private cache: Map<string, QuestionAnswerPair[]> = new Map()
+  private cache: Map<string, CacheEntry> = new Map()
   private config: {
     llmProvider?: LLMProvider
     targetQuestionCount: number
     minConfidence: number
     maxContentLength: number
     enableCaching: boolean
+    maxCacheSize: number
   }
 
   constructor(config?: QuestionGeneratorConfig) {
@@ -129,6 +141,7 @@ export class QuestionGenerator {
       minConfidence: config?.minConfidence ?? 0.6,
       maxContentLength: config?.maxContentLength ?? 10000,
       enableCaching: config?.enableCaching ?? true,
+      maxCacheSize: config?.maxCacheSize ?? 1000,
     }
   }
 
@@ -230,9 +243,11 @@ export class QuestionGenerator {
     // Check cache
     const cacheKey = `${entityId}:${this.hashContent(processedContent)}`
     if (this.config.enableCaching && this.cache.has(cacheKey)) {
-      const cachedQuestions = this.cache.get(cacheKey)!
+      const entry = this.cache.get(cacheKey)!
+      // Update LRU: mark as recently accessed
+      entry.lastAccessed = Date.now()
       return {
-        questions: cachedQuestions,
+        questions: entry.questions,
         processingTimeMs: Date.now() - startTime,
         warnings,
       }
@@ -268,9 +283,30 @@ export class QuestionGenerator {
         q => q.confidence >= this.config.minConfidence
       )
 
-      // Cache results
+      // Cache results with LRU eviction
       if (this.config.enableCaching) {
-        this.cache.set(cacheKey, filteredQuestions)
+        // Evict oldest entry if cache is full
+        if (this.cache.size >= this.config.maxCacheSize) {
+          let oldestKey: string | null = null
+          let oldestTime = Infinity
+
+          for (const [key, entry] of this.cache.entries()) {
+            if (entry.lastAccessed < oldestTime) {
+              oldestTime = entry.lastAccessed
+              oldestKey = key
+            }
+          }
+
+          if (oldestKey) {
+            this.cache.delete(oldestKey)
+          }
+        }
+
+        // Add new entry
+        this.cache.set(cacheKey, {
+          questions: filteredQuestions,
+          lastAccessed: Date.now()
+        })
       }
 
       return {

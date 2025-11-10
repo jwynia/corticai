@@ -451,4 +451,71 @@ describe('RelationshipInference', () => {
       }
     })
   })
+
+  describe('Security - ReDoS Protection', () => {
+    it('should handle pathological regex input without hanging', async () => {
+      // Create input designed to cause catastrophic backtracking
+      // Pattern: repeated "see " followed by a filename
+      const maliciousContent = 'see '.repeat(10000) + 'docs.md'
+
+      const startTime = Date.now()
+      const result = await inference.inferFromContent(maliciousContent, 'redos-test')
+      const duration = Date.now() - startTime
+
+      // Should complete in reasonable time despite pathological input
+      expect(duration).toBeLessThan(1000)
+
+      // May or may not detect relationships in this pathological case
+      // The important thing is it doesn't hang
+      expect(result.relationships).toBeDefined()
+    })
+
+    it('should enforce MAX_REGEX_CONTENT_LENGTH limit', async () => {
+      // Create very long content that exceeds the ReDoS protection limit
+      const veryLongContent = 'a'.repeat(100000) + ' see [doc.md](./doc.md)'
+
+      const result = await inference.inferFromContent(veryLongContent, 'length-test')
+
+      // Should have truncation warning
+      expect(result.warnings.some(w => w.includes('truncated'))).toBe(true)
+
+      // Should still work despite truncation
+      expect(result.relationships).toBeDefined()
+    })
+
+    it('should handle nested markdown links without exponential backtracking', async () => {
+      // Nested brackets can cause exponential backtracking in naive regex
+      const nestedBrackets = '[[[[[[docs.md]]]]]]'
+      const content = `See ${nestedBrackets} for more info`
+
+      const startTime = Date.now()
+      const result = await inference.inferFromContent(content, 'nested-test')
+      const duration = Date.now() - startTime
+
+      // Should complete quickly
+      expect(duration).toBeLessThan(100)
+    })
+
+    it('should respect user-specified maxContentLength under ReDoS limit', () => {
+      const customInference = new RelationshipInference({
+        maxContentLength: 5000
+      })
+
+      // Access private config via type assertion for testing
+      const config = (customInference as any).config
+
+      expect(config.maxContentLength).toBe(5000)
+    })
+
+    it('should cap maxContentLength at ReDoS protection limit', () => {
+      const unsafeInference = new RelationshipInference({
+        maxContentLength: 100000 // Above the 50000 limit
+      })
+
+      const config = (unsafeInference as any).config
+
+      // Should be capped at MAX_REGEX_CONTENT_LENGTH (50000)
+      expect(config.maxContentLength).toBe(50000)
+    })
+  })
 })
