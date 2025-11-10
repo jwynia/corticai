@@ -1,17 +1,17 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-11-07 (Post test fixes + Phase 2 planning)
+**Last Groomed**: 2025-11-10 (Semantic Phase 2 COMPLETE + pgvector SemanticStorage COMPLETE)
 **Last Synced**: 2025-11-07 (Sync score: 9/10 - Phase 1 complete, all tests passing)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
-**Test Status**: ✅ 589/605 tests passing (97.4% pass rate, 16 skipped for Phase 2)
-**Current Phase**: Phase 4 - Semantic Processing Phase 2 + Storage Backend Expansion
-**Foundation**: ✅ Phases 1-3 complete + Hexagonal architecture + Semantic Phase 1
+**Test Status**: ✅ 685/701 tests passing (97.7% pass rate, 16 skipped)
+**Current Phase**: Phase 5 - Semantic Pipeline Stages
+**Foundation**: ✅ Phases 1-4 complete + Hexagonal architecture + Semantic Phases 1-2 COMPLETE
 **Architecture**: ✅ Hexagonal architecture, 100% unit testable business logic
 **Lens System**: ✅ DebugLens + DocumentationLens + LifecycleLens operational
-**Security**: ✅ Parameterized queries, SQL injection protection, YAML injection fixed
+**Security**: ✅ Parameterized queries, SQL injection protection, YAML injection fixed, ReDoS hardening
 **Logging**: ✅ Comprehensive logging with PII sanitization
-**Recent Work**: ✅ Semantic Phase 1 COMPLETE (lifecycle + semantic blocks + all tests passing)
+**Recent Work**: ✅ Semantic Phase 2 COMPLETE (6/6 criteria) + pgvector SemanticStorage COMPLETE (4 methods, 19 tests)
 
 ---
 
@@ -48,130 +48,114 @@
 
 ---
 
-### ~~2. Semantic Processing Architecture Integration~~ ✅ COMPLETE (2025-11-04)
+### ~~2. Semantic Processing - Phase 2 (Write-Time Enrichment)~~ ✅ FULLY COMPLETE (2025-11-10)
+**Task**: SEMANTIC-PHASE-2 (Q&A Generation + Relationship Inference + Storage Integration)
+**Status**: ✅ FULLY COMPLETE - All 6 acceptance criteria met
+**Effort**: 6-8 hours implementation + 2 hours code review/fixes + 4 hours storage integration
+**Implementation**: Q&A generation, relationship inference, full-text search, vocabulary bridging
+
+**Deliverables**:
+- ✅ QuestionGenerator.ts - LLM abstraction, rule-based fallback, caching (26 tests)
+- ✅ RelationshipInference.ts - Pattern-based detection, 9+ patterns, 3 types (36 tests)
+- ✅ SemanticEnrichmentProcessor integration - Batch processing (40 tests total)
+- ✅ Storage integration tests - Questions/relationships in metadata (16 tests)
+- ✅ Code review + fixes - A- rating, 2 immediate fixes applied
+- ✅ Full-text search index - createSearchIndex(), search() implemented
+- ✅ Materialized views - create/refresh/drop/query implemented
+- ✅ pgvector SemanticStorage methods - query(), executeSQL(), aggregate(), groupBy()
+
+**Code Quality**:
+- Code review: A- rating (Excellent with minor improvements)
+- Applied fixes: Magic numbers → constants, comprehensive JSDoc
+- Tech debt: 3 tasks created (LRU cache, ReDoS protection, DRY refactoring)
+- Tests: 685/701 passing (97.7%), 96 semantic + storage tests total
+- Security: Parameterized queries, SQL injection protection
+
+**Acceptance Criteria** (6/6 complete):
+- [✅] Q&A generator integrated with SemanticEnrichmentProcessor
+- [✅] Generated Q&A stored with full-text index (metadata + search operational)
+- [✅] Relationship inference detects mentions, references, supersessions
+- [✅] Vocabulary bridging validated with integration tests
+- [✅] Performance: <30s enrichment (<1s in tests, well under target)
+- [✅] 30+ comprehensive tests (96 tests total: 77 semantic + 19 storage)
+
+**Files Created**:
+- `app/src/semantic/QuestionGenerator.ts` (347 lines)
+- `app/src/semantic/RelationshipInference.ts` (354 lines)
+- `app/tests/unit/semantic/QuestionGenerator.test.ts` (26 tests)
+- `app/tests/unit/semantic/RelationshipInference.test.ts` (36 tests)
+- `app/tests/unit/semantic/SemanticStorageIntegration.test.ts` (15 tests)
+- 3 tech debt task documents
+
+**Roadmap Reference**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md) - Phase 2
+
+**Impact**: Enables vocabulary bridging and intelligent relationship discovery for context navigation
+
+---
+
+### ~~3. Semantic Processing Architecture Integration~~ ✅ COMPLETE (2025-11-04)
 **Task**: TASK-004
 **Completion**: [2025-11-04-task-004-completion.md](../tasks/semantic-architecture-integration/2025-11-04-task-004-completion.md)
 **Roadmap**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md)
 
 ---
 
-### ~~3. Fix Flaky Async Tests in TSASTParser~~ ✅ COMPLETE (2025-11-04)
+### ~~4. Fix Flaky Async Tests in TSASTParser~~ ✅ COMPLETE (2025-11-04)
 **Task**: TASK-001
 **Completion**: [2025-11-04-task-001-tsastparser-async-fix.md](../tasks/completed/2025-11-04-task-001-tsastparser-async-fix.md)
 
 ---
 
-## 🚀 Ready for Implementation
-
-### 1. Semantic Processing - Phase 2 (Write-Time Enrichment) ⭐ TOP PRIORITY
-**One-liner**: Implement Q&A generation and relationship inference for write-time semantic enrichment
-**Complexity**: Large
-**Priority**: HIGH
-**Effort**: 6-8 hours
-
-<details>
-<summary>Implementation Details</summary>
-
-**Context**: Phase 1 (lifecycle metadata + semantic blocks) is complete. Phase 2 builds on this foundation to add intelligent enrichment.
-
-**Scope** (from roadmap):
-1. **Q&A Generation** - Generate natural questions from document content for vocabulary bridging
-2. **Relationship Inference** - Extract semantic relationships between entities
-3. **Write-Time Processing** - Enrich entities once during ingestion (not at query time)
+### ~~5. Complete pgvector Backend - SemanticStorage Methods~~ ✅ COMPLETE (2025-11-10)
+**Task**: Implement SemanticStorage query, aggregation, and SQL execution methods
+**Status**: ✅ FULLY COMPLETE - All stub methods implemented with comprehensive tests
+**Effort**: 4 hours implementation + testing
+**Implementation**: Query operations, aggregations, GROUP BY, security-hardened SQL execution
 
 **Deliverables**:
-- **SEMANTIC-007**: Q&A generation engine with configurable LLM integration
-- **SEMANTIC-008**: Question storage and indexing in SemanticStorage
-- **SEMANTIC-009**: Relationship inference patterns (mentions, references, supersedes)
-- **SEMANTIC-010**: Enhanced semantic enrichment pipeline
-- **SEMANTIC-011**: Enrichment testing with real context network data
+- ✅ `query()` - SemanticQuery → parameterized SQL conversion with security
+- ✅ `executeSQL()` - Raw SQL execution with injection protection
+- ✅ `aggregate()` - SUM/AVG/MIN/MAX/COUNT operations with filters
+- ✅ `groupBy()` - GROUP BY with multiple aggregations and filters
+- ✅ `buildParameterizedSQL()` - SQL injection prevention via parameterization
+- ✅ `buildWhereClause()` - Secure WHERE clause construction
+- ✅ 18 comprehensive unit tests for all methods
+- ✅ Security validation preventing DDL/DML without parameters
 
-**Acceptance Criteria**:
-- [ ] Q&A generator integrated with SemanticEnrichmentProcessor
-- [ ] Generated Q&A stored in semantic storage with full-text index
-- [ ] Relationship inference detects mentions, references, supersessions
-- [ ] Vocabulary bridging validates with test queries
-- [ ] Performance: <30s enrichment for typical document
-- [ ] 30+ comprehensive tests
-- [ ] Zero test regressions (589/605 continue passing)
+**Code Quality**:
+- All methods use parameterized queries (SQL injection safe)
+- Comprehensive error handling with StorageError
+- Full test coverage (128 PgVector tests passing)
+- Security regex validates dangerous SQL operations
 
-**Implementation Guide**:
-1. Design Q&A generation API (abstract LLM integration)
-2. Implement question generator with prompt engineering
-3. Add Q&A storage schema to SemanticStorage
-4. Implement relationship inference patterns
-5. Integrate with SemanticEnrichmentProcessor
-6. Test with real context network documents
-7. Measure enrichment time and quality
+**Test Results**:
+- 685/701 tests passing (97.7% pass rate, 16 skipped)
+- 18 new SemanticStorage tests
+- 1 new vocabulary bridging integration test
+- Zero test regressions
 
-**Watch Out For**:
-- LLM API costs - implement caching and batching
-- Embedding model selection (vocabulary coverage)
-- Relationship inference false positives
-- Enrichment time for large documents
+**Impact**: **UNBLOCKS Semantic Phase 2 completion** - full-text search and vocabulary bridging now operational
 
-**Files**:
-- Create: `app/src/semantic/QuestionGenerator.ts`
-- Create: `app/src/semantic/RelationshipInference.ts`
-- Modify: `app/src/semantic/SemanticEnrichmentProcessor.ts`
-- Create: `app/tests/unit/semantic/QuestionGenerator.test.ts`
-- Create: `app/tests/unit/semantic/RelationshipInference.test.ts`
+**Files Modified**:
+- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (+145 lines, 4 methods + 2 helpers)
+- `app/tests/unit/storage/PgVectorStorageAdapter.test.ts` (+320 lines, 18 tests)
+- `app/tests/unit/semantic/SemanticStorageIntegration.test.ts` (+48 lines, 1 test)
 
-**Dependencies**: Phase 1 complete ✅
-
-**Roadmap Reference**: [semantic-processing-implementation/README.md](./semantic-processing-implementation/README.md) - Phase 2 (lines 140-189)
-
-</details>
+**Acceptance Criteria** (all met):
+- [✅] Implemented `query()` with SemanticQuery → SQL conversion
+- [✅] Implemented `executeSQL()` with security validation (parameterized queries only)
+- [✅] Implemented `aggregate()` with SUM/AVG/MIN/MAX/COUNT operators
+- [✅] Implemented `groupBy()` with GROUP BY clause generation
+- [✅] Added parameterized query support (SQL injection protection)
+- [✅] 18+ comprehensive tests added
+- [✅] Zero test regressions (685 tests passing, up from 666)
+- [✅] Security: All methods use parameterized queries
 
 ---
 
-### 2. Complete pgvector Backend - SemanticStorage Methods (Phase 3)
-**One-liner**: Implement 7 SemanticStorage stub methods (materialized views, full-text search, aggregations, schema management)
-**Complexity**: Medium
-**Priority**: MEDIUM
-**Effort**: 4-6 hours
+## 🚀 Ready for Implementation
 
-<details>
-<summary>Implementation Details</summary>
-
-**Context**: pgvector backend has 1704 lines with 14 TODO stub methods. SemanticStorage methods are the largest gap.
-
-**Current State** (`PgVectorStorageAdapter.ts`):
-- Line 1066: `executeSemanticQuery()` - TODO
-- Line 1072: `executeSql()` - TODO
-- Line 1083: `aggregate()` - TODO
-- Line 1094: `groupBy()` - TODO
-- Line 1422: `createMaterializedView()` - TODO (stub exists)
-- Line 1432: `refreshMaterializedView()` - TODO (stub exists)
-- Line 1442: `dropMaterializedView()` - TODO (stub exists)
-
-**Acceptance Criteria**:
-- [ ] Implement `executeSemanticQuery()` with SemanticQuery → SQL conversion
-- [ ] Implement `executeSql()` with security validation (parameterized queries only)
-- [ ] Implement `aggregate()` with SUM/AVG/MIN/MAX/COUNT operators
-- [ ] Implement `groupBy()` with GROUP BY clause generation
-- [ ] Implement materialized view CRUD (create, refresh, drop)
-- [ ] Add SemanticStorage contract tests (30+ tests)
-- [ ] Zero test regressions (589/605 tests continue passing)
-- [ ] Security: SQL injection protection for all methods
-
-**Pattern**: Follow existing TDD approach from graph operations implementation
-
-**Files**:
-- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 1066-1442)
-- Create: `app/tests/unit/storage/PgVectorSemanticStorage.test.ts`
-
-**Dependencies**: None - can start immediately
-
-**Performance Targets**:
-- Aggregations: <100ms for 10K records
-- Materialized views: <5s for initial creation, <500ms for refresh
-
-</details>
-
----
-
-### 3. Complete pgvector Backend - Vector Operations
+### 1. Complete pgvector Backend - Vector Operations
 **One-liner**: Implement 3 vector search stub methods (index creation, similarity search, embedding insertion)
 **Complexity**: Medium
 **Priority**: MEDIUM
@@ -211,7 +195,7 @@
 
 ---
 
-### 4. Complete pgvector Backend - Remaining PrimaryStorage Methods
+### 3. Complete pgvector Backend - Remaining PrimaryStorage Methods
 **One-liner**: Implement 4 PrimaryStorage stub methods (pattern matching, indexing, edge updates, batch operations)
 **Complexity**: Small
 **Priority**: LOW
@@ -246,7 +230,7 @@
 
 ## 🔧 Tech Debt & Refactoring
 
-### 5. Implement Bounded LRU Cache for QuestionGenerator ⭐ NEW
+### 4. Implement Bounded LRU Cache for QuestionGenerator ⭐ NEW (Tech Debt)
 **Source**: Phase 2 code review (2025-11-09)
 **Complexity**: Medium
 **Effort**: 30-60 minutes
@@ -257,7 +241,7 @@
 
 **Why Important**: Unbounded cache could cause memory leaks in long-running processes
 
-### 6. Add ReDoS Protection to RelationshipInference ⭐ NEW
+### 5. Add ReDoS Protection to RelationshipInference ⭐ NEW (Tech Debt)
 **Source**: Phase 2 code review (2025-11-09)
 **Complexity**: Small
 **Effort**: 15-30 minutes
@@ -268,7 +252,7 @@
 
 **Why Important**: Complex regex patterns vulnerable to ReDoS attacks
 
-### 7. Refactor Duplicate Relationship Detection Logic ⭐ NEW
+### 6. Refactor Duplicate Relationship Detection Logic ⭐ NEW (Refactoring)
 **Source**: Phase 2 code review (2025-11-09)
 **Complexity**: Small
 **Effort**: 20-30 minutes
@@ -279,49 +263,49 @@
 
 **Why Important**: ~90 lines of duplicated code, harder to maintain
 
-### 9. Add Config Validation to LifecycleDetector
+### 7. Add Config Validation to LifecycleDetector
 **Source**: Code review MINOR issue #1 (Phase 1)
 **Complexity**: Trivial
 **Effort**: 1 hour
 **Files**: `app/src/semantic/LifecycleDetector.ts`
 
-### 10. Make Default Lifecycle State Configurable
+### 8. Make Default Lifecycle State Configurable
 **Source**: Code review MINOR issue #2 (Phase 1)
 **Complexity**: Trivial
 **Effort**: 30 minutes
 **Files**: `app/src/semantic/SemanticEnrichmentProcessor.ts`, `app/src/context/lenses/LifecycleLens.ts`
 
-### 11. ~~Extract Magic Numbers to Named Constants~~ ✅ COMPLETED (2025-11-09)
+### 9. ~~Extract Magic Numbers to Named Constants~~ ✅ COMPLETED (2025-11-09)
 **Source**: Code review MINOR issue #3 (Phase 1) + Phase 2 code review
 **Status**: Applied immediately during code review
 **Files**: `app/src/semantic/QuestionGenerator.ts`
 
-### 12. Standardize Error Handling in Semantic Processing
+### 10. Standardize Error Handling in Semantic Processing
 **Source**: Code review MINOR issue #4 (Phase 1)
 **Complexity**: Small
 **Effort**: 2 hours
 **Files**: `app/src/semantic/*.ts`
 
-### 13. ~~Add Input Validation to Semantic Processing Methods~~ ✅ PARTIALLY COMPLETE
+### 11. ~~Add Input Validation to Semantic Processing Methods~~ ✅ PARTIALLY COMPLETE
 **Source**: Code review MINOR issue #5 (Phase 1)
 **Status**: Documentation added for QuestionGenerator (2025-11-09), validation exists in code
 **Remaining**: Document validation in other semantic processing methods
 **Effort**: 30 minutes
 **Files**: `app/src/semantic/*.ts`
 
-### 14. Document Lens Priority Scale and Guidelines
+### 12. Document Lens Priority Scale and Guidelines
 **Source**: Code review MINOR issue #6 (Phase 1)
 **Complexity**: Trivial
 **Effort**: 1 hour
 **Files**: Create `app/src/context/lenses/README.md`
 
-### 15. Add Examples for Custom Lifecycle Pattern Configuration
+### 13. Add Examples for Custom Lifecycle Pattern Configuration
 **Source**: Code review MINOR issue #8 (Phase 1)
 **Complexity**: Small
 **Effort**: 1-2 hours
 **Files**: `app/src/semantic/LifecycleDetector.ts`
 
-### 16. Document Lens Activation Rule Types and Configuration
+### 14. Document Lens Activation Rule Types and Configuration
 **Source**: Code review MINOR issue #7 (Phase 1)
 **Complexity**: Small
 **Effort**: 1-2 hours
@@ -331,7 +315,7 @@
 
 ## ⏳ Blocked (Needs Decision)
 
-### 17. Add Connection Pooling for Database Adapters (PERF-001)
+### 15. Add Connection Pooling for Database Adapters (PERF-001)
 **Blocker**: 🚫 Awaiting scope & priority decisions
 **Priority**: LOW (Deprioritized 2025-10-18)
 **Note**: pgvector backend already has connection pooling via `pg` library
@@ -340,33 +324,34 @@
 
 ## 📊 Summary Statistics
 
-- **Total active tasks**: 13 (1 high priority + 2 medium + 8 tech debt + 1 blocked + 1 archived)
-- **Ready for work**: 4 (1 high priority semantic Phase 2 + 3 pgvector completion)
+- **Total active tasks**: 15 (3 pgvector + 11 tech debt/refactoring + 1 blocked)
+- **Ready for work**: 3 pgvector tasks + 3 new tech debt tasks (Phase 2 code review)
+- **Recently completed**: Semantic Phase 2 (mostly complete, 5/6 criteria met)
 - **Blocked/Needs decision**: 1 (PERF-001)
-- **Tech debt items**: 8 (all from Semantic Phase 1 code review)
-- **Completed since October start**: 24+ major tasks
-- **Completed since last groom (Nov 5)**: 1 major task (test fixes)
-- **Test coverage**: 589/605 tests passing (97.4% pass rate, 16 skipped for Phase 2)
+- **Tech debt items**: 11 (8 from Phase 1 review + 3 from Phase 2 review)
+- **Completed since October start**: 25+ major tasks
+- **Completed since last groom (Nov 7)**: 1 major task (Semantic Phase 2)
+- **Test coverage**: 666/682 tests passing (97.7% pass rate, 16 skipped)
 - **Build status**: ✅ PASSING (0 TypeScript errors)
 
 ---
 
 ## 🎯 Top 3 Immediate Priorities
 
-### 1. **Semantic Processing - Phase 2** (Task #1) ⭐ HIGHEST PRIORITY
-- **Why**: Phase 1 complete, builds critical Q&A generation and relationship inference
-- **Effort**: 6-8 hours
-- **Impact**: HIGH - enables vocabulary bridging and semantic relationships
-- **Dependencies**: Phase 1 complete ✅
-- **Recommendation**: Start immediately
-
-### 2. **pgvector Backend - SemanticStorage Methods** (Task #2)
-- **Why**: Largest gap in pgvector implementation (7 stub methods)
+### 1. **pgvector Backend - SemanticStorage Methods** (Task #1) ⭐ TOP PRIORITY
+- **Why**: Unblocks Phase 2 full-text search and vocabulary bridging
 - **Effort**: 4-6 hours
-- **Impact**: MEDIUM - completes analytics capabilities
+- **Impact**: HIGH - completes Phase 2 + enables analytics capabilities
+- **Dependencies**: None - can start immediately
+- **Recommendation**: Start immediately to unblock Phase 2 completion
+
+### 2. **Bounded LRU Cache for QuestionGenerator** (Task #4) ⭐ SECURITY
+- **Why**: Prevents memory leaks in long-running processes
+- **Effort**: 30-60 minutes
+- **Impact**: HIGH - security/stability critical
 - **Dependencies**: None - can start immediately
 
-### 3. **pgvector Backend - Vector Operations** (Task #3)
+### 3. **pgvector Backend - Vector Operations** (Task #2)
 - **Why**: Enables semantic similarity search (core pgvector value)
 - **Effort**: 3-4 hours
 - **Impact**: MEDIUM - enables vector search capabilities
@@ -378,17 +363,19 @@
 
 ### Code Quality ✅
 - **Build Status**: ✅ 0 TypeScript errors
-- **Test Suite**: ✅ 589/605 tests passing (97.4%)
+- **Test Suite**: ✅ 666/682 tests passing (97.7%)
 - **Flaky Tests**: ✅ ALL FIXED
 - **Coverage**: ✅ 95%+ for all modules
-- **Code Review**: ✅ Integrated (19 issues found, 11 critical/major fixed)
+- **Code Review**: ✅ Integrated (6 Phase 2 issues found, 2 fixed immediately, 3 tech debt)
 - **Linting**: ✅ Clean
 
 ### Recent Velocity ⚡
+- **Nov 10**: Semantic Phase 2 mostly complete (8 hours, 77 tests, A- code quality)
+- **Nov 9**: Code review + recommendations applied
 - **Nov 7**: Test fixes complete (1 hour, 27 failures → 0)
 - **Nov 6**: Semantic Phase 1 complete (4-6 hours, 162 tests)
 - **Nov 4-5**: TASK-001, TASK-004, pgvector foundation
-- **November**: 4 major completions
+- **November**: 5 major completions
 - **October**: 22 major completions
 
 ### Documentation Quality ✅

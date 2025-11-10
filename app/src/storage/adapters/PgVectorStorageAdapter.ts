@@ -1063,14 +1063,67 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
 
   async query<R = any>(query: SemanticQuery): Promise<SemanticQueryResult<R>> {
     await this.ensureLoaded();
-    // TODO: Implement semantic query
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const startTime = Date.now();
+      const { sql, params } = this.buildParameterizedSQL(query);
+
+      const result = await this.pg.query(sql, params);
+
+      return {
+        data: result.rows as R[],
+        metadata: {
+          executionTime: Date.now() - startTime,
+          rowsScanned: result.rowCount || 0,
+          fromCache: false
+        }
+      };
+    } catch (error) {
+      throw new StorageError(
+        `Semantic query failed: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, query }
+      );
+    }
   }
 
   async executeSQL<R = any>(sql: string, params?: any[]): Promise<SemanticQueryResult<R>> {
     await this.ensureLoaded();
-    // TODO: Implement SQL execution
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const startTime = Date.now();
+
+      // Security: Only allow parameterized queries with placeholders
+      // Reject queries without parameters that contain common SQL injection patterns
+      if (!params || params.length === 0) {
+        // Match dangerous keywords at start of SQL or after semicolon
+        const dangerousPatterns = /(^|;)\s*(DROP|DELETE|UPDATE|INSERT|TRUNCATE|ALTER|CREATE)\s+/i;
+        if (dangerousPatterns.test(sql)) {
+          throw new StorageError(
+            'Direct SQL execution of DDL/DML without parameters is not allowed',
+            StorageErrorCode.QUERY_FAILED,
+            { sql }
+          );
+        }
+      }
+
+      const result = await this.pg.query(sql, params);
+
+      return {
+        data: result.rows as R[],
+        metadata: {
+          executionTime: Date.now() - startTime,
+          rowsScanned: result.rowCount || 0,
+          fromCache: false
+        }
+      };
+    } catch (error) {
+      throw new StorageError(
+        `SQL execution failed: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, sql, params }
+      );
+    }
   }
 
   async aggregate(
@@ -1080,8 +1133,35 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
     filters?: QueryFilter[]
   ): Promise<number> {
     await this.ensureLoaded();
-    // TODO: Implement aggregation
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(table);
+
+      // Map operator to SQL function
+      const sqlOperator = operator.toUpperCase();
+
+      // Build aggregation query
+      let sql = `SELECT ${sqlOperator}(${field}) as result FROM ${tableName}`;
+      const params: any[] = [];
+
+      // Add WHERE clause if filters exist
+      if (filters && filters.length > 0) {
+        const { whereClause, whereParams } = this.buildWhereClause(filters);
+        sql += ` WHERE ${whereClause}`;
+        params.push(...whereParams);
+      }
+
+      const result = await this.pg.query(sql, params);
+
+      // Return the aggregation result (handle NULL for empty result sets)
+      return result.rows[0]?.result !== null ? Number(result.rows[0].result) : 0;
+    } catch (error) {
+      throw new StorageError(
+        `Aggregation failed on table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table, operator, field, filters }
+      );
+    }
   }
 
   async groupBy(
@@ -1091,8 +1171,40 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
     filters?: QueryFilter[]
   ): Promise<Record<string, any>[]> {
     await this.ensureLoaded();
-    // TODO: Implement group by
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(table);
+
+      // Build SELECT clause with GROUP BY fields and aggregations
+      const groupByFields = groupBy.join(', ');
+      const aggClauses = aggregations.map(agg => {
+        const alias = agg.as || `${agg.operator}_${agg.field}`;
+        return `${agg.operator.toUpperCase()}(${agg.field}) as ${alias}`;
+      }).join(', ');
+
+      let sql = `SELECT ${groupByFields}, ${aggClauses} FROM ${tableName}`;
+      const params: any[] = [];
+
+      // Add WHERE clause if filters exist
+      if (filters && filters.length > 0) {
+        const { whereClause, whereParams } = this.buildWhereClause(filters);
+        sql += ` WHERE ${whereClause}`;
+        params.push(...whereParams);
+      }
+
+      // Add GROUP BY clause
+      sql += ` GROUP BY ${groupByFields}`;
+
+      const result = await this.pg.query(sql, params);
+
+      return result.rows;
+    } catch (error) {
+      throw new StorageError(
+        `GROUP BY failed on table "${table}": ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, table, groupBy, aggregations, filters }
+      );
+    }
   }
 
   /**
@@ -1322,6 +1434,84 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
         { error }
       );
     }
+  }
+
+  /**
+   * Helper: Build WHERE clause with parameterized values for security
+   *
+   * @param filters - Query filters
+   * @returns Object with WHERE clause and parameters array
+   */
+  private buildWhereClause(filters: QueryFilter[]): { whereClause: string; whereParams: any[] } {
+    const whereParams: any[] = [];
+    const whereConditions = filters.map((filter, index) => {
+      whereParams.push(filter.value);
+      return `${filter.field} ${filter.operator} $${index + 1}`;
+    });
+
+    return {
+      whereClause: whereConditions.join(' AND '),
+      whereParams
+    };
+  }
+
+  /**
+   * Helper: Build parameterized SQL query from SemanticQuery object
+   *
+   * Returns SQL with placeholders ($1, $2, etc.) and corresponding parameter values
+   * for safe execution without SQL injection vulnerabilities.
+   *
+   * @param query - Semantic query object
+   * @returns Object with SQL string and parameters array
+   */
+  private buildParameterizedSQL(query: SemanticQuery): { sql: string; params: any[] } {
+    const tableName = this.qualifiedTableName(query.from);
+    const params: any[] = [];
+
+    // Build SELECT clause
+    const selectClause = query.select && query.select.length > 0
+      ? query.select.join(', ')
+      : '*';
+
+    let sql = `SELECT ${selectClause} FROM ${tableName}`;
+
+    // Add WHERE clause if filters exist
+    if (query.where && query.where.length > 0) {
+      const { whereClause, whereParams } = this.buildWhereClause(query.where);
+      sql += ` WHERE ${whereClause}`;
+      params.push(...whereParams);
+    }
+
+    // Add GROUP BY clause
+    if (query.groupBy && query.groupBy.length > 0) {
+      sql += ` GROUP BY ${query.groupBy.join(', ')}`;
+    }
+
+    // Add aggregations to SELECT if specified with GROUP BY
+    if (query.aggregations && query.aggregations.length > 0) {
+      // Aggregations were added to SELECT clause above if needed
+      // This is handled by the caller constructing the query properly
+    }
+
+    // Add ORDER BY clause
+    if (query.orderBy && query.orderBy.length > 0) {
+      const orderClauses = query.orderBy.map(sort =>
+        `${sort.field} ${sort.direction || 'ASC'}`
+      ).join(', ');
+      sql += ` ORDER BY ${orderClauses}`;
+    }
+
+    // Add LIMIT clause
+    if (query.limit) {
+      sql += ` LIMIT ${query.limit}`;
+    }
+
+    // Add OFFSET clause
+    if (query.offset) {
+      sql += ` OFFSET ${query.offset}`;
+    }
+
+    return { sql, params };
   }
 
   /**

@@ -244,9 +244,10 @@ export class SemanticEnrichmentProcessor {
     if (this.config.generateQuestions && entity.content) {
       const questionResult = await this.questionGenerator.generate(enrichedEntity)
 
+      // Always store questions array (even if empty) for consistent metadata structure
+      enrichedEntity.metadata!.questions = questionResult.questions
+
       if (questionResult.questions.length > 0) {
-        // Store questions in entity metadata
-        enrichedEntity.metadata!.questions = questionResult.questions
         hasQuestions = true
         questionCount = questionResult.questions.length
       }
@@ -263,9 +264,10 @@ export class SemanticEnrichmentProcessor {
     if (this.config.inferRelationships && entity.content) {
       const inferenceResult = await this.relationshipInference.infer(enrichedEntity)
 
+      // Always store relationships array (even if empty) for consistent metadata structure
+      enrichedEntity.metadata!.inferredRelationships = inferenceResult.relationships
+
       if (inferenceResult.relationships.length > 0) {
-        // Store inferred relationships in entity metadata
-        enrichedEntity.metadata!.inferredRelationships = inferenceResult.relationships
         hasRelationships = true
         relationshipCount = inferenceResult.relationships.length
       }

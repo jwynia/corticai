@@ -1638,4 +1638,324 @@ describe('PgVectorStorageAdapter (Unit Tests)', () => {
       });
     });
   });
+
+  describe('Semantic Storage - Query Operations', () => {
+    it('should execute semantic query with filters', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [
+          { id: '1', type: 'document', name: 'Test Doc' },
+          { id: '2', type: 'document', name: 'Another Doc' }
+        ],
+        rowCount: 2
+      });
+
+      const result = await adapter.query({
+        from: 'entities',
+        select: ['id', 'type', 'name'],
+        where: [{ field: 'type', operator: '=', value: 'document' }],
+        limit: 10
+      });
+
+      expect(result.data).toHaveLength(2);
+      expect(result.metadata.executionTime).toBeGreaterThanOrEqual(0);
+      expect(result.metadata.rowsScanned).toBe(2);
+      expect(result.metadata.fromCache).toBe(false);
+
+      // Verify parameterized query was used
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE'),
+        expect.arrayContaining(['document'])
+      );
+    });
+
+    it('should execute query with ORDER BY and LIMIT', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ id: '1', name: 'First' }],
+        rowCount: 1
+      });
+
+      await adapter.query({
+        from: 'entities',
+        orderBy: [{ field: 'name', direction: 'asc' }],
+        limit: 5,
+        offset: 10
+      });
+
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('ORDER BY name asc LIMIT 5 OFFSET 10'),
+        []
+      );
+    });
+
+    it('should execute query with GROUP BY', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ type: 'document', count: 5 }],
+        rowCount: 1
+      });
+
+      await adapter.query({
+        from: 'entities',
+        select: ['type'],
+        groupBy: ['type']
+      });
+
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('GROUP BY'),
+        []
+      );
+    });
+  });
+
+  describe('Semantic Storage - SQL Execution', () => {
+    it('should execute raw SQL with parameters', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ count: 42 }],
+        rowCount: 1
+      });
+
+      const result = await adapter.executeSQL(
+        'SELECT COUNT(*) as count FROM entities WHERE type = $1',
+        ['document']
+      );
+
+      expect(result.data).toEqual([{ count: 42 }]);
+      expect(result.metadata.fromCache).toBe(false);
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.any(String),
+        ['document']
+      );
+    });
+
+    it('should allow SELECT queries without parameters', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ id: '1' }],
+        rowCount: 1
+      });
+
+      await adapter.executeSQL('SELECT * FROM entities LIMIT 10');
+
+      expect(mockPg.queryMock).toHaveBeenCalled();
+    });
+
+    it('should reject dangerous SQL without parameters', async () => {
+      await expect(
+        adapter.executeSQL('DROP TABLE entities')
+      ).rejects.toThrow('DDL/DML without parameters is not allowed');
+
+      await expect(
+        adapter.executeSQL('DELETE FROM entities WHERE id = 1')
+      ).rejects.toThrow('DDL/DML without parameters is not allowed');
+
+      await expect(
+        adapter.executeSQL('UPDATE entities SET name = "test"')
+      ).rejects.toThrow('DDL/DML without parameters is not allowed');
+    });
+
+    it('should allow dangerous SQL with parameters', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [],
+        rowCount: 0
+      });
+
+      await adapter.executeSQL(
+        'DELETE FROM entities WHERE id = $1',
+        ['some-id']
+      );
+
+      expect(mockPg.queryMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('Semantic Storage - Aggregations', () => {
+    it('should perform COUNT aggregation', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: 42 }],
+        rowCount: 1
+      });
+
+      const count = await adapter.aggregate('entities', 'count', '*');
+
+      expect(count).toBe(42);
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('COUNT(*)'),
+        []
+      );
+    });
+
+    it('should perform SUM aggregation', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: 12345 }],
+        rowCount: 1
+      });
+
+      const sum = await adapter.aggregate('entities', 'sum', 'value');
+
+      expect(sum).toBe(12345);
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('SUM(value)'),
+        []
+      );
+    });
+
+    it('should perform AVG aggregation', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: 3.14 }],
+        rowCount: 1
+      });
+
+      const avg = await adapter.aggregate('entities', 'avg', 'score');
+
+      expect(avg).toBe(3.14);
+    });
+
+    it('should perform MIN/MAX aggregations', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: 1 }],
+        rowCount: 1
+      });
+
+      const min = await adapter.aggregate('entities', 'min', 'value');
+      expect(min).toBe(1);
+
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: 100 }],
+        rowCount: 1
+      });
+
+      const max = await adapter.aggregate('entities', 'max', 'value');
+      expect(max).toBe(100);
+    });
+
+    it('should perform aggregation with filters', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: 10 }],
+        rowCount: 1
+      });
+
+      await adapter.aggregate('entities', 'count', '*', [
+        { field: 'type', operator: '=', value: 'document' },
+        { field: 'status', operator: '=', value: 'active' }
+      ]);
+
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE'),
+        ['document', 'active']
+      );
+    });
+
+    it('should return 0 for NULL aggregation results', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ result: null }],
+        rowCount: 1
+      });
+
+      const count = await adapter.aggregate('entities', 'count', '*');
+
+      expect(count).toBe(0);
+    });
+  });
+
+  describe('Semantic Storage - GROUP BY', () => {
+    it('should group by single field with aggregation', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [
+          { type: 'document', count_all: 10 },
+          { type: 'concept', count_all: 5 }
+        ],
+        rowCount: 2
+      });
+
+      const results = await adapter.groupBy(
+        'entities',
+        ['type'],
+        [{ operator: 'count', field: '*', as: 'count_all' }]
+      );
+
+      expect(results).toHaveLength(2);
+      expect(results[0]).toEqual({ type: 'document', count_all: 10 });
+      expect(results[1]).toEqual({ type: 'concept', count_all: 5 });
+    });
+
+    it('should group by multiple fields', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [
+          { type: 'document', status: 'active', count: 8 }
+        ],
+        rowCount: 1
+      });
+
+      await adapter.groupBy(
+        'entities',
+        ['type', 'status'],
+        [{ operator: 'count', field: '*', as: 'count' }]
+      );
+
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('GROUP BY type, status'),
+        []
+      );
+    });
+
+    it('should support multiple aggregations', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [
+          { type: 'document', total: 100, avg_score: 75.5, min_score: 50, max_score: 100 }
+        ],
+        rowCount: 1
+      });
+
+      const results = await adapter.groupBy(
+        'entities',
+        ['type'],
+        [
+          { operator: 'count', field: '*', as: 'total' },
+          { operator: 'avg', field: 'score', as: 'avg_score' },
+          { operator: 'min', field: 'score', as: 'min_score' },
+          { operator: 'max', field: 'score', as: 'max_score' }
+        ]
+      );
+
+      expect(results[0]).toHaveProperty('total', 100);
+      expect(results[0]).toHaveProperty('avg_score', 75.5);
+      expect(results[0]).toHaveProperty('min_score', 50);
+      expect(results[0]).toHaveProperty('max_score', 100);
+    });
+
+    it('should support GROUP BY with filters', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ type: 'document', count: 5 }],
+        rowCount: 1
+      });
+
+      await adapter.groupBy(
+        'entities',
+        ['type'],
+        [{ operator: 'count', field: '*', as: 'count' }],
+        [{ field: 'status', operator: '=', value: 'active' }]
+      );
+
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE'),
+        ['active']
+      );
+    });
+
+    it('should use default alias when not specified', async () => {
+      mockPg.queryMock.mockResolvedValueOnce({
+        rows: [{ type: 'document', count_star: 10 }],
+        rowCount: 1
+      });
+
+      await adapter.groupBy(
+        'entities',
+        ['type'],
+        [{ operator: 'count', field: '*' }]  // No 'as' field
+      );
+
+      expect(mockPg.queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('COUNT(*) as count_*'),
+        []
+      );
+    });
+  });
 });
