@@ -352,18 +352,10 @@ describe('DuckDBParquetOperations', () => {
   // ============================================================================
   // queryParquet() - Query Parquet file directly
   // ============================================================================
+  // Note: Full queryParquet functionality is tested in integration tests
+  // (tests/storage/duckdb.adapter.test.ts) where real connection mocking is set up
 
   describe('queryParquet', () => {
-    it.skip('should query Parquet file directly without importing - tested in integration tests', async () => {
-      // This functionality is tested in the full DuckDB adapter integration tests
-      // where the real connection mocking is properly set up
-      // See: tests/storage/duckdb.adapter.test.ts - "Parquet Support" section
-    })
-
-    it.skip('should handle query with no parameters - tested in integration tests', async () => {
-      // Tested in integration tests with real connection
-    })
-
     it('should throw error when Parquet is not enabled', async () => {
       const disabledConfig = {
         ...mockConfig,
@@ -381,10 +373,6 @@ describe('DuckDBParquetOperations', () => {
       ).rejects.toThrow('Parquet support not enabled')
     })
 
-    it.skip('should log query operation in debug mode - tested in integration tests', async () => {
-      // Debug logging tested in integration tests
-    })
-
     it('should handle query errors gracefully', async () => {
       mockConnection.runAndReadAll = vi.fn().mockRejectedValue(new Error('Invalid query'))
       const filePath = path.join(testDir, 'error.parquet')
@@ -392,10 +380,6 @@ describe('DuckDBParquetOperations', () => {
       await expect(
         operations.queryParquet(filePath, 'INVALID SQL')
       ).rejects.toThrow()
-    })
-
-    it.skip('should return empty array for no matches - tested in integration tests', async () => {
-      // Tested in integration tests with real connection
     })
   })
 
@@ -460,20 +444,9 @@ describe('DuckDBParquetOperations', () => {
   })
 
   // ============================================================================
-  // INTEGRATION WITH DUCKSQLGENERATOR
-  // ============================================================================
-
-  describe('Integration with DuckDBSQLGenerator', () => {
-    it.skip('should delegate to DuckDBSQLGenerator for queryParquet - tested in integration tests', async () => {
-      // This test verifies that queryParquet properly uses the SQL generator
-      // The actual SQL generation is tested in DuckDBSQLGenerator tests
-      // Full integration testing is done in duckdb.adapter.test.ts
-    })
-  })
-
-  // ============================================================================
   // ERROR CODE VALIDATION
   // ============================================================================
+  // Note: Integration with DuckDBSQLGenerator is tested in duckdb.adapter.test.ts
 
   describe('Error Codes', () => {
     it('should throw INVALID_VALUE error when Parquet is disabled', async () => {

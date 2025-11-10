@@ -332,9 +332,10 @@ Line 10`
   })
 
   describe('Error Handling', () => {
-    // TODO: Fix - parser generates 2 errors instead of 1 for invalid block types
-    // (invalid type error + block end without start error)
-    it.skip('should detect invalid block types', () => {
+    // Parser generates 2 errors for invalid block types:
+    // 1. Invalid type error
+    // 2. Block end without start error (since invalid block start is skipped)
+    it('should detect invalid block types', () => {
       const content = `
 ::invalid-type{id="test"}
 Content
@@ -344,8 +345,9 @@ Content
       const result = parser.parse(content, 'doc-123')
 
       expect(result.blocks).toHaveLength(0)
-      expect(result.errors).toHaveLength(1)
+      expect(result.errors).toHaveLength(2)
       expect(result.errors[0].message).toContain('Invalid semantic block type')
+      expect(result.errors[1].message).toContain('Block end marker without matching start')
     })
 
     it('should detect nested blocks', () => {

@@ -238,19 +238,7 @@ describe('TSASTParser', () => {
     });
 
     describe('dependency resolution', () => {
-      // TODO: Move to integration tests - requires real filesystem for TSImportResolver
-      it.skip('should resolve relative import dependencies', async () => {
-        // Arrange
-        const testFile = '/test/src/index.ts';
-        const utilsFile = '/test/src/utils.ts';        mockFs.setFile(testFile, `import { util } from './utils';`);
-        mockFs.setFile(utilsFile, `export function util() {}`);
-
-        // Act
-        const analysis = await parser.parseFile(testFile);
-
-        // Assert
-        expect(analysis.dependencies).toContain(utilsFile);
-      });
+      // Note: Full dependency resolution tests require real filesystem and are in integration tests
 
       it('should not include external dependencies in dependency list', async () => {
         // Arrange
@@ -262,31 +250,6 @@ describe('TSASTParser', () => {
         // Assert
         expect(analysis.dependencies).toHaveLength(0);
         expect(analysis.imports).toHaveLength(1); // Import is tracked, but not as dependency
-      });
-
-      // TODO: Move to integration tests - requires real filesystem for TSImportResolver
-      it.skip('should handle multiple dependencies', async () => {
-        // Arrange
-        const testFile = '/test/src/index.ts';
-        const utils1 = '/test/src/utils1.ts';
-        const utils2 = '/test/src/utils2.ts';
-        const helpers = '/test/src/helpers.ts';        mockFs.setFile(testFile, `
-          import { util1 } from './utils1';
-          import { util2 } from './utils2';
-          import { helper } from './helpers';
-        `);
-        mockFs.setFile(utils1, `export function util1() {}`);
-        mockFs.setFile(utils2, `export function util2() {}`);
-        mockFs.setFile(helpers, `export function helper() {}`);
-
-        // Act
-        const analysis = await parser.parseFile(testFile);
-
-        // Assert
-        expect(analysis.dependencies).toHaveLength(3);
-        expect(analysis.dependencies).toContain(utils1);
-        expect(analysis.dependencies).toContain(utils2);
-        expect(analysis.dependencies).toContain(helpers);
       });
     });
 
@@ -497,23 +460,6 @@ describe('TSASTParser', () => {
     });
   });
 
-  describe('with custom import resolver', () => {
-    // TODO: Move to integration tests - requires real filesystem for TSImportResolver
-    it.skip('should use injected import resolver', async () => {
-      // Arrange
-      const mockResolver = new TSImportResolver();
-      const mockResolve = vi.spyOn(mockResolver, 'resolveDependencyPath');
-      mockResolve.mockResolvedValue('/mock/resolved/path.ts');
-
-      const customParser = new TSASTParser({ importResolver: mockResolver });
-
-      const testFile = '/test/with-import.ts';      mockFs.setFile(testFile, `import { x } from './module';`);
-
-      // Act
-      await customParser.parseFile(testFile);
-
-      // Assert
-      expect(mockResolve).toHaveBeenCalled();
-    });
-  });
+  // Note: Custom import resolver integration tests require real filesystem
+  // and are tested in integration test suite
 });
