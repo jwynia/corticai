@@ -254,73 +254,62 @@
 
 ## 🚀 Ready for Implementation
 
-### 1. Complete pgvector Backend - Remaining PrimaryStorage Methods
-**One-liner**: Implement 4 PrimaryStorage stub methods (pattern matching, indexing, edge updates, batch operations)
+### ~~1. Complete pgvector Backend - Remaining PrimaryStorage Methods~~ ✅ COMPLETE (2025-11-12)
+**Task**: Implement 6 PrimaryStorage stub methods (pattern matching, indexing, edge updates, batch operations)
+**Status**: ✅ FULLY COMPLETE - All methods implemented with TDD approach
+**Effort**: ~4 hours (34 tests written first, then implementation)
 **Complexity**: Small
 **Priority**: LOW
-**Effort**: 2-3 hours
 
-<details>
-<summary>Implementation Details</summary>
+**Deliverables**:
+- ✅ `findByPattern()` - JSONB containment operator for property filtering
+- ✅ `patternMatch()` - Complex graph pattern queries with JOINs
+- ✅ `createIndex()` - BTREE/GIN index creation with property path validation (security)
+- ✅ `listIndexes()` - Index inspection via pg_indexes
+- ✅ `updateEdge()` - Edge property updates using JSONB || operator
+- ✅ `batchGraphOperations()` - Multi-operation batch processing
 
-**Current State** (`PgVectorStorageAdapter.ts`):
-- Line 906: `matchPattern()` - TODO
-- Line 1027: `matchPattern()` (edge pattern) - TODO
-- Line 1033: `createIndex()` - TODO
-- Line 1039: `listIndexes()` - TODO
-- Line 1050: `updateEdge()` - TODO
-- Line 1056: `executeBatch()` (graph batch ops) - TODO
+**Test Results**:
+- 34 new comprehensive tests (all passing)
+- 6 findByPattern tests (exact match, properties, filters, errors)
+- 4 patternMatch tests (graph patterns, edge matching, complex JOINs)
+- 6 createIndex tests (BTREE, GIN, unique, error handling)
+- 5 listIndexes tests (all indexes, filtering, errors)
+- 6 updateEdge tests (properties, merge, not found, errors)
+- 7 batchGraphOperations tests (addNode, addEdge, mixed, empty, errors)
 
-**Acceptance Criteria**:
-- [ ] Implement pattern matching for nodes and edges
-- [ ] Implement index creation with BTREE/HASH/GIN types
-- [ ] Implement index listing/inspection
-- [ ] Implement edge property updates
-- [ ] Implement batch graph operations (multi-node/edge inserts)
-- [ ] Add PrimaryStorage completion tests (15+ tests)
-- [ ] Zero test regressions
+**Code Quality**:
+- Initial implementation: A- rating
+- Code review: 5 recommendations (3 medium, 2 low priority)
+- Applied all 5 recommendations → upgraded to A rating
+- Security: Property path validation (regex check to prevent SQL injection)
+- Type safety: GraphBatchOperation[], GraphBatchResult (eliminated `any[]`)
+- Documentation: JSDoc added for listIndexes() entityType parameter
+- Maintainability: Extracted PROPERTIES_PREFIX constant
 
-**Files**:
-- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (lines 906-1056)
+**Files Modified**:
+- `app/src/storage/adapters/PgVectorStorageAdapter.ts` (+200 lines, 6 methods + 1 constant)
+- `app/tests/unit/storage/PgVectorStorageAdapter.test.ts` (+500 lines, 34 tests)
 
-</details>
+**Completion Record**: Included in [sync-report-2025-11-12.md](../tasks/sync-report-2025-11-12.md)
+
+**Impact**: Complete PrimaryStorage interface implementation - all methods operational
 
 ---
 
 ## 🔧 Tech Debt & Refactoring
 
-### 4. Implement Bounded LRU Cache for QuestionGenerator ⭐ NEW (Tech Debt)
-**Source**: Phase 2 code review (2025-11-09)
-**Complexity**: Medium
-**Effort**: 30-60 minutes
-**Priority**: HIGH
-**Risk**: Medium - Changes caching behavior
-**Files**: `app/src/semantic/QuestionGenerator.ts:115`
-**Details**: [tasks/tech-debt/semantic-question-cache-bounds.md](../tasks/tech-debt/semantic-question-cache-bounds.md)
+### ~~4. Implement Bounded LRU Cache for QuestionGenerator~~ ✅ COMPLETE (2025-11-10)
+**Status**: ✅ COMPLETE - See completion entry #6 above
+**Completion**: Part of "Semantic Phase 2 Tech Debt - Security & Refactoring"
 
-**Why Important**: Unbounded cache could cause memory leaks in long-running processes
+### ~~5. Add ReDoS Protection to RelationshipInference~~ ✅ COMPLETE (2025-11-10)
+**Status**: ✅ COMPLETE - See completion entry #6 above
+**Completion**: Part of "Semantic Phase 2 Tech Debt - Security & Refactoring"
 
-### 5. Add ReDoS Protection to RelationshipInference ⭐ NEW (Tech Debt)
-**Source**: Phase 2 code review (2025-11-09)
-**Complexity**: Small
-**Effort**: 15-30 minutes
-**Priority**: MEDIUM (Security)
-**Risk**: Medium - Security-related
-**Files**: `app/src/semantic/RelationshipInference.ts` (multiple locations)
-**Details**: [tasks/tech-debt/semantic-redos-protection.md](../tasks/tech-debt/semantic-redos-protection.md)
-
-**Why Important**: Complex regex patterns vulnerable to ReDoS attacks
-
-### 6. Refactor Duplicate Relationship Detection Logic ⭐ NEW (Refactoring)
-**Source**: Phase 2 code review (2025-11-09)
-**Complexity**: Small
-**Effort**: 20-30 minutes
-**Priority**: MEDIUM
-**Risk**: Medium - Refactoring needs testing
-**Files**: `app/src/semantic/RelationshipInference.ts:210-278`
-**Details**: [tasks/refactoring/semantic-relationship-dry.md](../tasks/refactoring/semantic-relationship-dry.md)
-
-**Why Important**: ~90 lines of duplicated code, harder to maintain
+### ~~6. Refactor Duplicate Relationship Detection Logic~~ ✅ COMPLETE (2025-11-10)
+**Status**: ✅ COMPLETE - See completion entry #6 above
+**Completion**: Part of "Semantic Phase 2 Tech Debt - Security & Refactoring"
 
 ### 7. Add Config Validation to LifecycleDetector
 **Source**: Code review MINOR issue #1 (Phase 1)
