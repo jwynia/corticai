@@ -1958,4 +1958,430 @@ describe('PgVectorStorageAdapter (Unit Tests)', () => {
       );
     });
   });
+
+  // ==========================================================================
+  // VECTOR OPERATIONS (pgvector-specific)
+  // ==========================================================================
+
+  describe('Vector Operations', () => {
+    describe('createVectorIndex()', () => {
+      it('should create IVFFLAT vector index with default dimensions', async () => {
+        let indexCreated = false;
+        const mockConnection = {
+          query: async (sql: string) => {
+            if (sql.includes('CREATE INDEX')) {
+              indexCreated = true;
+              expect(sql).toContain('USING ivfflat');
+              expect(sql).toContain('vector_cosine_ops'); // Default distance metric
+              expect(sql).toContain('WITH (lists = 100)'); // Default ivfLists
+            }
+            return { rows: [], rowCount: 0 };
+          },
+          release: () => {}
+        };
+
+        mockPg.mockConnection(mockConnection);
+
+        await adapter.createVectorIndex('test_table', 'embedding');
+
+        expect(indexCreated).toBe(true);
+      });
+
+      it('should create vector index with custom dimensions', async () => {
+        let queriesExecuted: string[] = [];
+        const mockConnection = {
+          query: async (sql: string) => {
+            queriesExecuted.push(sql);
+            return { rows: [], rowCount: 0 };
+          },
+          release: () => {}
+        };
+
+        mockPg.mockConnection(mockConnection);
+
+        await adapter.createVectorIndex('test_table', 'embedding', 768);
+
+        // Schema manager will execute CREATE INDEX
+        expect(queriesExecuted.some(q => q.includes('CREATE INDEX'))).toBe(true);
+      });
+
+      it('should handle HNSW index type when configured', async () => {
+        // Create adapter with HNSW configuration
+        const hnswConfig = {
+          ...config,
+          indexType: 'hnsw' as const,
+          hnswM: 16,
+          hnswEfConstruction: 64
+        };
+        const hnswMockPg = new MockPostgreSQLClient();
+        const hnswAdapter = new PgVectorStorageAdapter(hnswConfig, hnswMockPg);
+
+        let hnswIndexAttempted = false;
+        const initConnection = {
+          query: async (sql: string) => {
+            // Mock initialization queries
+            return { rows: [], rowCount: 0 };
+          },
+          release: () => {}
+        };
+
+        const indexConnection = {
+          query: async (sql: string) => {
+            if (sql.includes('CREATE INDEX') && sql.includes('USING hnsw')) {
+              hnswIndexAttempted = true;
+              expect(sql).toContain('WITH (m = 16, ef_construction = 64)');
+            }
+            return { rows: [], rowCount: 0 };
+          },
+          release: () => {}
+        };
+
+        hnswMockPg.mockConnection(initConnection);
+        await hnswAdapter.initialize();
+
+        hnswMockPg.mockConnection(indexConnection);
+        await hnswAdapter.createVectorIndex('test_table', 'embedding');
+
+        expect(hnswIndexAttempted).toBe(true);
+        await hnswAdapter.close();
+      });
+
+      it('should handle index creation errors gracefully', async () => {
+        const mockConnection = {
+          query: async () => {
+            throw new Error('Index creation failed');
+          },
+          release: () => {}
+        };
+
+        mockPg.mockConnection(mockConnection);
+
+        await expect(
+          adapter.createVectorIndex('test_table', 'embedding')
+        ).rejects.toThrow('Failed to create vector index');
+      });
+
+      it('should properly release connection after index creation', async () => {
+        let connectionReleased = false;
+
+        const mockConnection = {
+          query: async () => ({ rows: [], rowCount: 0 }),
+          release: () => { connectionReleased = true; }
+        };
+
+        mockPg.mockConnection(mockConnection);
+
+        await adapter.createVectorIndex('test_table', 'embedding');
+
+        expect(connectionReleased).toBe(true);
+      });
+
+      it('should release connection even on error', async () => {
+        let connectionReleased = false;
+
+        const mockConnection = {
+          query: async () => { throw new Error('Query failed'); },
+          release: () => { connectionReleased = true; }
+        };
+
+        mockPg.mockConnection(mockConnection);
+
+        await expect(
+          adapter.createVectorIndex('test_table', 'embedding')
+        ).rejects.toThrow();
+
+        expect(connectionReleased).toBe(true);
+      });
+    });
+
+    describe('vectorSearch()', () => {
+      const testVector = [0.1, 0.2, 0.3];
+      const mockResults = [
+        { id: '1', data: 'result1', distance: 0.1 },
+        { id: '2', data: 'result2', distance: 0.2 }
+      ];
+
+      it('should perform basic vector similarity search with cosine distance', async () => {
+        mockPg.mockQueryResult({ rows: mockResults, rowCount: 2 });
+
+        const results = await adapter.vectorSearch('test_table', testVector, {
+          limit: 10,
+          distanceMetric: 'cosine'
+        });
+
+        expect(results).toEqual(mockResults);
+        expect(mockPg.wasQueryExecuted('embedding <=> ')).toBe(true);
+        expect(mockPg.wasQueryExecuted('ORDER BY distance')).toBe(true);
+        expect(mockPg.wasQueryExecuted('LIMIT 10')).toBe(true);
+      });
+
+      it('should use euclidean distance metric', async () => {
+        mockPg.mockQueryResult({ rows: mockResults, rowCount: 2 });
+
+        await adapter.vectorSearch('test_table', testVector, {
+          distanceMetric: 'euclidean'
+        });
+
+        expect(mockPg.wasQueryExecuted('embedding <-> ')).toBe(true);
+      });
+
+      it('should use inner_product distance metric', async () => {
+        mockPg.mockQueryResult({ rows: mockResults, rowCount: 2 });
+
+        await adapter.vectorSearch('test_table', testVector, {
+          distanceMetric: 'inner_product'
+        });
+
+        expect(mockPg.wasQueryExecuted('embedding <#> ')).toBe(true);
+      });
+
+      it('should default to config distance metric when not specified', async () => {
+        mockPg.mockQueryResult({ rows: mockResults, rowCount: 2 });
+
+        await adapter.vectorSearch('test_table', testVector);
+
+        // Config default is 'cosine'
+        expect(mockPg.wasQueryExecuted('embedding <=> ')).toBe(true);
+      });
+
+      it('should default to limit of 10 when not specified', async () => {
+        mockPg.mockQueryResult({ rows: mockResults, rowCount: 2 });
+
+        await adapter.vectorSearch('test_table', testVector);
+
+        expect(mockPg.wasQueryExecuted('LIMIT 10')).toBe(true);
+      });
+
+      it('should apply custom limit', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        await adapter.vectorSearch('test_table', testVector, { limit: 50 });
+
+        expect(mockPg.wasQueryExecuted('LIMIT 50')).toBe(true);
+      });
+
+      it('should apply threshold filter', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('WHERE');
+          expect(sql).toContain('embedding <=>');
+          expect(sql).toContain('< $1');
+          expect(params).toEqual([0.5]);
+          return { rows: mockResults, rowCount: 2 };
+        });
+
+        await adapter.vectorSearch('test_table', testVector, {
+          threshold: 0.5
+        });
+      });
+
+      it('should combine filters and threshold', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('WHERE');
+          expect(sql).toContain('AND');
+          expect(params?.length).toBeGreaterThan(1); // Filter params + threshold
+          return { rows: mockResults, rowCount: 2 };
+        });
+
+        await adapter.vectorSearch('test_table', testVector, {
+          filters: [{ field: 'status', operator: '=', value: 'active' }],
+          threshold: 0.5
+        });
+      });
+
+      it('should apply filters without threshold', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('WHERE');
+          expect(params).toContain('active');
+          return { rows: mockResults, rowCount: 2 };
+        });
+
+        await adapter.vectorSearch('test_table', testVector, {
+          filters: [{ field: 'status', operator: '=', value: 'active' }]
+        });
+      });
+
+      it('should properly format vector literal in SQL', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('[0.1,0.2,0.3]');
+          return { rows: mockResults, rowCount: 2 };
+        });
+
+        await adapter.vectorSearch('test_table', testVector);
+      });
+
+      it('should handle empty results', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const results = await adapter.vectorSearch('test_table', testVector);
+
+        expect(results).toEqual([]);
+      });
+
+      it('should include distance in results', async () => {
+        mockPg.mockQueryResult({ rows: mockResults, rowCount: 2 });
+
+        const results = await adapter.vectorSearch('test_table', testVector);
+
+        expect(results[0]).toHaveProperty('distance');
+        expect(results[1]).toHaveProperty('distance');
+      });
+
+      it('should handle search errors gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Search failed');
+        });
+
+        await expect(
+          adapter.vectorSearch('test_table', testVector)
+        ).rejects.toThrow('Vector search failed');
+      });
+
+      it('should properly qualify table name with schema', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('public.test_table');
+          return { rows: mockResults, rowCount: 2 };
+        });
+
+        await adapter.vectorSearch('test_table', testVector);
+      });
+    });
+
+    describe('insertWithEmbedding()', () => {
+      const validEmbedding = new Array(1536).fill(0.1); // Match config.vectorDimensions
+
+      it('should insert data with embedding vector', async () => {
+        const testData = { id: 'doc-1', title: 'Test Document' };
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('INSERT INTO');
+          expect(sql).toContain('public.test_table');
+          expect(sql).toContain('id, title, embedding');
+          expect(sql).toContain('VALUES');
+          expect(params).toContain('doc-1');
+          expect(params).toContain('Test Document');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, validEmbedding);
+
+        expect(mockPg.wasQueryExecuted('INSERT INTO')).toBe(true);
+      });
+
+      it('should format vector literal correctly in SQL', async () => {
+        const testData = { id: 'doc-1' };
+        const embedding = [0.1, 0.2, 0.3, ...new Array(1533).fill(0)]; // 1536 total
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('[0.1,0.2,0.3');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, embedding);
+      });
+
+      it('should validate embedding dimensions match config', async () => {
+        const testData = { id: 'doc-1' };
+        const wrongSizeEmbedding = [0.1, 0.2, 0.3]; // Only 3 dimensions, not 1536
+
+        await expect(
+          adapter.insertWithEmbedding('test_table', testData, wrongSizeEmbedding)
+        ).rejects.toThrow('Embedding dimension mismatch');
+      });
+
+      it('should include dimension info in error message', async () => {
+        const testData = { id: 'doc-1' };
+        const wrongSizeEmbedding = [0.1, 0.2, 0.3];
+
+        try {
+          await adapter.insertWithEmbedding('test_table', testData, wrongSizeEmbedding);
+          fail('Should have thrown error');
+        } catch (error: any) {
+          expect(error.message).toContain('expected 1536');
+          expect(error.message).toContain('got 3');
+        }
+      });
+
+      it('should handle insert errors gracefully', async () => {
+        const testData = { id: 'doc-1' };
+
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Insert failed');
+        });
+
+        await expect(
+          adapter.insertWithEmbedding('test_table', testData, validEmbedding)
+        ).rejects.toThrow('Failed to insert with embedding');
+      });
+
+      it('should handle multiple data fields', async () => {
+        const testData = {
+          id: 'doc-1',
+          title: 'Test',
+          content: 'Content',
+          metadata: { tags: ['test'] }
+        };
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('id, title, content, metadata, embedding');
+          expect(params).toHaveLength(4); // All fields except embedding
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, validEmbedding);
+      });
+
+      it('should properly parameterize data values for SQL injection protection', async () => {
+        const testData = {
+          id: 'doc-1',
+          title: "Test'; DROP TABLE users; --"
+        };
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          // SQL should use placeholders, not direct string interpolation for data
+          expect(sql).toContain('$1');
+          expect(sql).toContain('$2');
+          expect(params).toContain("Test'; DROP TABLE users; --");
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, validEmbedding);
+      });
+
+      it('should handle empty data object', async () => {
+        const testData = {};
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('embedding');
+          expect(sql).toContain('VALUES');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, validEmbedding);
+      });
+
+      it('should handle zero vector embedding', async () => {
+        const testData = { id: 'doc-1' };
+        const zeroEmbedding = new Array(1536).fill(0);
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('[0,0,0');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, zeroEmbedding);
+      });
+
+      it('should handle negative values in embedding', async () => {
+        const testData = { id: 'doc-1' };
+        const embedding = [-0.5, 0.3, ...new Array(1534).fill(0)];
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('[-0.5,0.3');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.insertWithEmbedding('test_table', testData, embedding);
+      });
+    });
+  });
 });

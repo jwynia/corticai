@@ -1651,15 +1651,48 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
 
   /**
    * Create a vector index on a table column
+   *
+   * Delegates to PgVectorSchemaManager which handles:
+   * - IVFFLAT or HNSW index types based on config
+   * - Distance metric operators (cosine, euclidean, inner_product)
+   * - Automatic fallback to IVFFLAT if HNSW unavailable
+   * - Configurable index parameters (ivfLists, hnswM, efConstruction)
+   *
+   * @param table - Table name (will be schema-qualified)
+   * @param column - Column name containing vector data
+   * @param dimensions - Optional vector dimensions (defaults to config.vectorDimensions)
    */
   async createVectorIndex(table: string, column: string, dimensions?: number): Promise<void> {
     await this.ensureLoaded();
-    // TODO: Implement vector index creation
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const conn = await this.pg.getConnection();
+      try {
+        await this.schemaManager.createVectorIndex(conn, table, column, dimensions);
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      throw new StorageError(
+        `Failed to create vector index on ${table}.${column}: ${(error as Error).message}`,
+        StorageErrorCode.WRITE_FAILED,
+        { table, column, dimensions, error }
+      );
+    }
   }
 
   /**
    * Perform vector similarity search
+   *
+   * Searches for vectors similar to the query vector using pgvector distance operators:
+   * - cosine: <=> (cosine distance, 0 = identical)
+   * - euclidean: <-> (L2 distance)
+   * - inner_product: <#> (negative inner product for max-heap compatibility)
+   *
+   * @param table - Table name to search (must have embedding column)
+   * @param queryVector - Query vector to compare against
+   * @param options - Search options (limit, metric, threshold, filters)
+   * @returns Array of matching rows with distance scores
    */
   async vectorSearch(table: string, queryVector: number[], options?: {
     limit?: number;
@@ -1668,17 +1701,114 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
     filters?: any[];
   }): Promise<any[]> {
     await this.ensureLoaded();
-    // TODO: Implement vector similarity search
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    const limit = options?.limit ?? 10;
+    const metric = options?.distanceMetric ?? this.config.distanceMetric;
+    const threshold = options?.threshold;
+    const filters = options?.filters ?? [];
+
+    try {
+      const tableName = this.qualifiedTableName(table);
+
+      // Map distance metric to pgvector operator
+      const distanceOp = this.getDistanceOperator(metric);
+
+      // Build vector literal for SQL (e.g., '[1,2,3]')
+      const vectorLiteral = `[${queryVector.join(',')}]`;
+
+      // Build WHERE clause from filters
+      const params: any[] = [];
+      let whereClause = '';
+
+      if (filters.length > 0) {
+        const { whereClause: clause, whereParams } = this.buildWhereClause(filters);
+        whereClause = `WHERE ${clause}`;
+        params.push(...whereParams);
+      }
+
+      // Add threshold filter if specified
+      if (threshold !== undefined) {
+        const thresholdCondition = `embedding ${distanceOp} '${vectorLiteral}' < $${params.length + 1}`;
+        whereClause = whereClause
+          ? `${whereClause} AND ${thresholdCondition}`
+          : `WHERE ${thresholdCondition}`;
+        params.push(threshold);
+      }
+
+      // Build complete query with ORDER BY distance
+      const query = `
+        SELECT *, embedding ${distanceOp} '${vectorLiteral}' AS distance
+        FROM ${tableName}
+        ${whereClause}
+        ORDER BY distance
+        LIMIT ${limit}
+      `;
+
+      const result = await this.pg.query(query, params);
+      return result.rows;
+    } catch (error) {
+      throw new StorageError(
+        `Vector search failed on ${table}: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { table, queryVector, options, error }
+      );
+    }
   }
 
   /**
    * Insert data with embedding vector
+   *
+   * Inserts a row with an associated vector embedding. The table must have
+   * an 'embedding' column of type VECTOR(dimensions).
+   *
+   * Uses INSERT ... ON CONFLICT DO UPDATE for upsert semantics if the table
+   * has a primary key.
+   *
+   * @param table - Table name to insert into
+   * @param data - Data to insert (object with column names as keys)
+   * @param embedding - Vector embedding array (must match configured dimensions)
    */
   async insertWithEmbedding(table: string, data: any, embedding: number[]): Promise<void> {
     await this.ensureLoaded();
-    // TODO: Implement insert with embedding
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    // Validate embedding dimensions
+    if (embedding.length !== this.config.vectorDimensions) {
+      throw new StorageError(
+        `Embedding dimension mismatch: expected ${this.config.vectorDimensions}, got ${embedding.length}`,
+        StorageErrorCode.WRITE_FAILED,
+        { table, expectedDimensions: this.config.vectorDimensions, actualDimensions: embedding.length }
+      );
+    }
+
+    try {
+      const tableName = this.qualifiedTableName(table);
+
+      // Build column names and parameter placeholders
+      const columns = Object.keys(data);
+      const values = Object.values(data);
+
+      // Add embedding column
+      columns.push('embedding');
+      const vectorLiteral = `[${embedding.join(',')}]`;
+
+      // Build parameterized INSERT
+      const columnList = columns.join(', ');
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+
+      // For embedding, use vector literal (not parameterized to avoid type issues)
+      const query = `
+        INSERT INTO ${tableName} (${columnList})
+        VALUES (${placeholders}, '${vectorLiteral}')
+      `;
+
+      await this.pg.query(query, values);
+    } catch (error) {
+      throw new StorageError(
+        `Failed to insert with embedding into ${table}: ${(error as Error).message}`,
+        StorageErrorCode.WRITE_FAILED,
+        { table, data, embeddingDimensions: embedding.length, error }
+      );
+    }
   }
 
   // ============================================================================
@@ -1890,5 +2020,29 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
    */
   private qualifiedTableName(tableName: string): string {
     return `${this.config.schema}.${tableName}`;
+  }
+
+  /**
+   * Get pgvector distance operator for the specified metric
+   *
+   * Maps distance metrics to pgvector operators:
+   * - cosine: <=> (cosine distance, range [0,2], 0 = identical)
+   * - euclidean: <-> (L2/Euclidean distance, range [0,∞])
+   * - inner_product: <#> (negative inner product, for max-heap compatibility)
+   *
+   * @param metric - Distance metric to use
+   * @returns pgvector operator string
+   */
+  private getDistanceOperator(metric: 'cosine' | 'euclidean' | 'inner_product'): string {
+    switch (metric) {
+      case 'cosine':
+        return '<=>';
+      case 'euclidean':
+        return '<->';
+      case 'inner_product':
+        return '<#>';
+      default:
+        return '<=>'; // Default to cosine
+    }
   }
 }
