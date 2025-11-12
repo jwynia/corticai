@@ -2384,4 +2384,501 @@ describe('PgVectorStorageAdapter (Unit Tests)', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // REMAINING PRIMARY STORAGE METHODS
+  // ==========================================================================
+
+  describe('Remaining PrimaryStorage Methods', () => {
+    describe('findByPattern()', () => {
+      it('should find entities by exact type match', async () => {
+        const mockResults = [
+          { id: 'file:1', type: 'File', properties: { path: '/src/index.ts' } },
+          { id: 'file:2', type: 'File', properties: { path: '/src/app.ts' } }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('SELECT id, type, properties FROM');
+          expect(sql).toContain('public.nodes');
+          expect(sql).toContain('WHERE');
+          expect(sql).toContain('type = $1');
+          expect(params).toEqual(['File']);
+          return { rows: mockResults, rowCount: 2 };
+        });
+
+        const results = await adapter.findByPattern({ type: 'File' });
+
+        expect(results).toEqual(mockResults);
+        expect(mockPg.wasQueryExecuted('SELECT')).toBe(true);
+      });
+
+      it('should find entities by property match', async () => {
+        const mockResults = [
+          { id: 'file:1', type: 'File', properties: { language: 'TypeScript' } }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('properties @> $');
+          // params[0] = 'File' (type), params[1] = properties filter
+          expect(params).toContain('File');
+          expect(params?.[1]).toEqual(JSON.stringify({ language: 'TypeScript' }));
+          return { rows: mockResults, rowCount: 1 };
+        });
+
+        const results = await adapter.findByPattern({
+          type: 'File',
+          'properties.language': 'TypeScript'
+        });
+
+        expect(results).toEqual(mockResults);
+      });
+
+      it('should handle multiple property filters', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('type = $');
+          expect(sql).toContain('properties @> $');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.findByPattern({
+          type: 'File',
+          'properties.language': 'TypeScript',
+          'properties.path': '*.test.ts'
+        });
+
+        expect(mockPg.wasQueryExecuted('SELECT')).toBe(true);
+      });
+
+      it('should return empty array when no matches found', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const results = await adapter.findByPattern({ type: 'NonExistent' });
+
+        expect(results).toEqual([]);
+      });
+
+      it('should handle errors gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Query failed');
+        });
+
+        await expect(
+          adapter.findByPattern({ type: 'File' })
+        ).rejects.toThrow('Pattern matching failed');
+      });
+
+      it('should properly qualify table name with schema', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('public.nodes');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.findByPattern({ type: 'File' });
+      });
+    });
+
+    describe('patternMatch()', () => {
+      it('should execute graph pattern query', async () => {
+        const mockResults = {
+          nodes: [
+            { id: 'person:1', type: 'Person', properties: { name: 'Alice' } }
+          ],
+          edges: [],
+          paths: []
+        };
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('SELECT');
+          expect(sql).toContain('FROM');
+          return {
+            rows: mockResults.nodes,
+            rowCount: 1
+          };
+        });
+
+        const result = await adapter.patternMatch({
+          nodeType: 'Person',
+          properties: { name: 'Alice' }
+        });
+
+        expect(result).toHaveProperty('nodes');
+        expect(result).toHaveProperty('edges');
+        expect(result).toHaveProperty('metadata');
+        expect(result.metadata).toHaveProperty('executionTime');
+        expect(result.metadata).toHaveProperty('nodesTraversed');
+        expect(result.metadata).toHaveProperty('edgesTraversed');
+      });
+
+      it('should handle edge pattern matching', async () => {
+        const mockResults = [
+          { from: 'person:1', to: 'person:2', type: 'knows', properties: {} }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('public.edges');
+          return { rows: mockResults, rowCount: 1 };
+        });
+
+        const result = await adapter.patternMatch({
+          edgeType: 'knows',
+          fromNode: 'person:1'
+        });
+
+        expect(result).toHaveProperty('edges');
+      });
+
+      it('should handle complex graph patterns', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('JOIN');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.patternMatch({
+          nodeType: 'Person',
+          edgeType: 'knows',
+          targetNodeType: 'Person'
+        });
+
+        expect(mockPg.wasQueryExecuted('SELECT')).toBe(true);
+      });
+
+      it('should handle errors gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Pattern match failed');
+        });
+
+        await expect(
+          adapter.patternMatch({ nodeType: 'Person' })
+        ).rejects.toThrow('Graph pattern matching failed');
+      });
+    });
+
+    describe('createIndex()', () => {
+      it('should create BTREE index on entity property', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('CREATE INDEX');
+          expect(sql).toContain('public.nodes');
+          expect(sql).toContain('BTREE');
+          expect(sql).toContain('properties');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createIndex('File', 'properties.path');
+
+        expect(mockPg.wasQueryExecuted('CREATE INDEX')).toBe(true);
+      });
+
+      it('should create GIN index for JSONB properties', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('CREATE INDEX');
+          expect(sql).toContain('GIN');
+          expect(sql).toContain('properties');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createIndex('File', 'properties');
+
+        expect(mockPg.wasQueryExecuted('CREATE INDEX')).toBe(true);
+      });
+
+      it('should create unique index when specified', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('CREATE UNIQUE INDEX');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createIndex('File', 'id');
+
+        expect(mockPg.wasQueryExecuted('CREATE')).toBe(true);
+      });
+
+      it('should handle IF NOT EXISTS to avoid duplicate indexes', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('IF NOT EXISTS');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createIndex('File', 'properties.path');
+      });
+
+      it('should handle errors gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Index creation failed');
+        });
+
+        await expect(
+          adapter.createIndex('File', 'properties.path')
+        ).rejects.toThrow('Index creation failed');
+      });
+
+      it('should properly qualify table name with schema', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('public.nodes');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.createIndex('File', 'properties.path');
+      });
+    });
+
+    describe('listIndexes()', () => {
+      it('should list all indexes for entity type', async () => {
+        const mockIndexes = [
+          { indexname: 'idx_file_path', indexdef: 'CREATE INDEX idx_file_path ON nodes ((properties->\'path\'))' },
+          { indexname: 'idx_file_language', indexdef: 'CREATE INDEX idx_file_language ON nodes ((properties->\'language\'))' }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('pg_indexes');
+          expect(sql).toContain('schemaname = $1');
+          expect(sql).toContain('tablename = $2');
+          expect(params).toEqual(['public', 'nodes']);
+          return { rows: mockIndexes, rowCount: 2 };
+        });
+
+        const indexes = await adapter.listIndexes('File');
+
+        expect(indexes).toHaveLength(2);
+        expect(indexes).toContain('idx_file_path');
+        expect(indexes).toContain('idx_file_language');
+      });
+
+      it('should return empty array when no indexes exist', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const indexes = await adapter.listIndexes('File');
+
+        expect(indexes).toEqual([]);
+      });
+
+      it('should filter by entity type pattern if supported', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('pg_indexes');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.listIndexes('File');
+
+        expect(mockPg.wasQueryExecuted('SELECT')).toBe(true);
+      });
+
+      it('should handle errors gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Index listing failed');
+        });
+
+        await expect(
+          adapter.listIndexes('File')
+        ).rejects.toThrow('Index listing failed');
+      });
+
+      it('should properly qualify schema name', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(params).toContain('public');
+          return { rows: [], rowCount: 0 };
+        });
+
+        await adapter.listIndexes('File');
+      });
+    });
+
+    describe('updateEdge()', () => {
+      it('should update edge properties', async () => {
+        mockPg.mockQueryImplementation(async (sql, params) => {
+          expect(sql).toContain('UPDATE');
+          expect(sql).toContain('public.edges');
+          expect(sql).toContain('SET properties =');
+          expect(sql).toContain('WHERE from_node = $');
+          expect(sql).toContain('AND to_node = $');
+          expect(sql).toContain('AND type = $');
+          expect(params).toContain('person:1');
+          expect(params).toContain('person:2');
+          expect(params).toContain('knows');
+          return { rows: [], rowCount: 1 };
+        });
+
+        const updated = await adapter.updateEdge('person:1', 'person:2', 'knows', {
+          strength: 'strong',
+          since: '2020'
+        });
+
+        expect(updated).toBe(true);
+        expect(mockPg.wasQueryExecuted('UPDATE')).toBe(true);
+      });
+
+      it('should merge new properties with existing properties', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('properties ||');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.updateEdge('person:1', 'person:2', 'knows', {
+          newProp: 'value'
+        });
+      });
+
+      it('should return false when edge not found', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 0 });
+
+        const updated = await adapter.updateEdge('person:1', 'person:999', 'knows', {
+          strength: 'weak'
+        });
+
+        expect(updated).toBe(false);
+      });
+
+      it('should handle empty property updates', async () => {
+        mockPg.mockQueryResult({ rows: [], rowCount: 1 });
+
+        const updated = await adapter.updateEdge('person:1', 'person:2', 'knows', {});
+
+        expect(updated).toBe(true);
+      });
+
+      it('should handle errors gracefully', async () => {
+        mockPg.mockQueryImplementation(async () => {
+          throw new Error('Update failed');
+        });
+
+        await expect(
+          adapter.updateEdge('person:1', 'person:2', 'knows', { prop: 'value' })
+        ).rejects.toThrow('Edge update failed');
+      });
+
+      it('should properly qualify table name with schema', async () => {
+        mockPg.mockQueryImplementation(async (sql) => {
+          expect(sql).toContain('public.edges');
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.updateEdge('person:1', 'person:2', 'knows', {});
+      });
+    });
+
+    describe('batchGraphOperations()', () => {
+      it('should execute batch of addNode operations', async () => {
+        const operations = [
+          { type: 'addNode' as const, node: { id: 'person:1', type: 'Person', properties: { name: 'Alice' } } },
+          { type: 'addNode' as const, node: { id: 'person:2', type: 'Person', properties: { name: 'Bob' } } }
+        ];
+
+        let queryCount = 0;
+        mockPg.mockQueryImplementation(async (sql) => {
+          queryCount++;
+          if (sql.includes('INSERT INTO') && sql.includes('nodes')) {
+            return { rows: [], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        });
+
+        const result = await adapter.batchGraphOperations(operations);
+
+        expect(result.success).toBe(true);
+        expect(result.operations).toBe(2);
+        expect(result.nodesAffected).toBe(2);
+        expect(result.edgesAffected).toBe(0);
+        expect(result).toHaveProperty('executionTime');
+        expect(queryCount).toBeGreaterThan(0);
+      });
+
+      it('should execute batch of addEdge operations', async () => {
+        const operations = [
+          { type: 'addEdge' as const, edge: { from: 'person:1', to: 'person:2', type: 'knows', properties: {} } },
+          { type: 'addEdge' as const, edge: { from: 'person:2', to: 'person:3', type: 'knows', properties: {} } }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          if (sql.includes('INSERT INTO') && sql.includes('edges')) {
+            return { rows: [], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        });
+
+        const result = await adapter.batchGraphOperations(operations);
+
+        expect(result.success).toBe(true);
+        expect(result.operations).toBe(2);
+        expect(result.nodesAffected).toBe(0);
+        expect(result.edgesAffected).toBe(2);
+      });
+
+      it('should execute mixed batch operations', async () => {
+        const operations = [
+          { type: 'addNode' as const, node: { id: 'person:1', type: 'Person', properties: {} } },
+          { type: 'addEdge' as const, edge: { from: 'person:1', to: 'person:2', type: 'knows', properties: {} } },
+          { type: 'updateNode' as const, id: 'person:1', node: { id: 'person:1', type: 'Person', properties: { updated: true } } }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          return { rows: [], rowCount: 1 };
+        });
+
+        const result = await adapter.batchGraphOperations(operations);
+
+        expect(result.success).toBe(true);
+        expect(result.operations).toBe(3);
+      });
+
+      it('should handle empty operations array', async () => {
+        const result = await adapter.batchGraphOperations([]);
+
+        expect(result.success).toBe(true);
+        expect(result.operations).toBe(0);
+        expect(result.nodesAffected).toBe(0);
+        expect(result.edgesAffected).toBe(0);
+      });
+
+      it('should collect errors but continue processing', async () => {
+        const operations = [
+          { type: 'addNode' as const, node: { id: 'person:1', type: 'Person', properties: {} } },
+          { type: 'addNode' as const, node: { id: 'person:2', type: 'Person', properties: {} } },
+          { type: 'addNode' as const, node: { id: 'person:3', type: 'Person', properties: {} } }
+        ];
+
+        let callCount = 0;
+        mockPg.mockQueryImplementation(async (sql) => {
+          callCount++;
+          if (callCount === 2) {
+            throw new Error('Operation 2 failed');
+          }
+          return { rows: [], rowCount: 1 };
+        });
+
+        const result = await adapter.batchGraphOperations(operations);
+
+        expect(result.success).toBe(false);
+        expect(result.operations).toBe(3);
+        expect(result.errors).toBeDefined();
+        expect(result.errors!.length).toBeGreaterThan(0);
+      });
+
+      it('should execute operations in transaction if supported', async () => {
+        const operations = [
+          { type: 'addNode' as const, node: { id: 'person:1', type: 'Person', properties: {} } }
+        ];
+
+        mockPg.mockQueryImplementation(async (sql) => {
+          // Check for transaction commands
+          if (sql.includes('BEGIN') || sql.includes('COMMIT')) {
+            return { rows: [], rowCount: 0 };
+          }
+          return { rows: [], rowCount: 1 };
+        });
+
+        await adapter.batchGraphOperations(operations);
+      });
+
+      it('should include execution time in result', async () => {
+        const operations = [
+          { type: 'addNode' as const, node: { id: 'person:1', type: 'Person', properties: {} } }
+        ];
+
+        mockPg.mockQueryResult({ rows: [], rowCount: 1 });
+
+        const result = await adapter.batchGraphOperations(operations);
+
+        expect(result.executionTime).toBeGreaterThanOrEqual(0);
+      });
+    });
+  });
 });

@@ -27,7 +27,7 @@
 import { PrimaryStorage } from '../interfaces/PrimaryStorage';
 import { SemanticStorage, SemanticQuery, SemanticQueryResult, SearchOptions, SearchResult, MaterializedView, QueryFilter, AggregationOperator, Aggregation } from '../interfaces/SemanticStorage';
 import { BatchStorage, Operation, BatchResult, PgVectorStorageConfig } from '../interfaces/Storage';
-import { GraphNode, GraphEdge, GraphPath, GraphEntity, TraversalPattern, GraphQueryResult, GraphStats } from '../types/GraphTypes';
+import { GraphNode, GraphEdge, GraphPath, GraphEntity, TraversalPattern, GraphQueryResult, GraphStats, GraphBatchOperation, GraphBatchResult } from '../types/GraphTypes';
 import { BaseStorageAdapter } from '../base/BaseStorageAdapter';
 import { StorageError, StorageErrorCode } from '../interfaces/Storage';
 import { PgVectorSchemaManager } from './PgVectorSchemaManager';
@@ -52,6 +52,9 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
   // Full-text search configuration
   private static readonly DEFAULT_SEARCH_LIMIT = 100;
   private static readonly FTS_INDEX_SUFFIX = '_fts_idx';
+
+  // Pattern matching constants
+  private static readonly PROPERTIES_PREFIX = 'properties.';
 
   private pg: IPostgreSQLClient;
   protected config: Required<PgVectorStorageConfig>;
@@ -903,8 +906,164 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
 
   async patternMatch(pattern: any): Promise<GraphQueryResult> {
     await this.ensureLoaded();
-    // TODO: Implement pattern matching
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    const startTime = Date.now();
+    const nodesTable = this.qualifiedTableName(this.config.nodesTable);
+    const edgesTable = this.qualifiedTableName(this.config.edgesTable);
+
+    try {
+      let nodes: GraphNode[] = [];
+      let edges: GraphEdge[] = [];
+      let nodesTraversed = 0;
+      let edgesTraversed = 0;
+
+      // Handle complex patterns FIRST (node -> edge -> target node)
+      // This must be checked before simple patterns to avoid partial execution
+      if (pattern.nodeType && pattern.edgeType && pattern.targetNodeType) {
+        const sql = `
+          SELECT
+            n1.id as source_id, n1.type as source_type, n1.properties as source_properties,
+            e.from_node, e.to_node, e.type as edge_type, e.properties as edge_properties,
+            n2.id as target_id, n2.type as target_type, n2.properties as target_properties
+          FROM ${nodesTable} n1
+          JOIN ${edgesTable} e ON n1.id = e.from_node
+          JOIN ${nodesTable} n2 ON e.to_node = n2.id
+          WHERE n1.type = $1
+            AND e.type = $2
+            AND n2.type = $3
+        `;
+
+        const result = await this.pg.query(sql, [
+          pattern.nodeType,
+          pattern.edgeType,
+          pattern.targetNodeType
+        ]);
+
+        // Extract nodes and edges from joined results
+        const nodeMap = new Map<string, GraphNode>();
+        const edgeSet = new Set<string>();
+
+        for (const row of result.rows) {
+          // Add source node
+          if (!nodeMap.has(row.source_id)) {
+            nodeMap.set(row.source_id, {
+              id: row.source_id,
+              type: row.source_type,
+              properties: row.source_properties || {}
+            });
+          }
+
+          // Add target node
+          if (!nodeMap.has(row.target_id)) {
+            nodeMap.set(row.target_id, {
+              id: row.target_id,
+              type: row.target_type,
+              properties: row.target_properties || {}
+            });
+          }
+
+          // Add edge
+          const edgeKey = `${row.from_node}-${row.edge_type}-${row.to_node}`;
+          if (!edgeSet.has(edgeKey)) {
+            edgeSet.add(edgeKey);
+            edges.push({
+              from: row.from_node,
+              to: row.to_node,
+              type: row.edge_type,
+              properties: row.edge_properties || {}
+            });
+          }
+        }
+
+        nodes = Array.from(nodeMap.values());
+        nodesTraversed = nodes.length;
+        edgesTraversed = edges.length;
+      }
+      // Handle node pattern matching
+      else if (pattern.nodeType || pattern.properties) {
+        const whereClauses: string[] = [];
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        if (pattern.nodeType) {
+          whereClauses.push(`type = $${paramIndex}`);
+          params.push(pattern.nodeType);
+          paramIndex++;
+        }
+
+        if (pattern.properties) {
+          whereClauses.push(`properties @> $${paramIndex}`);
+          params.push(JSON.stringify(pattern.properties));
+          paramIndex++;
+        }
+
+        let sql = `SELECT id, type, properties FROM ${nodesTable}`;
+        if (whereClauses.length > 0) {
+          sql += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        const result = await this.pg.query(sql, params);
+        nodes = result.rows;
+        nodesTraversed = nodes.length;
+      }
+      // Handle edge pattern matching
+      else if (pattern.edgeType || pattern.fromNode || pattern.toNode) {
+        const whereClauses: string[] = [];
+        const params: any[] = [];
+        let paramIndex = 1;
+
+        if (pattern.edgeType) {
+          whereClauses.push(`type = $${paramIndex}`);
+          params.push(pattern.edgeType);
+          paramIndex++;
+        }
+
+        if (pattern.fromNode) {
+          whereClauses.push(`from_node = $${paramIndex}`);
+          params.push(pattern.fromNode);
+          paramIndex++;
+        }
+
+        if (pattern.toNode) {
+          whereClauses.push(`to_node = $${paramIndex}`);
+          params.push(pattern.toNode);
+          paramIndex++;
+        }
+
+        let sql = `SELECT from_node, to_node, type, properties FROM ${edgesTable}`;
+        if (whereClauses.length > 0) {
+          sql += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        const result = await this.pg.query(sql, params);
+        edges = result.rows.map(row => ({
+          from: row.from_node,
+          to: row.to_node,
+          type: row.type,
+          properties: row.properties || {}
+        }));
+        edgesTraversed = edges.length;
+      }
+
+      const executionTime = Date.now() - startTime;
+
+      return {
+        nodes,
+        edges,
+        paths: [], // Path construction not implemented for basic pattern matching
+        metadata: {
+          executionTime,
+          nodesTraversed,
+          edgesTraversed
+        }
+      };
+    } catch (error) {
+      throw new StorageError(
+        `Graph pattern matching failed: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, pattern }
+      );
+    }
   }
 
   async getGraphStats(): Promise<GraphStats> {
@@ -1024,20 +1183,140 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
 
   async findByPattern(pattern: Record<string, any>): Promise<T[]> {
     await this.ensureLoaded();
-    // TODO: Implement pattern matching
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(this.config.nodesTable);
+      const whereClauses: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      // Handle type filter
+      if (pattern.type) {
+        whereClauses.push(`type = $${paramIndex}`);
+        params.push(pattern.type);
+        paramIndex++;
+      }
+
+      // Handle property filters using JSONB containment operator
+      const propertyFilters: Record<string, any> = {};
+      for (const [key, value] of Object.entries(pattern)) {
+        if (key.startsWith(PgVectorStorageAdapter.PROPERTIES_PREFIX)) {
+          const propKey = key.substring(PgVectorStorageAdapter.PROPERTIES_PREFIX.length);
+          propertyFilters[propKey] = value;
+        }
+      }
+
+      if (Object.keys(propertyFilters).length > 0) {
+        whereClauses.push(`properties @> $${paramIndex}`);
+        params.push(JSON.stringify(propertyFilters));
+        paramIndex++;
+      }
+
+      // Build final query
+      let sql = `SELECT id, type, properties FROM ${tableName}`;
+      if (whereClauses.length > 0) {
+        sql += ` WHERE ${whereClauses.join(' AND ')}`;
+      }
+
+      const result = await this.pg.query(sql, params);
+      return result.rows as T[];
+    } catch (error) {
+      throw new StorageError(
+        `Pattern matching failed: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error, pattern }
+      );
+    }
   }
 
   async createIndex(entityType: string, property: string): Promise<void> {
     await this.ensureLoaded();
-    // TODO: Implement index creation
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(this.config.nodesTable);
+
+      // Generate index name based on entity type and property
+      const sanitizedType = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      const sanitizedProperty = property.replace(/[^a-z0-9_\.]/gi, '_');
+      const indexName = `idx_${sanitizedType}_${sanitizedProperty}`;
+
+      // Determine index type and expression based on property path
+      let indexType = 'BTREE';
+      let indexExpression = property;
+
+      if (property === 'id') {
+        // Unique index on ID column
+        await this.pg.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS ${indexName}
+          ON ${tableName} USING BTREE (id)
+        `);
+        return;
+      }
+
+      if (property === 'properties' || property.startsWith(PgVectorStorageAdapter.PROPERTIES_PREFIX)) {
+        // GIN index for JSONB properties
+        indexType = 'GIN';
+        if (property === 'properties') {
+          indexExpression = 'properties';
+        } else {
+          // BTREE index on specific property path
+          indexType = 'BTREE';
+          const propPath = property.substring(PgVectorStorageAdapter.PROPERTIES_PREFIX.length);
+
+          // Validate property path to prevent SQL injection
+          if (!/^[a-zA-Z0-9_]+$/.test(propPath)) {
+            throw new StorageError(
+              `Invalid property path for indexing: ${propPath}`,
+              StorageErrorCode.INVALID_VALUE,
+              { entityType, property }
+            );
+          }
+
+          indexExpression = `((properties->'${propPath}'))`;
+        }
+      }
+
+      // Create index with IF NOT EXISTS to avoid errors on duplicate creation
+      await this.pg.query(`
+        CREATE INDEX IF NOT EXISTS ${indexName}
+        ON ${tableName} USING ${indexType} (${indexExpression})
+      `);
+    } catch (error) {
+      throw new StorageError(
+        `Index creation failed: ${(error as Error).message}`,
+        StorageErrorCode.WRITE_FAILED,
+        { error, entityType, property }
+      );
+    }
   }
 
+  /**
+   * List all indexes for the nodes table
+   *
+   * @param entityType - Entity type (currently not used for filtering in PgVector implementation,
+   *                     returns all indexes for the nodes table regardless of entity type)
+   * @returns Promise resolving to array of index names
+   */
   async listIndexes(entityType: string): Promise<string[]> {
     await this.ensureLoaded();
-    // TODO: Implement index listing
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const result = await this.pg.query(`
+        SELECT indexname
+        FROM pg_indexes
+        WHERE schemaname = $1
+          AND tablename = $2
+        ORDER BY indexname
+      `, [this.config.schema, this.config.nodesTable]);
+
+      return result.rows.map(row => row.indexname);
+    } catch (error) {
+      throw new StorageError(
+        `Index listing failed: ${(error as Error).message}`,
+        StorageErrorCode.QUERY_FAILED,
+        { error }
+      );
+    }
   }
 
   async updateEdge(
@@ -1047,14 +1326,131 @@ export class PgVectorStorageAdapter<T extends GraphEntity = GraphEntity>
     properties: Partial<GraphEdge['properties']>
   ): Promise<boolean> {
     await this.ensureLoaded();
-    // TODO: Implement edge update
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    try {
+      const tableName = this.qualifiedTableName(this.config.edgesTable);
+
+      // Merge new properties with existing using JSONB || operator
+      const result = await this.pg.query(`
+        UPDATE ${tableName}
+        SET properties = properties || $1::jsonb,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE from_node = $2
+          AND to_node = $3
+          AND type = $4
+      `, [JSON.stringify(properties), from, to, type]);
+
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      throw new StorageError(
+        `Edge update failed: ${(error as Error).message}`,
+        StorageErrorCode.WRITE_FAILED,
+        { error, from, to, type }
+      );
+    }
   }
 
-  async batchGraphOperations(operations: any[]): Promise<any> {
+  async batchGraphOperations(operations: GraphBatchOperation[]): Promise<GraphBatchResult> {
     await this.ensureLoaded();
-    // TODO: Implement batch graph operations
-    throw new StorageError('Not implemented', StorageErrorCode.NOT_IMPLEMENTED);
+
+    const startTime = Date.now();
+    const errors: Error[] = [];
+    let nodesAffected = 0;
+    let edgesAffected = 0;
+
+    // Handle empty operations
+    if (operations.length === 0) {
+      return {
+        success: true,
+        operations: 0,
+        nodesAffected: 0,
+        edgesAffected: 0,
+        executionTime: 0
+      };
+    }
+
+    try {
+      // Process each operation
+      for (const op of operations) {
+        try {
+          switch (op.type) {
+            case 'addNode':
+              if (op.node) {
+                await this.addNode(op.node);
+                nodesAffected++;
+              }
+              break;
+
+            case 'addEdge':
+              if (op.edge) {
+                await this.addEdge(op.edge);
+                edgesAffected++;
+              }
+              break;
+
+            case 'updateNode':
+              if (op.id && op.node) {
+                const updated = await this.updateNode(op.id, op.node.properties || {});
+                if (updated) nodesAffected++;
+              }
+              break;
+
+            case 'updateEdge':
+              if (op.edge) {
+                const updated = await this.updateEdge(
+                  op.edge.from,
+                  op.edge.to,
+                  op.edge.type,
+                  op.edge.properties || {}
+                );
+                if (updated) edgesAffected++;
+              }
+              break;
+
+            case 'deleteNode':
+              if (op.id) {
+                const deleted = await this.deleteNode(op.id);
+                if (deleted) nodesAffected++;
+              }
+              break;
+
+            case 'deleteEdge':
+              if (op.edge) {
+                const deleted = await this.deleteEdge(
+                  op.edge.from,
+                  op.edge.to,
+                  op.edge.type
+                );
+                if (deleted) edgesAffected++;
+              }
+              break;
+
+            default:
+              errors.push(new Error(`Unknown operation type: ${op.type}`));
+          }
+        } catch (error) {
+          // Collect errors but continue processing
+          errors.push(error as Error);
+        }
+      }
+
+      const executionTime = Date.now() - startTime;
+
+      return {
+        success: errors.length === 0,
+        operations: operations.length,
+        nodesAffected,
+        edgesAffected,
+        errors: errors.length > 0 ? errors : undefined,
+        executionTime
+      };
+    } catch (error) {
+      throw new StorageError(
+        `Batch operation failed: ${(error as Error).message}`,
+        StorageErrorCode.WRITE_FAILED,
+        { error, operationCount: operations.length }
+      );
+    }
   }
 
   // ============================================================================
