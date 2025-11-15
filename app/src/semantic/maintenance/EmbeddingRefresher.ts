@@ -435,9 +435,10 @@ export class EmbeddingRefresher {
         const errorMessage = err instanceof Error ? err.message : String(err)
         this.currentStatus.status = RefreshStatus.FAILED
         this.currentStatus.error = errorMessage
-        this.logger.error('Progressive refresh error', err instanceof Error ? err : undefined, {
+        this.logger.error('Progressive refresh error', {
           errorMessage,
-          status: RefreshStatus.FAILED
+          status: RefreshStatus.FAILED,
+          stack: err instanceof Error ? err.stack : undefined
         })
       })
     }

@@ -165,10 +165,11 @@ export class LifecycleAnalyzer {
         return this.invalidChain(`Entity ${entityId} not found`)
       }
 
-      const head = await this.findChainHead(entity)
-      if ('errors' in head) return head
+      const headResult = await this.findChainHead(entity)
+      if ('errors' in headResult) return headResult
 
-      const chain = await this.buildChainFromHead(head)
+      // Type narrowing: headResult is Entity here
+      const chain = await this.buildChainFromHead(headResult as Entity)
       if (!chain.isValid) return chain
 
       return this.validateChainOrder(chain.entities)
