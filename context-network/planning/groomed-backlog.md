@@ -1,10 +1,10 @@
 # Groomed Task Backlog
 
 ## 📊 Project Status Summary
-**Last Groomed**: 2025-11-15 (Post Phase 5 completion grooming)
+**Last Groomed**: 2025-11-15 (Updated post-grooming scan)
 **Last Synced**: 2025-11-15 (Fully current)
 **Build Status**: ✅ TypeScript compiling cleanly (0 errors)
-**Test Status**: ✅ 1022/1022 tests passing (100% pass rate!) 🎉
+**Test Status**: ✅ 1025/1025 tests passing (100% pass rate!) 🎉
 **Current Phase**: Semantic Processing COMPLETE ✅ - All 5 phases operational!
 **Foundation**: ✅ Complete! Phases 1-4 + Semantic Phases 1-5 + pgvector all complete
 **Architecture**: ✅ Hexagonal architecture, 100% unit testable business logic
@@ -29,6 +29,88 @@
 ---
 
 ## 🔧 Tech Debt & Refactoring (Low Priority)
+
+### 1. Complete Azure Cosmos DB Storage Adapter (Future Phase)
+**Source**: Code scan - 20+ TODO stubs in AzureStorageProvider.ts
+**Complexity**: Large
+**Effort**: 20-30 hours
+**Priority**: LOW (blocked on cloud deployment decision)
+**Files**: `app/src/storage/providers/AzureStorageProvider.ts`
+
+<details>
+<summary>Details</summary>
+
+**Context**: Future cloud deployment phase (Phase 7)
+**What**: Complete all TODO stub methods in AzureStorageProvider
+**Why**: Enable cloud-native deployment with Cosmos DB backend
+**How**: Implement 20+ methods following PgVectorStorageAdapter patterns
+
+**TODOs Found**:
+- Graph operations (traverse, findConnected, shortestPath)
+- Pattern matching for CosmosDB
+- Index management (create, list)
+- Node/edge CRUD operations
+- Search and aggregation
+- SQL execution for CosmosDB
+
+**Blocker**: Requires strategic decision on cloud deployment priority
+**Recommendation**: Defer until Phase 7 planning begins
+
+</details>
+
+---
+
+### 2. Refactor Large Files (Code Organization)
+**One-liner**: Break down largest files to improve maintainability
+**Complexity**: Medium
+**Effort**: 4-6 hours
+**Priority**: LOW
+**Impact**: Code quality and maintainability
+
+<details>
+<summary>Details</summary>
+
+**Context**: Several files exceed 800 lines, making them harder to maintain
+
+**Large Files Identified**:
+1. **PgVectorStorageAdapter.ts** (2444 lines) - Needs extraction
+   - Extract schema management → `PgVectorSchemaManager.ts` (EXISTS)
+   - Extract vector operations → `PgVectorOperations.ts`
+   - Extract query building → `PgVectorQueryBuilder.ts`
+
+2. **ContinuityCortex.ts** (937 lines)
+   - Extract deduplication logic
+   - Extract consolidation engine
+   - Extract similarity detection
+
+3. **CodebaseAdapter.ts** (917 lines)
+   - Extract AST parsing logic
+   - Extract dependency analysis
+   - Extract symbol extraction
+
+4. **QueryBuilder.ts** (872 lines)
+   - Extract query validation
+   - Extract query optimization
+   - Extract condition builders
+
+**Approach**:
+- Extract cohesive modules first (low risk)
+- Maintain 100% test coverage during refactor
+- One file at a time with immediate validation
+
+**Why LOW priority**:
+- Code is working and tested
+- Not blocking any features
+- Can be done incrementally
+
+**Related Tasks**:
+- `/tasks/refactoring/pgvector-adapter-modularization.md`
+- `/tasks/refactoring/large-file-breakdown.md`
+- `/tasks/refactoring/split-oversized-files.md`
+
+</details>
+
+---
 
 ### 3. Add Config Validation to LifecycleDetector
 **Source**: Code review MINOR issue #1 (Phase 1)
@@ -74,6 +156,7 @@
 **Effort**: 2 hours
 **Priority**: LOW
 **Files**: `app/src/semantic/*.ts`
+**Status**: ✅ DOCUMENTED (ERROR_HANDLING.md created)
 
 <details>
 <summary>Details</summary>
@@ -82,6 +165,8 @@
 **What**: Ensure consistent error handling patterns across all semantic processing modules
 **Why**: Easier debugging and error reporting
 **How**: Create SemanticError class, standardize error messages and context
+
+**Update**: ERROR_HANDLING.md now documents standardized patterns. Implementation task remains optional.
 
 </details>
 
@@ -164,48 +249,35 @@
 
 ---
 
-### 10. Refactor Large Files (Code Organization)
-**One-liner**: Break down largest files to improve maintainability
-**Complexity**: Medium
-**Effort**: 4-6 hours
+### 10. Additional Tech Debt Tasks (Catalogued)
+**Source**: Codebase scan discovered 36 tech-debt tasks + 27 refactoring tasks
+**Complexity**: Varies (Trivial to Medium)
+**Effort**: Varies (30 min to 6 hours each)
 **Priority**: LOW
-**Impact**: Code quality and maintainability
+**Location**: `/context-network/tasks/tech-debt/` and `/context-network/tasks/refactoring/`
 
 <details>
-<summary>Details</summary>
+<summary>Task Inventory</summary>
 
-**Context**: Several files exceed 800 lines, making them harder to maintain
+**Tech Debt Tasks** (36 files):
+- ID generation improvements
+- Batch processing for large datasets
+- Test file system mocking
+- Error handling standardization
+- Input validation (various components)
+- Performance optimizations
+- Documentation improvements
 
-**Large Files Identified**:
-1. **PgVectorStorageAdapter.ts** (2444 lines) - Needs extraction
-   - Extract schema management → `PgVectorSchemaManager.ts` (EXISTS)
-   - Extract vector operations → `PgVectorOperations.ts`
-   - Extract query building → `PgVectorQueryBuilder.ts`
+**Refactoring Tasks** (27 files):
+- Extract utilities from large files
+- Improve type safety
+- Break down complex methods
+- Consistent async/await patterns
+- Modularize oversized adapters
 
-2. **ContinuityCortex.ts** (937 lines)
-   - Extract deduplication logic
-   - Extract consolidation engine
-   - Extract similarity detection
+**Note**: These are all well-documented individual tasks. Pick from this inventory when doing maintenance work or taking a break from feature development.
 
-3. **CodebaseAdapter.ts** (917 lines)
-   - Extract AST parsing logic
-   - Extract dependency analysis
-   - Extract symbol extraction
-
-4. **QueryBuilder.ts** (872 lines)
-   - Extract query validation
-   - Extract query optimization
-   - Extract condition builders
-
-**Approach**:
-- Extract cohesive modules first (low risk)
-- Maintain 100% test coverage during refactor
-- One file at a time with immediate validation
-
-**Why LOW priority**:
-- Code is working and tested
-- Not blocking any features
-- Can be done incrementally
+**Recommendation**: Tackle 1-2 trivial tasks when context switching or during downtime. Do not prioritize over feature work or strategic initiatives.
 
 </details>
 
@@ -217,7 +289,7 @@
 **Task**: SEMANTIC-PHASE-5 (Background maintenance + error handling improvements)
 **Status**: ✅ FULLY COMPLETE - All deliverables implemented + error handling fixed
 **Effort**: ~8 hours implementation + code review
-**Tests**: 130+ new tests added (1022 total passing)
+**Tests**: 130+ new tests added (1025 total passing)
 
 **Deliverables**:
 - ✅ MaintenanceScheduler.ts - Background job system with priority scheduling
@@ -230,7 +302,7 @@
 - ✅ Error handling fix - Silent error in EmbeddingRefresher.resume() now observable
 
 **Code Quality**:
-- All 1022 tests passing (100% pass rate maintained)
+- All 1025 tests passing (100% pass rate maintained)
 - TypeScript compilation clean (0 errors)
 - Zero regressions
 - Code review applied: 3 immediate improvements + 6 deferred to tasks
@@ -238,7 +310,7 @@
 
 **Impact**: Complete semantic maintenance system - keeps quality high over time, prevents drift
 
-**Completion**: Commit `[latest]` (2025-11-15) - "feat: complete semantic processing with Phase 5 maintenance and error handling"
+**Completion**: Commit `2dd675c` (2025-11-15) - "feat: complete semantic processing with Phase 5 maintenance and error handling"
 
 ---
 
@@ -246,7 +318,7 @@
 **Task**: SEMANTIC-PHASE-4 (Progressive context loading with depth-based projection)
 **Status**: ✅ FULLY COMPLETE - All deliverables implemented
 **Effort**: ~6 hours implementation
-**Tests**: Included in Phase 5 test count (1022 total)
+**Tests**: Included in Phase 5 test count (1025 total)
 
 **Deliverables**:
 - ✅ ProjectionEngine.ts - Depth-based projection (SIGNATURE → DETAILED)
@@ -295,7 +367,7 @@
 
 ---
 
-### ~~2. pgvector Backend - Phases 3 & 4 (SemanticStorage + Vector Operations)~~ ✅ COMPLETE (2025-11-12)
+### ~~4. pgvector Backend - Phases 3 & 4 (SemanticStorage + Vector Operations)~~ ✅ COMPLETE (2025-11-12)
 **Tasks**: PGVECTOR-PHASE-3 + PGVECTOR-PHASE-4 + Pattern Matching + Code Review Fixes
 **Status**: ✅ FULLY COMPLETE - All SemanticStorage methods + Vector operations + 100% test coverage
 **Effort**: ~8 hours total (Phase 3: 4h, Phase 4: 3.5h, Code review: 30min)
@@ -328,7 +400,7 @@
 
 ---
 
-### ~~3. Semantic Processing - Phase 2 (Write-Time Enrichment)~~ ✅ COMPLETE (2025-11-10)
+### ~~5. Semantic Processing - Phase 2 (Write-Time Enrichment)~~ ✅ COMPLETE (2025-11-10)
 **Task**: SEMANTIC-PHASE-2 (Q&A Generation + Relationship Inference + Storage Integration)
 **Status**: ✅ FULLY COMPLETE - All 6 acceptance criteria met
 **Effort**: 6-8 hours implementation + 2 hours code review/fixes + 4 hours storage integration + 1.5 hours tech debt
@@ -350,13 +422,9 @@
 
 **Impact**: Enables vocabulary bridging - users can find documents using natural questions instead of exact terminology
 
-**Completion Records**:
-- Documented in groomed-backlog.md entry #4 (lines 89-132)
-- Git commits: fcf965b (LRU cache), 0e46bc0 (semantic query execution)
-
 ---
 
-### ~~4. Semantic Processing - Phase 1 (Foundation)~~ ✅ COMPLETE (2025-11-07)
+### ~~6. Semantic Processing - Phase 1 (Foundation)~~ ✅ COMPLETE (2025-11-07)
 **Task**: SEMANTIC-PHASE-1 + FIX-SEMANTIC-TESTS
 **Status**: ✅ FULLY COMPLETE - All implementation + all tests passing
 **Effort**: 4-6 hours implementation + 1 hour test fixes
@@ -383,7 +451,7 @@
 
 ---
 
-### ~~5. Tech Debt - Security & Refactoring (Phase 2 Follow-up)~~ ✅ COMPLETE (2025-11-10)
+### ~~7. Tech Debt - Security & Refactoring (Phase 2 Follow-up)~~ ✅ COMPLETE (2025-11-10)
 **Tasks**: LRU Cache Bounds + ReDoS Protection + DRY Refactoring
 **Status**: ✅ FULLY COMPLETE - All 3 items resolved
 **Effort**: 1.5 hours total (30 min each)
@@ -397,7 +465,7 @@
 
 ---
 
-### ~~6. Semantic Processing Architecture Integration~~ ✅ COMPLETE (2025-11-04)
+### ~~8. Semantic Processing Architecture Integration~~ ✅ COMPLETE (2025-11-04)
 **Task**: TASK-004
 **Status**: ✅ COMPLETE - Comprehensive 5-phase roadmap created
 **Effort**: 2.5 hours
@@ -414,7 +482,7 @@
 
 ---
 
-### ~~7. Fix Flaky Async Tests in TSASTParser~~ ✅ COMPLETE (2025-11-04)
+### ~~9. Fix Flaky Async Tests in TSASTParser~~ ✅ COMPLETE (2025-11-04)
 **Task**: TASK-001
 **Status**: ✅ COMPLETE - All timeouts resolved
 **Effort**: 1.5 hours
@@ -427,7 +495,7 @@
 
 ---
 
-### ~~8. Complete Remaining PrimaryStorage Methods~~ ✅ COMPLETE (2025-11-12)
+### ~~10. Complete Remaining PrimaryStorage Methods~~ ✅ COMPLETE (2025-11-12)
 **Task**: Implement 6 stub methods with TDD approach
 **Status**: ✅ FULLY COMPLETE
 **Effort**: ~4 hours (34 tests written first, then implementation)
@@ -447,7 +515,7 @@
 
 ---
 
-### ~~9. Add Connection Pooling for Database Adapters~~ ✅ COMPLETE (2025-10-17)
+### ~~11. Add Connection Pooling for Database Adapters~~ ✅ COMPLETE (2025-10-17)
 **Task**: PERF-001 (Retroactively documented 2025-11-15)
 **Status**: ✅ FULLY COMPLETE - Exceeded original scope
 **Effort**: ~6 hours (estimated)
@@ -474,46 +542,43 @@
 
 ## 📊 Summary Statistics
 
-- **Total tasks in backlog**: 8 low priority tech debt tasks
-- **Ready for work**: 8 trivial/small improvements (all tech debt)
+- **Total tasks in backlog**: 10 low priority tech debt/refactoring tasks + 1 large future phase task
+- **Ready for work**: 10 trivial/small improvements (all tech debt/documentation)
 - **Recently completed**: 11 major tasks (Oct-Nov 2025) - Including Phases 4 & 5!
-- **Blocked/Needs decision**: 0
-- **Test coverage**: 1022/1022 tests passing (100% pass rate! 🎉)
-- **Build status**: ✅ PASSING (0 TypeScript errors, 0 linting errors)
+- **Blocked/Needs decision**: 1 (Azure Cosmos DB - awaiting cloud deployment strategy)
+- **Test coverage**: 1025/1025 tests passing (100% pass rate! 🎉)
+- **Build status**: ✅ PASSING (0 TypeScript errors, 0 critical linting errors)
+- **Code health**: ✅ EXCELLENT (63 tech debt tasks catalogued, all low priority)
 
 ---
 
 ## 🎯 Top 3 Immediate Recommendations
 
-### 1. **Deferred Code Review Recommendations** ⭐ HIGHEST PRIORITY
-- **Why**: Address technical debt from recent Phase 5 code review
-- **Effort**: 15 min - 3 hours per task (6 tasks total)
-- **Impact**: MEDIUM-HIGH - code quality, maintainability, reliability
-- **Location**: `/workspaces/corticai/context-network/tasks/tech-debt/` and `/refactoring/`
-- **Recommendation**: **START WITH HIGH PRIORITY** - Refactor supersession chain detection, add input validation
-- **Tasks Available**:
-  - ~~Improve error handling in EmbeddingRefresher.resume()~~ ✅ COMPLETE
-  - ~~Standardize error handling patterns~~ ✅ DOCUMENTED (ERROR_HANDLING.md)
-  - Refactor supersession chain detection (77-line method)
-  - Add input validation for quality weights
-  - Implement logger abstraction
-  - Standardize async/promise handling
+### 1. **Strategic Planning - Next Major Phase** ⭐ HIGHEST PRIORITY
+- **Why**: All semantic processing phases complete - time to plan next major initiative
+- **Effort**: 2-4 hours planning session
+- **Impact**: HIGH - determines next 20-40 hours of development
+- **Options**:
+  - Cloud deployment (Cosmos DB integration - Phase 7)
+  - Advanced features (ML-powered ranking, collaborative filtering)
+  - Performance optimization (large-scale testing, production load)
+  - Production hardening (monitoring, observability, error reporting)
+  - Example applications (demonstrate CorticAI capabilities)
+- **Recommendation**: **REQUIRES USER INPUT** - What's the strategic priority?
 
-### 2. **Tech Debt & Documentation** (Tasks #3-10)
-- **Why**: Code quality improvements and documentation from Phase 1 review
-- **Effort**: 30 min - 6 hours each (8 tasks total)
+### 2. **Tech Debt & Documentation** (Tasks #2-10)
+- **Why**: Code quality improvements and documentation from Phase 1-5 reviews
+- **Effort**: 30 min - 6 hours each (10 tasks total)
 - **Impact**: LOW-MEDIUM - maintainability and documentation
 - **Dependencies**: None - can start immediately
 - **Recommendation**: Pick 1-2 quick wins when taking a break from larger work
 
-### 3. **Strategic Planning - Next Phase**
-- **Why**: All semantic processing phases complete - time to plan next major initiative
-- **Options**:
-  - Cloud deployment (Cosmos DB integration)
-  - Advanced features (ML-powered ranking, collaborative filtering)
-  - Performance optimization (large-scale testing)
-  - Production hardening (monitoring, observability)
-- **Recommendation**: **REQUIRES USER INPUT** - What's the strategic priority?
+### 3. **Explore Tech Debt Inventory**
+- **Why**: 63 catalogued tasks provide roadmap for incremental improvements
+- **Effort**: Review inventory (30 min), pick tasks as needed
+- **Impact**: VARIES - some trivial, some medium complexity
+- **Location**: `/context-network/tasks/tech-debt/` and `/context-network/tasks/refactoring/`
+- **Recommendation**: Use as filler work during context switches or downtime
 
 ---
 
@@ -521,11 +586,12 @@
 
 ### Code Quality ✅
 - **Build Status**: ✅ 0 TypeScript errors
-- **Test Suite**: ✅ 892/892 tests passing (100% pass rate!)
+- **Test Suite**: ✅ 1025/1025 tests passing (100% pass rate!)
 - **Flaky Tests**: ✅ ALL FIXED
 - **Coverage**: ✅ 100% pass rate across all modules
 - **Code Review**: ✅ Integrated (A ratings for recent work)
-- **Linting**: ✅ Clean
+- **Linting**: ✅ Clean (0 critical issues)
+- **TODO Comments**: 20+ in AzureStorageProvider (future work, documented)
 
 ### Recent Velocity ⚡
 - **Nov 15**: Phase 5 + error handling complete! (8 hours, 130+ tests, 100% pass rate, code review applied)
@@ -544,10 +610,11 @@
 - **Completion records**: 28+ comprehensive records
 - **Sync alignment**: 10/10 (per 2025-11-12 sync)
 - **Architecture docs**: Complete (8 semantic processing docs)
-- **Implementation roadmap**: 5-phase plan (3 phases complete!)
+- **Implementation roadmap**: 5-phase plan (ALL 5 PHASES COMPLETE!)
+- **Error handling**: Standardized patterns documented (ERROR_HANDLING.md)
 
 ### Major Milestones Achieved 🎉
-- ✅ 100% test coverage (1022/1022 passing)
+- ✅ 100% test coverage (1025/1025 passing)
 - ✅ Complete storage backend (pgvector dual-role + vector operations)
 - ✅ **ALL 5 Semantic Processing Phases COMPLETE!** 🎊
   - Phase 1: Lifecycle metadata ✅
@@ -567,7 +634,7 @@
 
 ### Recent Wins 🏆
 1. **🎊 ALL 5 SEMANTIC PHASES COMPLETE**: Full semantic processing system operational!
-2. **100% Test Coverage**: 1022/1022 tests passing, zero skipped
+2. **100% Test Coverage**: 1025/1025 tests passing, zero skipped
 3. **Phase 5 Maintenance**: Background jobs, drift detection, quality metrics all working
 4. **Phase 4 Projection**: Progressive loading with LRU cache, 70%+ memory reduction
 5. **Error Handling**: Standardized patterns documented, silent error bug fixed
@@ -582,16 +649,16 @@
 
 ### Grooming Frequency
 - **Current cadence**: After major completions (working well)
-- **Last groom**: 2025-11-15 (post Phase 3 completion)
+- **Last groom**: 2025-11-15 (post-Phase 5 completion + grooming scan)
 - **Previous groom**: 2025-11-12 (post all-tasks-complete)
-- **Next groom**: After Phase 4 completion or weekly check-in
+- **Next groom**: After strategic planning discussion or 2025-11-22 (weekly)
 
 ---
 
 ## Quality Checklist
 
 ✅ **Task Clarity**: All tasks have acceptance criteria
-✅ **Dependencies**: Clearly mapped (Phase 4 ready, Phase 5 blocked on Phase 4)
+✅ **Dependencies**: Clearly mapped (Azure Cosmos DB blocked on strategy)
 ✅ **Complexity**: Estimated for all ready tasks
 ✅ **Priority**: Assigned based on business value
 ✅ **Effort**: Estimated based on similar completed work
@@ -620,14 +687,16 @@
 - [Semantic Processing Roadmap](./semantic-processing-implementation/README.md) - Complete 5-phase plan
 - [Architecture Overview](../architecture/semantic-processing/) - Semantic processing architecture
 - [Project Backlog](./backlog.md) - Detailed technical backlog with all phases
-- [Ready Tasks](../backlog/by-status/ready.md) - Implementation-ready tasks
+- [Tech Debt Inventory](../tasks/tech-debt/) - 36 catalogued tech debt tasks
+- [Refactoring Inventory](../tasks/refactoring/) - 27 catalogued refactoring tasks
 
 ---
 
 ## Metadata
 - **Last Groomed**: 2025-11-15
 - **Grooming Agent**: Claude Code Assistant
-- **Files Analyzed**: All semantic processing implementation + test files + error handling improvements
-- **Grooming Duration**: 10 minutes
+- **Grooming Method**: groom-scan.sh + comprehensive file analysis + test validation
+- **Files Analyzed**: All planning docs + task inventories + source code TODO scan
+- **Grooming Duration**: 15 minutes
 - **Sync Status**: ✅ FULLY CURRENT (updated after Phase 5 completion)
 - **Next Groom Recommended**: After strategic planning discussion or 2025-11-22 (weekly)
