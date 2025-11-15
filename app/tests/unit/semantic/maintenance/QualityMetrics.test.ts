@@ -374,5 +374,55 @@ describe('QualityMetrics', () => {
       expect(score.quality).toBe('poor')
       expect(score.warnings).toContain('corrupted embedding')
     })
+
+    it('should reject weights that do not sum to 1.0', async () => {
+      mockStorage.getAllEntities = vi.fn().mockResolvedValue([])
+
+      await expect(
+        metrics.calculateOverallQuality({
+          weights: {
+            embeddingQuality: 0.5,
+            relationshipQuality: 0.3,
+            orphanPenalty: 0.1, // Sum = 0.9
+          }
+        })
+      ).rejects.toThrow('must sum to 1.0')
+    })
+
+    it('should reject negative weights', async () => {
+      mockStorage.getAllEntities = vi.fn().mockResolvedValue([])
+
+      await expect(
+        metrics.calculateOverallQuality({
+          weights: {
+            embeddingQuality: 1.2,
+            relationshipQuality: -0.2,
+            orphanPenalty: 0.0,
+          }
+        })
+      ).rejects.toThrow('must be non-negative')
+    })
+
+    it('should accept weights within tolerance', async () => {
+      mockStorage.getAllEntities = vi.fn().mockResolvedValue([
+        { id: '1', relationships: [] },
+      ])
+      mockStorage.getEmbedding = vi.fn().mockResolvedValue(
+        Array.from({ length: 384 }, () => 0.5)
+      )
+      mockStorage.getEntityById = vi.fn().mockResolvedValue(null)
+
+      // Sum = 1.001, within 0.01 tolerance
+      const result = await metrics.calculateOverallQuality({
+        weights: {
+          embeddingQuality: 0.334,
+          relationshipQuality: 0.333,
+          orphanPenalty: 0.334,
+        }
+      })
+
+      expect(result.overallScore).toBeGreaterThanOrEqual(0)
+      expect(result.overallScore).toBeLessThanOrEqual(1)
+    })
   })
 })

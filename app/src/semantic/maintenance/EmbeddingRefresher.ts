@@ -15,6 +15,7 @@
 
 import type { MaintenanceJob, JobContext } from './MaintenanceScheduler'
 import { JobPriority } from './MaintenanceScheduler'
+import { Logger } from '../../utils/Logger'
 
 /**
  * Refresh status enum
@@ -145,6 +146,7 @@ export interface EmbeddingRefresherConfig {
   storage: EmbeddingStorage
   defaultBatchSize?: number
   defaultConcurrency?: number
+  logger?: Logger
 }
 
 /**
@@ -164,12 +166,14 @@ export class EmbeddingRefresher {
   private isPaused: boolean = false
   private defaultBatchSize: number
   private defaultConcurrency: number
+  private logger: Logger
 
   constructor(config: EmbeddingRefresherConfig) {
     this.embeddingService = config.embeddingService
     this.storage = config.storage
     this.defaultBatchSize = config.defaultBatchSize ?? 50
     this.defaultConcurrency = config.defaultConcurrency ?? 3
+    this.logger = config.logger ?? Logger.createConsoleLogger('EmbeddingRefresher')
 
     this.currentStatus = {
       status: RefreshStatus.IDLE,
@@ -431,7 +435,10 @@ export class EmbeddingRefresher {
         const errorMessage = err instanceof Error ? err.message : String(err)
         this.currentStatus.status = RefreshStatus.FAILED
         this.currentStatus.error = errorMessage
-        console.error('Progressive refresh error:', errorMessage, err)
+        this.logger.error('Progressive refresh error', err instanceof Error ? err : undefined, {
+          errorMessage,
+          status: RefreshStatus.FAILED
+        })
       })
     }
   }

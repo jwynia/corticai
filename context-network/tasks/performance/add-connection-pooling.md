@@ -1,9 +1,27 @@
 # Task: Add Connection Pooling to Database Adapters (PERF-001)
 
-**Status**: 🚫 BLOCKED - Awaiting Scope & Priority Decisions
-**Last Updated**: 2025-10-18
+**Status**: ✅ COMPLETE (Retroactively documented 2025-11-15)
+**Completion Date**: 2025-10-17
+**Last Updated**: 2025-11-15
 
-## Scope Clarification Questions (BLOCKING)
+## ✅ COMPLETED - See Completion Record
+
+This task was completed on 2025-10-17 but remained marked as "blocked" due to a documentation gap.
+
+**Completion Record**: [2025-10-17-connection-pooling-completion.md](./2025-10-17-connection-pooling-completion.md)
+
+**What Was Delivered**:
+- GenericConnectionPool.ts (468 lines) - Reusable generic framework
+- KuzuConnectionPool.ts (193 lines) - Kuzu-specific implementation
+- DuckDBConnectionPool.ts (215 lines) - DuckDB-specific implementation
+- ConnectionPool.ts (141 lines) - Interface definitions
+- 41 comprehensive tests, all passing
+
+**Scope Exceeded**: Original task targeted Kuzu only, but implementation delivered Kuzu + DuckDB + Generic reusable pool.
+
+---
+
+## Historical Context: Scope Clarification Questions (RESOLVED VIA IMPLEMENTATION)
 
 ### Question 1: Adapter Scope
 - **Original task document**: KuzuStorageAdapter only

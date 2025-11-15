@@ -290,6 +290,79 @@ When adding new error handling:
 - [ ] Document error conditions in JSDoc
 - [ ] Support `continueOnError` where appropriate
 
+## Async/Promise Handling Consistency
+
+### Standard: Prefer async/await
+
+All code should use async/await instead of .then()/.catch() chains for consistency and readability.
+
+**Good** ✅:
+```typescript
+async function processData(id: string): Promise<Result> {
+  try {
+    const data = await fetchData(id)
+    const processed = await processData(data)
+    return processed
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    throw new Error(`Processing failed: ${errorMessage}`)
+  }
+}
+```
+
+**Avoid** ❌:
+```typescript
+function processData(id: string): Promise<Result> {
+  return fetchData(id)
+    .then(data => processData(data))
+    .catch(error => {
+      throw new Error(`Processing failed: ${error.message}`)
+    })
+}
+```
+
+### Legitimate Exceptions
+
+**Promise utilities** - Use native Promise API for concurrent operations:
+```typescript
+const results = await Promise.all([operation1(), operation2(), operation3()])
+const first = await Promise.race([operation1(), operation2()])
+const all = await Promise.allSettled([operation1(), operation2()])
+```
+
+**Fire-and-forget with observable errors** (Strategy 4):
+```typescript
+resume(): void {
+  this.startAsyncWork().catch(err => {
+    // Store error in observable status
+    this.status.error = err instanceof Error ? err.message : String(err)
+    console.error('Async work failed:', err)
+  })
+}
+```
+
+**Top-level script error handling**:
+```typescript
+// Migration scripts, CLI tools
+runMigration().catch(error => {
+  console.error('Fatal error:', error)
+  process.exit(1)
+})
+```
+
+### Current State
+
+**Status**: ✅ Codebase is already consistent
+- Zero `.then()` usage found
+- Only `.catch()` usage is in legitimate exception cases
+- All business logic uses async/await exclusively
+
+### Enforcement
+
+- Code review should check for .then() usage (except Promise utilities)
+- .catch() should only be used for documented exception cases
+- Consider adding ESLint rules if patterns start to drift
+
 ## See Also
 
 - [MaintenanceScheduler](./MaintenanceScheduler.ts) - Example job execution errors

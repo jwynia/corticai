@@ -15,6 +15,8 @@
  * - Automatic retry on failure
  */
 
+import { Logger } from '../../utils/Logger'
+
 /**
  * Job priority levels
  */
@@ -111,6 +113,9 @@ export interface SchedulerConfig {
 
   /** Maximum concurrent jobs (default: 1 for sequential) */
   maxConcurrentJobs?: number
+
+  /** Logger instance (optional, defaults to console logger) */
+  logger?: Logger
 }
 
 /**
@@ -140,6 +145,7 @@ export class MaintenanceScheduler {
   private isPaused: boolean = false
   private currentJob: string | null = null
   private config: SchedulerConfig
+  private logger: Logger
   private executionPromise: Promise<void> | null = null
 
   constructor(config: SchedulerConfig = {}) {
@@ -148,6 +154,7 @@ export class MaintenanceScheduler {
       enableAutoPause: config.enableAutoPause ?? false,
       maxConcurrentJobs: config.maxConcurrentJobs ?? 1,
     }
+    this.logger = config.logger ?? Logger.createConsoleLogger('MaintenanceScheduler')
   }
 
   /**
@@ -395,8 +402,7 @@ export class MaintenanceScheduler {
         return status.status === JobStatus.CANCELLED
       },
       log: (message: string) => {
-        // Could log to console or external system
-        console.log(`[${job.name}] ${message}`)
+        this.logger.info(message, { jobId: job.id, jobName: job.name })
       },
     }
 

@@ -159,83 +159,97 @@ export class LifecycleAnalyzer {
    * Detect supersession chain for an entity
    */
   async detectSupersessionChain(entityId: string): Promise<SupersessionChain> {
-    const entities: Entity[] = []
-    const visited = new Set<string>()
-    const errors: string[] = []
-
     try {
-      // Find head of chain (walk backwards)
-      let current = await this.storage.getEntityById(entityId)
-      if (!current) {
-        return {
-          entities: [],
-          isValid: false,
-          errors: [`Entity ${entityId} not found`],
-        }
+      const entity = await this.storage.getEntityById(entityId)
+      if (!entity) {
+        return this.invalidChain(`Entity ${entityId} not found`)
       }
 
-      // Walk backwards to find head
-      while (current.lifecycle?.supersededBy || current.properties.supersededBy) {
-        const supersededBy = current.lifecycle?.supersededBy || current.properties.supersededBy
-        if (!supersededBy) break
+      const head = await this.findChainHead(entity)
+      if ('errors' in head) return head
 
-        if (visited.has(supersededBy)) {
-          errors.push('circular reference detected')
-          return { entities, isValid: false, errors }
-        }
+      const chain = await this.buildChainFromHead(head)
+      if (!chain.isValid) return chain
 
-        const next = await this.storage.getEntityById(supersededBy)
-        if (!next) {
-          break // Reached head
-        }
-
-        visited.add(current.id)
-        current = next
-      }
-
-      // Now walk forward from head to build complete chain
-      const head = current
-      visited.clear()
-      entities.push(head)
-      visited.add(head.id)
-
-      current = head
-      while (current.properties.supersedes) {
-        const supersedes = current.properties.supersedes
-
-        if (visited.has(supersedes)) {
-          errors.push('circular reference detected')
-          return { entities, isValid: false, errors }
-        }
-
-        const next = await this.storage.getEntityById(supersedes)
-        if (!next) {
-          errors.push(`orphaned reference to ${supersedes}`)
-          return { entities, isValid: false, errors }
-        }
-
-        entities.push(next)
-        visited.add(next.id)
-        current = next
-      }
-
-      // Validate chronological order (each entity should be newer than the one it supersedes)
-      for (let i = 0; i < entities.length - 1; i++) {
-        if (entities[i].properties.createdAt < entities[i + 1].properties.createdAt) {
-          errors.push('chronological order violated')
-          return { entities, isValid: false, errors }
-        }
-      }
-
-      return {
-        entities,
-        isValid: errors.length === 0,
-        errors: errors.length > 0 ? errors : undefined,
-      }
+      return this.validateChainOrder(chain.entities)
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error))
-      return { entities, isValid: false, errors }
+      return this.invalidChain(error instanceof Error ? error.message : String(error))
     }
+  }
+
+  /**
+   * Create an invalid chain result with error
+   */
+  private invalidChain(error: string): SupersessionChain {
+    return { entities: [], isValid: false, errors: [error] }
+  }
+
+  /**
+   * Walk backwards to find the head of the supersession chain
+   */
+  private async findChainHead(startEntity: Entity): Promise<Entity | SupersessionChain> {
+    const visited = new Set<string>()
+    let current = startEntity
+
+    while (current.lifecycle?.supersededBy || current.properties.supersededBy) {
+      const supersededBy = current.lifecycle?.supersededBy || current.properties.supersededBy
+      if (!supersededBy) break
+
+      if (visited.has(supersededBy)) {
+        return this.invalidChain('circular reference detected')
+      }
+
+      const next = await this.storage.getEntityById(supersededBy)
+      if (!next) {
+        break // Reached head (no more entities to follow)
+      }
+
+      visited.add(current.id)
+      current = next
+    }
+
+    return current
+  }
+
+  /**
+   * Walk forward from head to build complete supersession chain
+   */
+  private async buildChainFromHead(head: Entity): Promise<SupersessionChain> {
+    const entities: Entity[] = [head]
+    const visited = new Set<string>([head.id])
+    let current = head
+
+    while (current.properties.supersedes) {
+      const supersedes = current.properties.supersedes
+
+      if (visited.has(supersedes)) {
+        return { entities, isValid: false, errors: ['circular reference detected'] }
+      }
+
+      const next = await this.storage.getEntityById(supersedes)
+      if (!next) {
+        return { entities, isValid: false, errors: [`orphaned reference to ${supersedes}`] }
+      }
+
+      entities.push(next)
+      visited.add(next.id)
+      current = next
+    }
+
+    return { entities, isValid: true }
+  }
+
+  /**
+   * Validate chronological order of chain entities
+   */
+  private validateChainOrder(entities: Entity[]): SupersessionChain {
+    for (let i = 0; i < entities.length - 1; i++) {
+      if (entities[i].properties.createdAt < entities[i + 1].properties.createdAt) {
+        return { entities, isValid: false, errors: ['chronological order violated'] }
+      }
+    }
+
+    return { entities, isValid: true }
   }
 
   /**

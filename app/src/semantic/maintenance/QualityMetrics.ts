@@ -352,8 +352,35 @@ export class QualityMetrics {
 
   /**
    * Calculate overall quality score
+   *
+   * @param config - Configuration including custom weights
+   * @throws {Error} If weights don't sum to approximately 1.0 or contain negative values
    */
   async calculateOverallQuality(config: QualityConfig = {}): Promise<OverallQuality> {
+    // Validate weights if provided
+    if (config.weights) {
+      const sum =
+        (config.weights.embeddingQuality ?? 0) +
+        (config.weights.relationshipQuality ?? 0) +
+        (config.weights.orphanPenalty ?? 0)
+
+      const tolerance = 0.01
+      if (Math.abs(sum - 1.0) > tolerance) {
+        throw new Error(
+          `Quality weights must sum to 1.0 (within ${tolerance}), got ${sum.toFixed(3)}`
+        )
+      }
+
+      // Validate all weights are non-negative
+      if (
+        (config.weights.embeddingQuality ?? 0) < 0 ||
+        (config.weights.relationshipQuality ?? 0) < 0 ||
+        (config.weights.orphanPenalty ?? 0) < 0
+      ) {
+        throw new Error('Quality weights must be non-negative')
+      }
+    }
+
     const weights = {
       embeddingQuality: config.weights?.embeddingQuality ?? 0.4,
       relationshipQuality: config.weights?.relationshipQuality ?? 0.4,
