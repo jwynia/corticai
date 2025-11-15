@@ -249,3 +249,236 @@ export interface LifecycleDetectorConfig {
   /** Whether to flag low-confidence detections for manual review */
   flagLowConfidence?: boolean
 }
+
+// ============================================================================
+// Phase 3: Semantic Pipeline Types (Query-Time Processing)
+// ============================================================================
+
+/**
+ * Query intent classification
+ * Helps determine what the user is looking for and how to rank results
+ */
+export type QueryIntent = 'what' | 'why' | 'how' | 'when' | 'where' | 'who' | 'unknown'
+
+/**
+ * Parsed query structure from Stage 1
+ * Preserves user specificity while extracting semantic signals
+ */
+export interface ParsedQuery {
+  /** Original query string (unchanged) */
+  original: string
+
+  /** Detected intent */
+  intent: QueryIntent
+
+  /** Whether query contains negations ("don't", "avoid", "not") */
+  hasNegation: boolean
+
+  /** Negated terms extracted */
+  negatedTerms: string[]
+
+  /** Prepositions and their objects (e.g., "FROM x TO y") */
+  prepositions: Record<string, string>
+
+  /** Literal terms that should match exactly (no expansion) */
+  literalTerms: string[]
+
+  /** Confidence in intent detection */
+  confidence: number
+}
+
+/**
+ * Candidate result from Stage 2 structural filtering
+ * Reduced set of potential matches before expensive semantic operations
+ */
+export interface CandidateResult {
+  /** Entity ID */
+  id: string
+
+  /** Entity type */
+  type: string
+
+  /** Entity properties */
+  properties: Record<string, any>
+
+  /** Lifecycle metadata (if available) */
+  lifecycle?: LifecycleMetadata
+
+  /** Literal match score (0-1, based on grep-style matching) */
+  literalMatchScore: number
+
+  /** Matched lifecycle filter (if filtered by lifecycle) */
+  matchedLifecycleFilter?: boolean
+}
+
+/**
+ * Enriched result from Stage 3
+ * Adds semantic signals for ranking
+ */
+export interface EnrichedResult extends CandidateResult {
+  /** Polarity of mentions (positive/negative/neutral) */
+  polarity: Polarity
+
+  /** Supersession chain (if deprecated/historical) */
+  supersessionChain?: string[]
+
+  /** Temporal context extracted */
+  temporalContext?: {
+    createdAt?: string
+    updatedAt?: string
+    relevantPeriod?: string
+  }
+
+  /** Relevance factors computed */
+  relevanceFactors: {
+    recency: number // 0-1
+    authority: number // 0-1
+    completeness: number // 0-1
+  }
+}
+
+/**
+ * Ranked result from Stage 4
+ * Final scored results ready for presentation
+ */
+export interface RankedResult extends EnrichedResult {
+  /** Embedding similarity score (0-1, if vector search used) */
+  embeddingSimilarity?: number
+
+  /** Intent alignment score (0-1, how well result matches query intent) */
+  intentAlignment: number
+
+  /** Polarity alignment score (0-1, positive match if polarities align) */
+  polarityAlignment: number
+
+  /** Authority score (0-1, based on lifecycle + evidence) */
+  authorityScore: number
+
+  /** Combined relevance score (0-1, weighted combination) */
+  relevanceScore: number
+
+  /** Breakdown of score components for debugging */
+  scoreBreakdown: {
+    literal: number
+    embedding?: number
+    intent: number
+    polarity: number
+    authority: number
+    recency: number
+  }
+}
+
+/**
+ * Presented result from Stage 5
+ * Final result with extracted blocks, context chains, and suggestions
+ */
+export interface PresentedResult {
+  /** Original ranked result */
+  result: RankedResult
+
+  /** Extracted relevant semantic blocks */
+  relevantBlocks: SemanticBlock[]
+
+  /** Context chain (supersession chain with full entities) */
+  contextChain?: Array<{
+    id: string
+    type: string
+    properties: Record<string, any>
+    relationship: string // "SUPERSEDES", "MOTIVATES", etc.
+  }>
+
+  /** Navigation hints */
+  navigationHints: string[]
+
+  /** "You might also want to know" suggestions */
+  relatedSuggestions: Array<{
+    id: string
+    reason: string // Why this is suggested
+    relevance: number // 0-1
+  }>
+
+  /** Citations/references */
+  citations?: string[]
+}
+
+/**
+ * Pipeline configuration
+ * Controls behavior of all 5 stages
+ */
+export interface PipelineConfig {
+  /** Stage 2: Maximum candidates to pass to semantic stages */
+  maxCandidates?: number // default: 100
+
+  /** Stage 2: Minimum literal match score to include candidate */
+  minLiteralScore?: number // default: 0.1
+
+  /** Stage 2: Lifecycle filters to apply */
+  lifecycleFilters?: LifecycleState[]
+
+  /** Stage 3: Enable polarity detection */
+  enablePolarity?: boolean // default: true
+
+  /** Stage 3: Maximum supersession chain depth */
+  maxSupersessionDepth?: number // default: 5
+
+  /** Stage 4: Ranking weights for score combination */
+  rankingWeights?: {
+    literal?: number
+    embedding?: number
+    intent?: number
+    polarity?: number
+    authority?: number
+    recency?: number
+  }
+
+  /** Stage 4: Minimum relevance score to include in results */
+  minRelevanceScore?: number // default: 0.1
+
+  /** Stage 5: Maximum number of related suggestions */
+  maxSuggestions?: number // default: 5
+
+  /** Stage 5: Maximum blocks to extract per result */
+  maxBlocksPerResult?: number // default: 3
+
+  /** Performance: Enable vector search for embedding similarity */
+  enableVectorSearch?: boolean // default: true
+
+  /** Performance: Query timeout in milliseconds */
+  queryTimeout?: number // default: 100
+}
+
+/**
+ * Pipeline execution result
+ * Contains all stage results for debugging/logging
+ */
+export interface PipelineResult {
+  /** Original query */
+  query: string
+
+  /** Parsed query from Stage 1 */
+  parsedQuery: ParsedQuery
+
+  /** Candidates from Stage 2 */
+  candidates: CandidateResult[]
+
+  /** Enriched results from Stage 3 */
+  enrichedResults: EnrichedResult[]
+
+  /** Ranked results from Stage 4 */
+  rankedResults: RankedResult[]
+
+  /** Final presented results from Stage 5 */
+  presentedResults: PresentedResult[]
+
+  /** Execution time in milliseconds */
+  executionTime: number
+
+  /** Performance breakdown by stage */
+  stageTimings: {
+    stage1: number
+    stage2: number
+    stage3: number
+    stage4: number
+    stage5: number
+  }
+}
