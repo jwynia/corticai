@@ -19,6 +19,8 @@ import { StructuralFilter, type EntityProvider } from './StructuralFilter'
 import { SemanticEnricher, type EntityLookupFn } from './SemanticEnricher'
 import { SemanticRanker, type EmbeddingSimilarityFn } from './SemanticRanker'
 import { SemanticPresenter, type BlockLookupFn, type ChainEntityLookupFn } from './SemanticPresenter'
+import { ProjectionEngine } from './ProjectionEngine'
+import { ContextDepth } from '../types/context'
 
 import type {
   ParsedQuery,
@@ -29,6 +31,7 @@ import type {
   PipelineConfig,
   PipelineResult,
 } from './types'
+import type { ProjectedResult } from './ProjectionEngine'
 
 /**
  * Context Pipeline configuration
@@ -59,6 +62,7 @@ export class ContextPipeline {
   private semanticEnricher: SemanticEnricher
   private semanticRanker: SemanticRanker
   private semanticPresenter: SemanticPresenter
+  private projectionEngine: ProjectionEngine
   private config: ContextPipelineConfig
 
   /**
@@ -78,6 +82,9 @@ export class ContextPipeline {
       config.blockLookup,
       config.chainEntityLookup
     )
+    this.projectionEngine = new ProjectionEngine({
+      defaultDepth: ContextDepth.STRUCTURE,
+    })
   }
 
   /**
@@ -138,6 +145,16 @@ export class ContextPipeline {
       parsedQuery,
       effectiveConfig
     )
+
+    // Stage 5 (Phase 4): Projection to target depth
+    const targetDepth = effectiveConfig.depth ?? ContextDepth.STRUCTURE
+    const projectedResults = this.projectionEngine.project(rankedResults, {
+      depth: targetDepth,
+      suggestedDepth: this.projectionEngine.suggestDepth(parsedQuery),
+      maxBlocksPerResult: effectiveConfig.maxBlocksPerResult,
+      maxSuggestions: effectiveConfig.maxSuggestions,
+    })
+
     timings.stage5 = Date.now() - stage5Start
 
     const executionTime = Date.now() - startTime
@@ -149,6 +166,7 @@ export class ContextPipeline {
       enrichedResults,
       rankedResults,
       presentedResults,
+      projectedResults,
       executionTime,
       stageTimings: timings,
     }
@@ -159,10 +177,11 @@ export class ContextPipeline {
    *
    * @param query - User query string
    * @param config - Optional pipeline configuration overrides
-   * @returns Final presented results
+   * @returns Final presented results (or projected results if depth is specified)
    */
-  async query(query: string, config?: Partial<PipelineConfig>): Promise<PresentedResult[]> {
+  async query(query: string, config?: Partial<PipelineConfig>): Promise<PresentedResult[] | ProjectedResult[]> {
     const result = await this.execute(query, config)
-    return result.presentedResults
+    // Return projected results if depth was specified, otherwise presented results
+    return result.projectedResults || result.presentedResults
   }
 }

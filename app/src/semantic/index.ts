@@ -79,3 +79,11 @@ export { SemanticPresenter } from './SemanticPresenter'
 export type { BlockLookupFn, ChainEntityLookupFn } from './SemanticPresenter'
 export { ContextPipeline } from './ContextPipeline'
 export type { ContextPipelineConfig } from './ContextPipeline'
+
+// Phase 4: Progressive Context Loading (Projection Engine)
+export { ProjectionEngine } from './ProjectionEngine'
+export type {
+  ProjectedResult,
+  ProjectionConfig,
+  ProjectionEngineConfig,
+} from './ProjectionEngine'

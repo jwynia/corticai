@@ -8,6 +8,8 @@
  * @see context-network/planning/semantic-processing-implementation/
  */
 
+import { ContextDepth } from '../types/context'
+
 /**
  * Lifecycle state for documents and entities
  *
@@ -440,6 +442,9 @@ export interface PipelineConfig {
   /** Stage 5: Maximum blocks to extract per result */
   maxBlocksPerResult?: number // default: 3
 
+  /** Stage 5 (Phase 4): Depth level for progressive loading */
+  depth?: ContextDepth // default: STRUCTURE
+
   /** Performance: Enable vector search for embedding similarity */
   enableVectorSearch?: boolean // default: true
 
@@ -469,6 +474,9 @@ export interface PipelineResult {
 
   /** Final presented results from Stage 5 */
   presentedResults: PresentedResult[]
+
+  /** Projected results from Stage 5 (Phase 4) */
+  projectedResults?: import('./ProjectionEngine').ProjectedResult[]
 
   /** Execution time in milliseconds */
   executionTime: number
