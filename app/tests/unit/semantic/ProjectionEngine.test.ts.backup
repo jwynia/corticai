@@ -52,9 +52,9 @@ describe('ProjectionEngine', () => {
 
   describe('Depth-Based Projection', () => {
     describe('SIGNATURE Level (Depth 1)', () => {
-      it('should project only id, type, and basic properties at SIGNATURE level', async () => {
+      it('should project only id, type, and basic properties at SIGNATURE level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+        const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
 
         expect(projected).toHaveLength(1)
         const first = projected[0]
@@ -75,25 +75,25 @@ describe('ProjectionEngine', () => {
         expect(first.expansionHints?.availableDepths).toContain(ContextDepth.SEMANTIC)
       })
 
-      it('should exclude semantic blocks at SIGNATURE level', async () => {
+      it('should exclude semantic blocks at SIGNATURE level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+        const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
 
         expect(projected[0].relevantBlocks).toEqual([])
       })
 
-      it('should exclude context chains at SIGNATURE level', async () => {
+      it('should exclude context chains at SIGNATURE level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+        const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
 
         expect(projected[0].contextChain).toBeUndefined()
       })
 
-      it('should achieve significant memory reduction at SIGNATURE level', async () => {
+      it('should achieve significant memory reduction at SIGNATURE level', () => {
         const result = createLargeRankedResult()
         const fullSize = JSON.stringify(createFullPresentedResult(result)).length
 
-        const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+        const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
         const projectedSize = JSON.stringify(projected[0]).length
 
         const reduction = (fullSize - projectedSize) / fullSize
@@ -102,9 +102,9 @@ describe('ProjectionEngine', () => {
     })
 
     describe('STRUCTURE Level (Depth 2)', () => {
-      it('should include relationships at STRUCTURE level', async () => {
+      it('should include relationships at STRUCTURE level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.STRUCTURE })
+        const projected = engine.project([result], { depth: ContextDepth.STRUCTURE })
 
         const first = projected[0]
         expect(first.depthLevel).toBe(ContextDepth.STRUCTURE)
@@ -114,16 +114,16 @@ describe('ProjectionEngine', () => {
         expect(first.contextChain?.length).toBeGreaterThan(0)
       })
 
-      it('should still exclude semantic blocks at STRUCTURE level', async () => {
+      it('should still exclude semantic blocks at STRUCTURE level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.STRUCTURE })
+        const projected = engine.project([result], { depth: ContextDepth.STRUCTURE })
 
         expect(projected[0].relevantBlocks).toEqual([])
       })
 
-      it('should include navigation hints at STRUCTURE level', async () => {
+      it('should include navigation hints at STRUCTURE level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.STRUCTURE })
+        const projected = engine.project([result], { depth: ContextDepth.STRUCTURE })
 
         expect(projected[0].navigationHints).toBeDefined()
         expect(projected[0].navigationHints.length).toBeGreaterThan(0)
@@ -131,25 +131,25 @@ describe('ProjectionEngine', () => {
     })
 
     describe('SEMANTIC Level (Depth 3)', () => {
-      it('should include semantic blocks at SEMANTIC level', async () => {
+      it('should include semantic blocks at SEMANTIC level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.SEMANTIC })
+        const projected = engine.project([result], { depth: ContextDepth.SEMANTIC })
 
         const first = projected[0]
         expect(first.depthLevel).toBe(ContextDepth.SEMANTIC)
         expect(first.relevantBlocks.length).toBeGreaterThan(0)
       })
 
-      it('should include related suggestions at SEMANTIC level', async () => {
+      it('should include related suggestions at SEMANTIC level', () => {
         const results = [createFullRankedResult(), createFullRankedResult()]
-        const projected = await engine.project(results, { depth: ContextDepth.SEMANTIC })
+        const projected = engine.project(results, { depth: ContextDepth.SEMANTIC })
 
         expect(projected[0].relatedSuggestions).toBeDefined()
       })
 
-      it('should provide meaningful semantic content', async () => {
+      it('should provide meaningful semantic content', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.SEMANTIC })
+        const projected = engine.project([result], { depth: ContextDepth.SEMANTIC })
 
         // Should have rich semantic information
         expect(projected[0].relevantBlocks.length).toBeGreaterThan(0)
@@ -158,9 +158,9 @@ describe('ProjectionEngine', () => {
     })
 
     describe('DETAILED Level (Depth 4)', () => {
-      it('should include full properties at DETAILED level', async () => {
+      it('should include full properties at DETAILED level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.DETAILED })
+        const projected = engine.project([result], { depth: ContextDepth.DETAILED })
 
         const first = projected[0]
         expect(first.depthLevel).toBe(ContextDepth.DETAILED)
@@ -171,18 +171,18 @@ describe('ProjectionEngine', () => {
         expect(first.contextChain).toBeDefined()
       })
 
-      it('should include score breakdown at DETAILED level', async () => {
+      it('should include score breakdown at DETAILED level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.DETAILED })
+        const projected = engine.project([result], { depth: ContextDepth.DETAILED })
 
         expect(projected[0].result.scoreBreakdown).toBeDefined()
       })
     })
 
     describe('HISTORICAL Level (Depth 5)', () => {
-      it('should include version history at HISTORICAL level', async () => {
+      it('should include version history at HISTORICAL level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.HISTORICAL })
+        const projected = engine.project([result], { depth: ContextDepth.HISTORICAL })
 
         const first = projected[0]
         expect(first.depthLevel).toBe(ContextDepth.HISTORICAL)
@@ -191,9 +191,9 @@ describe('ProjectionEngine', () => {
         expect(first.result.temporalContext).toBeDefined()
       })
 
-      it('should not reduce size at HISTORICAL level', async () => {
+      it('should not reduce size at HISTORICAL level', () => {
         const result = createFullRankedResult()
-        const projected = await engine.project([result], { depth: ContextDepth.HISTORICAL })
+        const projected = engine.project([result], { depth: ContextDepth.HISTORICAL })
 
         // At HISTORICAL level, we want everything
         expect(projected[0].isProjected).toBe(false) // No projection applied
@@ -202,9 +202,9 @@ describe('ProjectionEngine', () => {
   })
 
   describe('Progressive Loading', () => {
-    it('should provide expansion hints for deeper content', async () => {
+    it('should provide expansion hints for deeper content', () => {
       const result = createFullRankedResult()
-      const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+      const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
 
       const hints = projected[0].expansionHints
       expect(hints).toBeDefined()
@@ -214,9 +214,9 @@ describe('ProjectionEngine', () => {
       expect(hints?.availableDepths).toContain(ContextDepth.HISTORICAL)
     })
 
-    it('should indicate what content is available at each depth', async () => {
+    it('should indicate what content is available at each depth', () => {
       const result = createFullRankedResult()
-      const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+      const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
 
       const hints = projected[0].expansionHints
       expect(hints?.descriptions).toBeDefined()
@@ -225,9 +225,9 @@ describe('ProjectionEngine', () => {
       expect(hints?.descriptions?.[ContextDepth.DETAILED]).toContain('full')
     })
 
-    it('should track what is loaded vs available', async () => {
+    it('should track what is loaded vs available', () => {
       const result = createFullRankedResult()
-      const projected = await engine.project([result], { depth: ContextDepth.STRUCTURE })
+      const projected = engine.project([result], { depth: ContextDepth.STRUCTURE })
 
       expect(projected[0].loadedContent).toBeDefined()
       expect(projected[0].loadedContent?.includes).toContain('signature')
@@ -236,20 +236,20 @@ describe('ProjectionEngine', () => {
       expect(projected[0].loadedContent?.available).toContain('fullContent')
     })
 
-    it('should support progressive expansion to deeper levels', async () => {
+    it('should support progressive expansion to deeper levels', () => {
       const result = createFullRankedResult()
 
       // Start at SIGNATURE
-      let projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+      let projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
       expect(projected[0].depthLevel).toBe(ContextDepth.SIGNATURE)
 
       // Expand to STRUCTURE
-      projected = await engine.project([result], { depth: ContextDepth.STRUCTURE })
+      projected = engine.project([result], { depth: ContextDepth.STRUCTURE })
       expect(projected[0].depthLevel).toBe(ContextDepth.STRUCTURE)
       expect(projected[0].contextChain).toBeDefined()
 
       // Expand to SEMANTIC
-      projected = await engine.project([result], { depth: ContextDepth.SEMANTIC })
+      projected = engine.project([result], { depth: ContextDepth.SEMANTIC })
       expect(projected[0].depthLevel).toBe(ContextDepth.SEMANTIC)
       expect(projected[0].relevantBlocks.length).toBeGreaterThan(0)
     })
@@ -276,9 +276,9 @@ describe('ProjectionEngine', () => {
       expect(suggestedDepth).toBe(ContextDepth.SIGNATURE)
     })
 
-    it('should allow user to override suggested depth', async () => {
+    it('should allow user to override suggested depth', () => {
       const result = createFullRankedResult()
-      const projected = await engine.project([result], {
+      const projected = engine.project([result], {
         suggestedDepth: ContextDepth.SEMANTIC,
         depth: ContextDepth.SIGNATURE, // User override
       })
@@ -305,29 +305,30 @@ describe('ProjectionEngine', () => {
   })
 
   describe('Caching', () => {
-    it('should cache projected results for same input', async () => {
+    it('should cache projected results for same input', () => {
       const result = createFullRankedResult()
 
-      // First projection
-      const projected1 = await engine.project([result], { depth: ContextDepth.SEMANTIC })
+      const start1 = performance.now()
+      const projected1 = engine.project([result], { depth: ContextDepth.SEMANTIC })
+      const time1 = performance.now() - start1
 
-      // Second projection should hit cache
-      const projected2 = await engine.project([result], { depth: ContextDepth.SEMANTIC })
+      const start2 = performance.now()
+      const projected2 = engine.project([result], { depth: ContextDepth.SEMANTIC })
+      const time2 = performance.now() - start2
+
+      // Second call should be significantly faster (from cache)
+      expect(time2).toBeLessThan(time1 * 0.5)
 
       // Results should be equivalent
       expect(projected1[0].result.id).toBe(projected2[0].result.id)
       expect(projected1[0].depthLevel).toBe(projected2[0].depthLevel)
-
-      // Verify cache was used
-      expect(engine.isCached(result.id, ContextDepth.SEMANTIC)).toBe(true)
-      expect(engine.getCacheSize()).toBe(1)
     })
 
-    it('should invalidate cache when content changes', async () => {
+    it('should invalidate cache when content changes', () => {
       const result = createFullRankedResult()
 
       // First projection (cached)
-      await engine.project([result], { depth: ContextDepth.SEMANTIC })
+      engine.project([result], { depth: ContextDepth.SEMANTIC })
       expect(engine.isCached(result.id, ContextDepth.SEMANTIC)).toBe(true)
 
       // Invalidate cache for this entity
@@ -337,18 +338,18 @@ describe('ProjectionEngine', () => {
       expect(engine.isCached(result.id, ContextDepth.SEMANTIC)).toBe(false)
 
       // Second projection should work fine (not from cache)
-      const projected2 = await engine.project([result], { depth: ContextDepth.SEMANTIC })
+      const projected2 = engine.project([result], { depth: ContextDepth.SEMANTIC })
       expect(projected2).toHaveLength(1)
       expect(projected2[0].result.id).toBe(result.id)
     })
 
-    it('should respect cache size limits', async () => {
+    it('should respect cache size limits', () => {
       const smallEngine = new ProjectionEngine({ cacheSize: 3 })
 
       // Add 5 items (exceeds cache size)
       for (let i = 0; i < 5; i++) {
         const result = createFullRankedResult(`entity-${i}`)
-        await smallEngine.project([result], { depth: ContextDepth.SEMANTIC })
+        smallEngine.project([result], { depth: ContextDepth.SEMANTIC })
       }
 
       // Cache should only have 3 items (LRU eviction)
@@ -364,18 +365,18 @@ describe('ProjectionEngine', () => {
       const result3 = createFullRankedResult('entity-3')
 
       // Fill cache with small delays to ensure different timestamps
-      await engine.project([result1], { depth: ContextDepth.SEMANTIC })
+      engine.project([result1], { depth: ContextDepth.SEMANTIC })
       await new Promise(resolve => setTimeout(resolve, 2))
 
-      await engine.project([result2], { depth: ContextDepth.SEMANTIC })
+      engine.project([result2], { depth: ContextDepth.SEMANTIC })
       await new Promise(resolve => setTimeout(resolve, 2))
 
       // Access result1 (makes it most recently used)
-      await engine.project([result1], { depth: ContextDepth.SEMANTIC })
+      engine.project([result1], { depth: ContextDepth.SEMANTIC })
       await new Promise(resolve => setTimeout(resolve, 2))
 
       // Add result3 (should evict result2, not result1)
-      await engine.project([result3], { depth: ContextDepth.SEMANTIC })
+      engine.project([result3], { depth: ContextDepth.SEMANTIC })
 
       // result1 and result3 should be cached, result2 evicted
       expect(engine.isCached(result1.id, ContextDepth.SEMANTIC)).toBe(true)
@@ -385,13 +386,13 @@ describe('ProjectionEngine', () => {
   })
 
   describe('Performance Requirements', () => {
-    it('should project in < 50ms per result (overhead requirement)', async () => {
+    it('should project in < 50ms per result (overhead requirement)', () => {
       const results = Array.from({ length: 10 }, (_, i) =>
         createFullRankedResult(`entity-${i}`)
       )
 
       const start = performance.now()
-      const projected = await engine.project(results, { depth: ContextDepth.SEMANTIC })
+      const projected = engine.project(results, { depth: ContextDepth.SEMANTIC })
       const totalTime = performance.now() - start
 
       const timePerResult = totalTime / results.length
@@ -438,7 +439,7 @@ describe('ProjectionEngine', () => {
       expect(ContextDepth.HISTORICAL).toBe(5)
     })
 
-    it('should accept all ContextDepth values', async () => {
+    it('should accept all ContextDepth values', () => {
       const result = createFullRankedResult()
 
       const depths = [
@@ -449,21 +450,21 @@ describe('ProjectionEngine', () => {
         ContextDepth.HISTORICAL,
       ]
 
-      for (const depth of depths) {
-        const projected = await engine.project([result], { depth })
+      depths.forEach(depth => {
+        const projected = engine.project([result], { depth })
         expect(projected).toHaveLength(1)
         expect(projected[0].depthLevel).toBe(depth)
-      }
+      })
     })
   })
 
   describe('Edge Cases and Error Handling', () => {
-    it('should handle empty result arrays', async () => {
-      const projected = await engine.project([], { depth: ContextDepth.SEMANTIC })
+    it('should handle empty result arrays', () => {
+      const projected = engine.project([], { depth: ContextDepth.SEMANTIC })
       expect(projected).toEqual([])
     })
 
-    it('should handle results with missing properties', async () => {
+    it('should handle results with missing properties', () => {
       const minimalResult: RankedResult = {
         id: 'test-1',
         type: 'document',
@@ -485,34 +486,34 @@ describe('ProjectionEngine', () => {
         },
       }
 
-      const projected = await engine.project([minimalResult], { depth: ContextDepth.SEMANTIC })
+      const projected = engine.project([minimalResult], { depth: ContextDepth.SEMANTIC })
       expect(projected).toHaveLength(1)
       expect(projected[0].result.id).toBe('test-1')
     })
 
-    it('should handle invalid depth values gracefully', async () => {
+    it('should handle invalid depth values gracefully', () => {
       const result = createFullRankedResult()
 
       // Should default to STRUCTURE for invalid depth
-      const projected = await engine.project([result], { depth: 99 as ContextDepth })
+      const projected = engine.project([result], { depth: 99 as ContextDepth })
       expect(projected[0].depthLevel).toBe(ContextDepth.STRUCTURE)
     })
 
-    it('should handle null/undefined configuration', async () => {
+    it('should handle null/undefined configuration', () => {
       const result = createFullRankedResult()
-      const projected = await engine.project([result], undefined)
+      const projected = engine.project([result], undefined)
 
       // Should use default depth
       expect(projected).toHaveLength(1)
       expect(projected[0].depthLevel).toBeDefined()
     })
 
-    it('should handle results with very large properties', async () => {
+    it('should handle results with very large properties', () => {
       const result = createFullRankedResult()
       result.properties.largeContent = 'x'.repeat(1000000) // 1MB of content
 
       const start = performance.now()
-      const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+      const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
       const time = performance.now() - start
 
       // Should still be fast at SIGNATURE level (minimal properties)
@@ -524,7 +525,7 @@ describe('ProjectionEngine', () => {
   })
 
   describe('Expansion Hints Generation', () => {
-    it('should generate context-aware expansion hints', async () => {
+    it('should generate context-aware expansion hints', () => {
       const result = createFullRankedResult()
       result.lifecycle = {
         state: 'deprecated',
@@ -533,19 +534,19 @@ describe('ProjectionEngine', () => {
         supersededBy: 'new-doc-id',
       }
 
-      const projected = await engine.project([result], { depth: ContextDepth.SIGNATURE })
+      const projected = engine.project([result], { depth: ContextDepth.SIGNATURE })
 
       const hints = projected[0].expansionHints
       expect(hints?.suggestedNextDepth).toBe(ContextDepth.STRUCTURE)
       expect(hints?.reasons).toContain('deprecated') // Hint about deprecated status
     })
 
-    it('should suggest appropriate depths based on content type', async () => {
+    it('should suggest appropriate depths based on content type', () => {
       const codeResult = createFullRankedResult('code')
       const docResult = createFullRankedResult('document')
 
-      const codeProjected = await engine.project([codeResult], { depth: ContextDepth.SIGNATURE })
-      const docProjected = await engine.project([docResult], { depth: ContextDepth.SIGNATURE })
+      const codeProjected = engine.project([codeResult], { depth: ContextDepth.SIGNATURE })
+      const docProjected = engine.project([docResult], { depth: ContextDepth.SIGNATURE })
 
       // Code might suggest DETAILED (need full code)
       // Documents might suggest SEMANTIC (need summary first)

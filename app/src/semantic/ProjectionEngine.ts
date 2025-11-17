@@ -21,6 +21,48 @@ import { ContextDepth } from '../types/context'
 import type { RankedResult, PresentedResult, ParsedQuery, SemanticBlock } from './types'
 
 /**
+ * Provider for fetching semantic blocks from storage
+ */
+export interface BlockProvider {
+  /**
+   * Fetch semantic blocks for an entity at a given depth
+   *
+   * @param entityId - ID of the entity to fetch blocks for
+   * @param depth - Context depth level (determines what blocks to fetch)
+   * @returns Promise resolving to array of semantic blocks
+   */
+  fetchBlocksForEntity(entityId: string, depth: ContextDepth): Promise<SemanticBlock[]>
+}
+
+/**
+ * Suggestion result structure
+ */
+export type Suggestion = {
+  id: string
+  reason: string
+  relevance: number
+}
+
+/**
+ * Provider for generating related suggestions
+ */
+export interface SuggestionProvider {
+  /**
+   * Generate related suggestions for a result
+   *
+   * @param result - The current ranked result
+   * @param depth - Context depth level
+   * @param context - Additional context (all results, etc.)
+   * @returns Promise resolving to array of suggestions
+   */
+  generateSuggestions(
+    result: RankedResult,
+    depth: ContextDepth,
+    context: { allResults?: RankedResult[] }
+  ): Promise<Suggestion[]>
+}
+
+/**
  * Projected result with depth information and expansion hints
  */
 export interface ProjectedResult extends PresentedResult {
@@ -105,15 +147,27 @@ export class ProjectionEngine {
   private preferences: Map<string, ContextDepth> // entityType -> preferred depth
   private readonly cacheSize: number
   private readonly defaultDepth: ContextDepth
+  private readonly blockProvider?: BlockProvider
+  private readonly suggestionProvider?: SuggestionProvider
 
   /**
    * Create a new ProjectionEngine
+   *
+   * @param config - Engine configuration
+   * @param blockProvider - Optional provider for fetching semantic blocks from storage
+   * @param suggestionProvider - Optional provider for generating related suggestions
    */
-  constructor(config?: ProjectionEngineConfig) {
+  constructor(
+    config?: ProjectionEngineConfig,
+    blockProvider?: BlockProvider,
+    suggestionProvider?: SuggestionProvider
+  ) {
     this.cache = new Map()
     this.preferences = new Map()
     this.cacheSize = config?.cacheSize ?? 100
     this.defaultDepth = config?.defaultDepth ?? ContextDepth.STRUCTURE
+    this.blockProvider = blockProvider
+    this.suggestionProvider = suggestionProvider
   }
 
   /**
@@ -121,47 +175,53 @@ export class ProjectionEngine {
    *
    * @param results - Ranked results to project
    * @param config - Projection configuration
-   * @returns Projected results at specified depth
+   * @returns Promise resolving to projected results at specified depth
    */
-  project(results: RankedResult[], config?: ProjectionConfig): ProjectedResult[] {
+  async project(results: RankedResult[], config?: ProjectionConfig): Promise<ProjectedResult[]> {
     if (results.length === 0) {
       return []
     }
 
     const targetDepth = this.resolveTargetDepth(config)
 
-    return results.map(result => {
-      const cacheKey = this.getCacheKey(result.id, targetDepth)
+    // Process all results and await all projections
+    const projectedResults = await Promise.all(
+      results.map(async result => {
+        const cacheKey = this.getCacheKey(result.id, targetDepth)
 
-      // Check cache first
-      const cached = this.cache.get(cacheKey)
-      if (cached) {
-        // Update timestamp for LRU tracking (most recently used)
-        cached.accessCount++
-        cached.timestamp = Date.now()
-        // Re-set in cache to update the entry
-        this.cache.set(cacheKey, cached)
-        return cached.result
-      }
+        // Check cache first
+        const cached = this.cache.get(cacheKey)
+        if (cached) {
+          // Update timestamp for LRU tracking (most recently used)
+          cached.accessCount++
+          cached.timestamp = Date.now()
+          // Re-set in cache to update the entry
+          this.cache.set(cacheKey, cached)
+          return cached.result
+        }
 
-      // Project the result
-      const projected = this.projectSingle(result, targetDepth, config)
+        // Project the result (now async)
+        const projected = await this.projectSingle(result, targetDepth, config, results)
 
-      // Store in cache
-      this.cacheResult(cacheKey, projected)
+        // Store in cache
+        this.cacheResult(cacheKey, projected)
 
-      return projected
-    })
+        return projected
+      })
+    )
+
+    return projectedResults
   }
 
   /**
    * Project a single result to target depth
    */
-  private projectSingle(
+  private async projectSingle(
     result: RankedResult,
     targetDepth: ContextDepth,
-    config?: ProjectionConfig
-  ): ProjectedResult {
+    config?: ProjectionConfig,
+    allResults?: RankedResult[]
+  ): Promise<ProjectedResult> {
     const isHistorical = targetDepth === ContextDepth.HISTORICAL
 
     // At HISTORICAL level, no projection (full content)
@@ -178,12 +238,18 @@ export class ProjectionEngine {
     // Track loaded content
     const loadedContent = this.trackLoadedContent(targetDepth)
 
+    // Fetch blocks and suggestions concurrently for performance
+    const [relevantBlocks, relatedSuggestions] = await Promise.all([
+      this.getBlocksForDepth(result, targetDepth),
+      this.getSuggestionsForDepth(result, targetDepth, allResults),
+    ])
+
     return {
       result: projectedResult,
-      relevantBlocks: this.getBlocksForDepth(result, targetDepth),
+      relevantBlocks,
       contextChain: this.getContextChainForDepth(result, targetDepth),
       navigationHints: this.getNavigationHintsForDepth(result, targetDepth),
-      relatedSuggestions: this.getSuggestionsForDepth(result, targetDepth),
+      relatedSuggestions,
       depthLevel: targetDepth,
       isProjected: true,
       expansionHints,
@@ -253,23 +319,41 @@ export class ProjectionEngine {
   /**
    * Get semantic blocks appropriate for depth
    *
-   * TODO: PHASE 4 INTEGRATION - Replace with actual storage fetch
-   * This method currently uses mock/placeholder logic for testing.
-   * In production, should fetch from storage layer via BlockProvider.
+   * Fetches blocks from BlockProvider if available, otherwise falls back to mock blocks.
    *
    * @param result - Ranked result to extract blocks from
    * @param depth - Target context depth
-   * @returns Array of semantic blocks (currently mocked)
+   * @returns Promise resolving to array of semantic blocks
    */
-  private getBlocksForDepth(result: RankedResult, depth: ContextDepth): SemanticBlock[] {
+  private async getBlocksForDepth(
+    result: RankedResult,
+    depth: ContextDepth
+  ): Promise<SemanticBlock[]> {
     if (depth < ContextDepth.SEMANTIC) {
       return []
     }
 
-    // TEMPORARY: Mock block generation for Phase 4 testing
-    // Production implementation should use:
-    // await this.blockProvider.fetchBlocksForEntity(result.id, depth)
-    const blocks: any[] = []
+    // If provider is available, fetch from storage
+    if (this.blockProvider) {
+      try {
+        return await this.blockProvider.fetchBlocksForEntity(result.id, depth)
+      } catch (error) {
+        // Fall back to mock on error
+        console.warn(`Failed to fetch blocks for ${result.id}, falling back to mock:`, error)
+        return this.generateMockBlocks(result)
+      }
+    }
+
+    // Fall back to mock blocks when no provider
+    return this.generateMockBlocks(result)
+  }
+
+  /**
+   * Generate mock blocks for testing/fallback
+   * @private
+   */
+  private generateMockBlocks(result: RankedResult): SemanticBlock[] {
+    const blocks: SemanticBlock[] = []
 
     // Create a semantic block if we have content
     if (result.properties?.content || result.properties?.metadata) {
@@ -350,24 +434,39 @@ export class ProjectionEngine {
   /**
    * Get suggestions appropriate for depth
    *
-   * TODO: PHASE 4 INTEGRATION - Implement suggestion generation
-   * This should analyze related entities and provide contextual suggestions.
-   * See SemanticPresenter.generateSuggestions() for reference implementation.
+   * Generates suggestions using SuggestionProvider if available.
    *
    * @param result - Ranked result to generate suggestions for
    * @param depth - Target context depth
-   * @returns Array of related suggestions (currently empty)
+   * @param allResults - All results for context
+   * @returns Promise resolving to array of related suggestions
    */
-  private getSuggestionsForDepth(result: RankedResult, depth: ContextDepth): any[] {
+  private async getSuggestionsForDepth(
+    result: RankedResult,
+    depth: ContextDepth,
+    allResults?: RankedResult[]
+  ): Promise<Suggestion[]> {
     if (depth < ContextDepth.SEMANTIC) {
       return []
     }
 
-    // TODO: Implement suggestion generation based on:
-    // - Entity relationships (SUPERSEDES, MOTIVATES, etc.)
-    // - Similarity scores from semantic search
-    // - User browsing patterns (if available)
-    // - Lifecycle state (suggest current alternatives to deprecated)
+    // If provider is available, use it to generate suggestions
+    if (this.suggestionProvider) {
+      try {
+        return await this.suggestionProvider.generateSuggestions(result, depth, {
+          allResults,
+        })
+      } catch (error) {
+        // Fall back to empty suggestions on error
+        console.warn(
+          `Failed to generate suggestions for ${result.id}, falling back to empty:`,
+          error
+        )
+        return []
+      }
+    }
+
+    // No provider - return empty suggestions
     return []
   }
 

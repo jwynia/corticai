@@ -148,7 +148,7 @@ export class ContextPipeline {
 
     // Stage 5 (Phase 4): Projection to target depth
     const targetDepth = effectiveConfig.depth ?? ContextDepth.STRUCTURE
-    const projectedResults = this.projectionEngine.project(rankedResults, {
+    const projectedResults = await this.projectionEngine.project(rankedResults, {
       depth: targetDepth,
       suggestedDepth: this.projectionEngine.suggestDepth(parsedQuery),
       maxBlocksPerResult: effectiveConfig.maxBlocksPerResult,
