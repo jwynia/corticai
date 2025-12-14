@@ -44,6 +44,31 @@ export { JSONStorageAdapter } from './adapters/JSONStorageAdapter'
 export { DuckDBStorageAdapter } from './adapters/DuckDBStorageAdapter'
 
 // ============================================================================
+// STORAGE PROVIDERS (Dual-Role Architecture)
+// ============================================================================
+
+export {
+  IStorageProvider,
+  StorageProviderConfig,
+  StorageProviderStatus,
+  SearchOptions,
+  AggregateOperation,
+  PrimaryStorage,
+  SemanticStorage
+} from './providers/IStorageProvider'
+
+export { LocalStorageProvider, LocalStorageConfig } from './providers/LocalStorageProvider'
+export { AzureStorageProvider, AzureStorageConfig } from './providers/AzureStorageProvider'
+export {
+  StorageProviderFactory,
+  FactoryConfig,
+  EnvironmentInfo,
+  createStorageProvider,
+  detectEnvironment,
+  getRecommendedProviderType
+} from './providers/StorageProviderFactory'
+
+// ============================================================================
 // BASE CLASSES AND HELPERS (for extending)
 // ============================================================================
 

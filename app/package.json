@@ -5,6 +5,7 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.js.map",
+    "dist/**/*.d.ts",
     "README.md",
     "LICENSE"
   ],
@@ -43,7 +44,8 @@
     "benchmark:json": "npm run benchmark -- --adapters JSON",
     "benchmark:duckdb": "npm run benchmark -- --adapters DuckDB",
     "benchmark:small": "npm run benchmark -- --data-size 1K",
-    "benchmark:regression": "npm run benchmark -- --format json && npx tsx ./benchmarks/regression-check.ts"
+    "benchmark:regression": "npm run benchmark -- --format json && npx tsx ./benchmarks/regression-check.ts",
+    "semantic-release": "semantic-release"
   },
   "keywords": [
     "typescript",
@@ -91,6 +93,7 @@
     "@mastra/memory": "^0.15.1",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@types/js-yaml": "^4.0.9",
+    "ai": "^5.0.113",
     "chokidar": "^4.0.3",
     "duckdb": "^1.3.4",
     "file-type": "^21.0.0",
@@ -102,6 +105,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@types/benchmark": "^2.1.5",
     "@types/node": "^24.3.3",
@@ -112,6 +117,7 @@
     "gh-pages": "^6.3.0",
     "happy-dom": "^18.0.1",
     "mastra": "^0.12.3",
+    "semantic-release": "^25.0.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
     "typedoc": "^0.28.12",

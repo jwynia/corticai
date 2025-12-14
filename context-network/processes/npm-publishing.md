@@ -1,7 +1,7 @@
 # NPM Publishing Process
 
 ## Purpose
-This document describes how to publish the CorticAI package to GitHub Package Registry (GPR) and manage versions.
+This document describes how to publish the CorticAI package to GitHub Package Registry (GPR) using semantic-release for automatic versioning.
 
 ## Classification
 - **Domain:** Process
@@ -13,11 +13,11 @@ This document describes how to publish the CorticAI package to GitHub Package Re
 
 ### Overview
 
-CorticAI is published to GitHub Package Registry under the scoped package name `@jwynia/corticai`. This approach provides:
-- Organization-scoped packages (prevents name conflicts)
-- Access control via GitHub permissions
-- Integration with GitHub's package management
-- Automated publishing via GitHub Actions
+CorticAI is published to GitHub Package Registry under the scoped package name `@jwynia/corticai`. Publishing is fully automated via semantic-release, which:
+- Analyzes commit messages to determine version bumps
+- Generates changelogs automatically
+- Creates GitHub releases
+- Publishes to GitHub Package Registry
 
 ### Distribution Architecture
 
@@ -29,272 +29,164 @@ See [[decisions/adr_006_npm_centric_distribution.md]] for the architectural deci
 - Entry points defined in `package.json` `exports` field
 - Built artifacts published from `dist/` directory
 
+### Commit Message Conventions
+
+Semantic-release uses [Conventional Commits](https://www.conventionalcommits.org/) to determine version bumps:
+
+#### Patch Release (0.0.X)
+```
+fix: correct query parsing for empty strings
+fix(storage): handle null values in DuckDB adapter
+```
+
+#### Minor Release (0.X.0)
+```
+feat: add PostgreSQL storage adapter
+feat(query): implement full-text search
+```
+
+#### Major Release (X.0.0)
+```
+feat!: redesign storage interface
+fix!: remove deprecated query methods
+
+BREAKING CHANGE: Storage.get() now returns Promise<T | undefined>
+```
+
+#### No Release (these don't trigger a release)
+```
+chore: update dependencies
+docs: improve README
+style: format code
+refactor: simplify query builder
+test: add unit tests for parser
+ci: update workflow
+```
+
+### How Releases Work
+
+#### Automatic Releases (Recommended)
+
+1. **Write code with conventional commits:**
+   ```bash
+   git commit -m "feat: add vector similarity search"
+   git commit -m "fix: handle connection timeout"
+   ```
+
+2. **Push to main branch:**
+   ```bash
+   git push origin main
+   ```
+
+3. **Semantic-release automatically:**
+   - Analyzes all commits since last release
+   - Determines appropriate version bump
+   - Updates `package.json` version
+   - Generates/updates `CHANGELOG.md`
+   - Creates git tag and GitHub release
+   - Publishes to GitHub Package Registry
+
+#### Manual Trigger
+
+You can also trigger a release manually via GitHub Actions:
+1. Go to Actions → "Release and Publish"
+2. Click "Run workflow"
+3. Select the main branch
+4. Click "Run workflow"
+
+### Testing Releases
+
+**In CI:** The workflow runs semantic-release which handles everything automatically.
+
+**Locally:** To see what commits would trigger a release, check your commit history:
+```bash
+git log --oneline $(git describe --tags --abbrev=0)..HEAD
+```
+
+Look for `feat:` (minor bump), `fix:` (patch bump), or `BREAKING CHANGE` (major bump) prefixes.
+
 ### Prerequisites
-
-#### For Manual Publishing
-
-1. **GitHub Account** with access to the CorticAI repository
-2. **Personal Access Token (PAT)** created on GitHub with:
-   - `read:packages` scope (to install packages)
-   - `write:packages` scope (to publish packages)
-   - `repo` scope (for release management)
-
-3. **Local Configuration:**
-   - Node.js 20+ installed
-   - `.npmrc` configured with GitHub token
 
 #### For Automated Publishing (GitHub Actions)
 
-1. **Repository secrets** configured (handled by GitHub automatically)
-2. **Workflow file** present at `.github/workflows/publish-npm.yml`
-3. **GitHub token** available (provided by GitHub Actions automatically)
+No configuration needed - uses `GITHUB_TOKEN` automatically.
 
-### Publishing Methods
+#### For Installing Published Packages
 
-#### Method 1: Automated Publishing (Recommended)
-
-**Trigger:** Create a GitHub release
-
-**Process:**
-1. Determine new version number following semver
-2. Update `app/package.json` version field
-3. Commit changes: `git commit -m "chore: bump version to X.Y.Z"`
-4. Create git tag: `git tag vX.Y.Z`
-5. Push to GitHub: `git push origin main --tags`
-6. Create GitHub Release matching the tag
-   - Go to Releases → Draft a new release
-   - Select the tag you created
-   - Add release notes describing changes
-   - Publish the release
-7. GitHub Actions automatically:
-   - Checks out code
-   - Installs dependencies
-   - Runs tests
-   - Builds the package
-   - Publishes to GitHub Package Registry
-
-**Advantages:**
-- Automated, consistent process
-- Tests run before publishing (safety gate)
-- Release notes tied to package version
-- No local configuration needed (uses GITHUB_TOKEN)
-
-**Workflow Location:** `.github/workflows/publish-npm.yml`
-
-#### Method 2: Manual Publishing
-
-**Prerequisites:**
-1. GitHub Personal Access Token (PAT) with `write:packages` scope
-2. Configure local `.npmrc` in `app/` directory:
-   ```
-   @jwynia:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=YOUR_TOKEN_HERE
-   ```
-
-**Process:**
-1. Update version in `app/package.json`
-2. From the `app/` directory:
-   ```bash
-   npm install
-   npm test
-   npm run build
-   npm publish
-   ```
-
-**Disadvantages:**
-- Requires local GitHub token
-- No automated testing gate
-- Manual version management
-- Requires credentials on local machine
-
-### Installation and Usage
-
-#### As a Dependent Package
-
-To use `@jwynia/corticai` in another project:
-
-1. **Create or use existing GitHub Personal Access Token** with `read:packages` scope
-2. **Configure `.npmrc` in your project root:**
+1. **Create GitHub Personal Access Token** with `read:packages` scope
+2. **Configure `.npmrc`:**
    ```
    @jwynia:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=YOUR_TOKEN
    ```
 
-3. **Install the package:**
+3. **Install:**
    ```bash
    npm install @jwynia/corticai
    ```
 
-4. **Import from CorticAI:**
-   ```typescript
-   // Import from main entry point
-   import { contextAgents, contextTools } from '@jwynia/corticai';
+### Installation and Usage
 
-   // Or import from specific entry points
-   import { QueryBuilder } from '@jwynia/corticai/query';
-   import { StorageAdapter } from '@jwynia/corticai/storage';
-   ```
+#### As a Dependent Package
 
-### Version Management
+```typescript
+// Import from main entry point
+import { contextAgents, contextTools } from '@jwynia/corticai';
 
-#### Semantic Versioning
+// Or import from specific entry points
+import { QueryBuilder } from '@jwynia/corticai/query';
+import { DuckDBStorageAdapter } from '@jwynia/corticai/storage';
+import { LocalStorageProvider } from '@jwynia/corticai/storage';
+```
 
-CorticAI follows semantic versioning (MAJOR.MINOR.PATCH):
+### Configuration Files
 
-- **MAJOR**: Breaking API changes
-  - Example: Removing an exported function, changing function signature
-  - Increment: 1.0.0 → 2.0.0
+#### `.releaserc.json` (in app/)
+Controls semantic-release behavior:
+- Branch configuration (releases from `main`)
+- Plugin configuration (changelog, npm, git, github)
 
-- **MINOR**: New features, backward compatible
-  - Example: Adding new agents, tools, or storage adapters
-  - Increment: 1.0.0 → 1.1.0
-
-- **PATCH**: Bug fixes, backward compatible
-  - Example: Fixing a bug in query logic, improving performance
-  - Increment: 1.0.0 → 1.0.1
-
-#### Version Consistency
-
-All packages in the monorepo must maintain consistent versioning:
-- Main package version: `app/package.json`
-- This is the source of truth for all releases
-
-### Setting Up Local GitHub Token
-
-For manual publishing or private package installation:
-
-1. **Create GitHub Personal Access Token:**
-   - Go to GitHub Settings → Developer settings → Personal access tokens
-   - Create new token with:
-     - `read:packages` (to install private packages)
-     - `write:packages` (to publish packages)
-   - Copy the token (you won't see it again)
-
-2. **Configure for your environment:**
-
-   **For DevContainers (Recommended for this project):**
-   ```bash
-   # Add to .devcontainer/.env (already gitignored)
-   GITHUB_TOKEN=your_token_here
-
-   # Create workspace .npmrc (already gitignored)
-   # This file exists at /.npmrc and uses the env var
-   @jwynia:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-
-   # Rebuild container to load new env vars
-   # In VS Code: Command Palette → "Rebuild Container"
-   ```
-
-   **For Regular Machines:**
-   ```bash
-   # Add to ~/.npmrc (be careful with permissions)
-   echo "//npm.pkg.github.com/:_authToken=your_token_here" >> ~/.npmrc
-   chmod 600 ~/.npmrc
-   ```
-
-   **Important Security Notes:**
-   - ✅ `.devcontainer/.env` - Safe (gitignored, workspace-level)
-   - ✅ `/.npmrc` - Safe (gitignored, uses env var)
-   - ❌ `~/.npmrc` in devcontainers - Not recommended (doesn't persist)
-   - ❌ NEVER commit tokens to git
-
-3. **Test the configuration:**
-   ```bash
-   npm config list | grep @jwynia
-   # Should show: @jwynia:registry = "https://npm.pkg.github.com"
-   ```
+#### `.github/workflows/publish-npm.yml`
+GitHub Actions workflow that:
+1. Runs on push to main
+2. Runs tests
+3. Builds the package
+4. Runs semantic-release
 
 ### Troubleshooting
 
+#### "No release published"
+- Check commit messages follow conventional commit format
+- Commits like `chore:`, `docs:`, `style:` don't trigger releases
+- Use `feat:` or `fix:` prefixes to trigger releases
+
 #### "Failed to publish - not authenticated"
-- Verify GitHub token has `write:packages` scope
-- Check `.npmrc` configuration has correct registry and token
-- Verify token is not expired
+- Workflow uses `GITHUB_TOKEN` which should be automatic
+- Check repository has packages write permission enabled
 
 #### "Package name too similar to existing package"
-- GitHub Package Registry doesn't allow similar names across organizations
+- GitHub Package Registry doesn't allow similar names
 - Use the scoped package name `@jwynia/corticai`
 
 #### "401 Unauthorized when installing"
 - Ensure `.npmrc` has correct `read:packages` token
 - Token may have expired, create a new one
 
-#### "Cannot find module '@jwynia/corticai' when importing"
-- Check package is installed: `npm list @jwynia/corticai`
-- Verify TypeScript/build is using correct entry points
-- Ensure `.npmrc` is configured for `@jwynia` scope
+### Monitoring Releases
 
-### CI/CD Integration
-
-#### GitHub Actions Workflow
-
-The automated publishing workflow:
-1. **Triggered on:** GitHub releases (publish event)
-2. **Or manually:** Via workflow_dispatch input
-3. **Steps:**
-   - Checkout code
-   - Setup Node.js with GitHub registry authentication
-   - Install dependencies
-   - Run tests (gates publishing on test success)
-   - Build the package
-   - Publish to GitHub Package Registry
-   - Optionally attach dist/ to release assets
-
-#### Workflow File
-Location: `.github/workflows/publish-npm.yml`
-
-See the file for complete workflow details.
-
-### Monitoring and Verification
-
-#### Verify Published Package
-
-After publishing, verify the package is available:
-
+#### View Published Versions
 ```bash
-# List package versions in GitHub Package Registry
 npm view @jwynia/corticai versions --registry https://npm.pkg.github.com
-
-# Install the newly published version
-npm install @jwynia/corticai@latest
 ```
 
 #### Check Package Contents
-
-Ensure the package contains expected files:
-
 ```bash
-# View package contents
 npm pack @jwynia/corticai
-
-# Extract and inspect the tarball
-tar -tzf corticai-corticai-X.Y.Z.tgz | head -20
+tar -tzf jwynia-corticai-X.Y.Z.tgz | head -20
 ```
 
-### Common Issues and Solutions
-
-#### Issue: Multiple exports not working
-**Solution:** Verify all exports in `package.json` have corresponding built files:
-```json
-"exports": {
-  ".": "./dist/index.js",
-  "./context": "./dist/context/index.js"
-}
-```
-Ensure `npm run build` creates these files before publishing.
-
-#### Issue: Package installation fails with 404
-**Solution:** Verify:
-1. You have GitHub token with `read:packages` scope
-2. `.npmrc` points to https://npm.pkg.github.com
-3. Repository is set to allow package access (Settings → Packages)
-
-#### Issue: Tests fail in GitHub Actions but pass locally
-**Solution:**
-1. Check Node.js version (workflow uses 20, ensure local matches)
-2. Verify all dependencies are installed
-3. Check for environment-specific issues (Windows vs Linux)
+#### View Changelog
+Check `app/CHANGELOG.md` or the GitHub Releases page.
 
 ## Relationships
 - **Parent Nodes:** [processes/index.md]
@@ -302,19 +194,19 @@ Ensure `npm run build` creates these files before publishing.
 - **Related Nodes:**
   - [decisions/adr_006_npm_centric_distribution.md] - decision - NPM-centric architecture
   - [cross_cutting/package_export_patterns.md] - details - Export structure
-  - [cross_cutting/wrapper_architecture_guide.md] - guides - Wrapper patterns
 
 ## Navigation Guidance
-- **Access Context:** Reference when publishing new versions or setting up local development
-- **Common Next Steps:** Review export patterns, understand wrapper architecture
-- **Related Tasks:** Version management, CI/CD setup, package maintenance
-- **Update Patterns:** Update when publishing process changes or new issues are discovered
+- **Access Context:** Reference when understanding the release process
+- **Common Next Steps:** Review commit conventions, check changelog
+- **Related Tasks:** Writing conventional commits, monitoring releases
+- **Update Patterns:** Update when release process changes
 
 ## Metadata
 - **Created:** 2025-10-22
-- **Last Updated:** 2025-10-22
+- **Last Updated:** 2025-12-13
 - **Updated By:** Claude
 - **Status:** Established
 
 ## Change History
+- 2025-12-13: Updated to use semantic-release for automatic versioning
 - 2025-10-22: Created NPM publishing process documentation for GitHub Package Registry

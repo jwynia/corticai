@@ -2,11 +2,16 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "declaration": false,
+    "declaration": true,
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "ai": ["./node_modules/ai"],
+      "ai/*": ["./node_modules/ai/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": [
@@ -17,8 +22,6 @@
     "tests",
     "benchmarks",
     "examples",
-    "src/adapters/HouseholdFoodAdapter.ts",
-    "src/storage/providers/LocalStorageProvider.ts",
-    "src/storage/providers/StorageProviderFactory.ts"
+    "src/adapters/HouseholdFoodAdapter.ts"
   ]
 }
