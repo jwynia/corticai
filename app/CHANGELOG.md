@@ -1,3 +1,20 @@
+# [1.0.0](https://github.com/jwynia/corticai/compare/v0.2.0...v1.0.0) (2025-12-15)
+
+
+### Bug Fixes
+
+* resolve critical storage and import side-effect bugs ([0c8bb0b](https://github.com/jwynia/corticai/commit/0c8bb0baa3612d5bea60543cd77ac2418eb629d9))
+
+
+### BREAKING CHANGES
+
+* None - all changes are backwards compatible.
+New lazy getters added: getCorticaiContextServer(), getMinimalContextServer()
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
 # [0.2.0](https://github.com/jwynia/corticai/compare/v0.1.3...v0.2.0) (2025-12-14)
 
 
