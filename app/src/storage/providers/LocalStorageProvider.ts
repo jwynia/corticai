@@ -4,9 +4,11 @@
  * Implements the storage provider interface using local file-based storage.
  * Uses KuzuStorageAdapter for primary storage (graph operations) and
  * DuckDBStorageAdapter for semantic storage (analytics and search).
+ *
+ * Note: KuzuStorageAdapter is dynamically imported to avoid loading the kuzu
+ * native module when this provider is not used.
  */
 
-import { KuzuStorageAdapter } from '../adapters/KuzuStorageAdapter'
 import { DuckDBStorageAdapter } from '../adapters/DuckDBStorageAdapter'
 import {
   IStorageProvider,
@@ -19,6 +21,21 @@ import { GraphEntity } from '../types/GraphTypes'
 import { Logger } from '../../utils/Logger'
 
 const logger = Logger.createConsoleLogger('LocalStorageProvider')
+
+// Type for dynamically imported KuzuStorageAdapter
+type KuzuStorageAdapterType = typeof import('../adapters/KuzuStorageAdapter').KuzuStorageAdapter;
+let KuzuStorageAdapterClass: KuzuStorageAdapterType | null = null;
+
+/**
+ * Lazily load the KuzuStorageAdapter to avoid loading kuzu native module at import time
+ */
+async function getKuzuStorageAdapter(): Promise<KuzuStorageAdapterType> {
+  if (!KuzuStorageAdapterClass) {
+    const module = await import('../adapters/KuzuStorageAdapter');
+    KuzuStorageAdapterClass = module.KuzuStorageAdapter;
+  }
+  return KuzuStorageAdapterClass;
+}
 
 /**
  * Type guard to check if an entity has an id property
@@ -82,81 +99,114 @@ export interface LocalStorageConfig extends StorageProviderConfig {
 }
 
 /**
- * Enhanced KuzuStorageAdapter with graph operations
+ * Interface for enhanced Kuzu adapter with graph operations
+ */
+interface EnhancedKuzuAdapterInterface {
+  addEntity(entity: any): Promise<void>;
+  addRelationship(from: string, to: string, type: string, properties?: any): Promise<void>;
+  getEntity(id: string): Promise<any | undefined>;
+  getRelationships(entityId: string): Promise<any[]>;
+  set(key: string, value: any): Promise<void>;
+  get(key: string): Promise<any>;
+  delete(key: string): Promise<boolean>;
+  clear(): Promise<void>;
+  size(): Promise<number>;
+  keys(): AsyncIterable<string>;
+  values(): AsyncIterable<any>;
+  entries(): AsyncIterable<[string, any]>;
+  getEdges(entityId: string): Promise<any[]>;
+  close?(): Promise<void>;
+}
+
+/**
+ * Factory function to create an enhanced Kuzu adapter with graph operations.
+ * This dynamically creates a class that extends the lazily-loaded KuzuStorageAdapter.
  *
  * Note: KuzuStorageAdapter already implements traverse() and findConnected() with proper
  * graph query implementations. The base class provides graph functionality with its own
  * signature patterns. We add the additional PrimaryStorage optional methods here and provide
  * compatibility adapters for the different method signatures.
  */
-class EnhancedKuzuAdapter extends KuzuStorageAdapter {
-  /**
-   * Add entity to graph storage
-   * @param entity The entity to add (must have string id or one will be generated)
-   */
-  async addEntity(entity: any): Promise<void> {
-    // Extract ID from entity or generate one
-    const id = hasId(entity) ? entity.id : `entity_${crypto.randomUUID()}`
+async function createEnhancedKuzuAdapter(config: {
+  type: 'kuzu';
+  database: string;
+  readOnly?: boolean;
+  debug?: boolean;
+}): Promise<EnhancedKuzuAdapterInterface> {
+  const KuzuStorageAdapter = await getKuzuStorageAdapter();
 
-    // Convert entity to GraphEntity format expected by KuzuStorageAdapter
-    const graphEntity: GraphEntity = {
-      id,
-      type: entity.type || 'Entity',
-      properties: entity.properties || entity,
-      metadata: {
-        created: new Date(),
-        updated: new Date()
+  // Create the enhanced class dynamically
+  class EnhancedKuzuAdapter extends KuzuStorageAdapter {
+    /**
+     * Add entity to graph storage
+     * @param entity The entity to add (must have string id or one will be generated)
+     */
+    async addEntity(entity: any): Promise<void> {
+      // Extract ID from entity or generate one
+      const id = hasId(entity) ? entity.id : `entity_${crypto.randomUUID()}`
+
+      // Convert entity to GraphEntity format expected by KuzuStorageAdapter
+      const graphEntity: GraphEntity = {
+        id,
+        type: entity.type || 'Entity',
+        properties: entity.properties || entity,
+        metadata: {
+          created: new Date(),
+          updated: new Date()
+        }
       }
+
+      await this.set(id, graphEntity)
     }
 
-    await this.set(id, graphEntity)
-  }
-
-  /**
-   * Add relationship between entities
-   */
-  async addRelationship(from: string, to: string, type: string, properties?: any): Promise<void> {
-    const relationshipId = `${from}_${type}_${to}`
-    const relationship: GraphEntity = {
-      id: relationshipId,
-      type: 'Relationship',
-      properties: {
-        from,
-        to,
-        relationshipType: type,
-        ...(properties || {}),
-        createdAt: new Date().toISOString()
-      },
-      metadata: {
-        created: new Date()
+    /**
+     * Add relationship between entities
+     */
+    async addRelationship(from: string, to: string, type: string, properties?: any): Promise<void> {
+      const relationshipId = `${from}_${type}_${to}`
+      const relationship: GraphEntity = {
+        id: relationshipId,
+        type: 'Relationship',
+        properties: {
+          from,
+          to,
+          relationshipType: type,
+          ...(properties || {}),
+          createdAt: new Date().toISOString()
+        },
+        metadata: {
+          created: new Date()
+        }
       }
+
+      await this.set(relationshipId, relationship)
     }
 
-    await this.set(relationshipId, relationship)
+    /**
+     * Get entity by ID
+     */
+    async getEntity(id: string): Promise<any | undefined> {
+      return await this.get(id)
+    }
+
+    /**
+     * Get relationships for an entity
+     *
+     * Uses Kuzu's native graph traversal for O(degree) complexity instead of O(n) full scan.
+     * Returns all edges (relationships) connected to the entity, both incoming and outgoing.
+     *
+     * Performance: O(degree) where degree is the number of connected relationships
+     * Previous: O(n) where n was total number of entities in storage
+     */
+    async getRelationships(entityId: string): Promise<any[]> {
+      // Use Kuzu's native getEdges method which uses graph queries
+      // This leverages the graph database's indexing and traversal capabilities
+      const edges = await this.getEdges(entityId)
+      return edges
+    }
   }
 
-  /**
-   * Get entity by ID
-   */
-  async getEntity(id: string): Promise<any | undefined> {
-    return await this.get(id)
-  }
-
-  /**
-   * Get relationships for an entity
-   *
-   * Uses Kuzu's native graph traversal for O(degree) complexity instead of O(n) full scan.
-   * Returns all edges (relationships) connected to the entity, both incoming and outgoing.
-   *
-   * Performance: O(degree) where degree is the number of connected relationships
-   * Previous: O(n) where n was total number of entities in storage
-   */
-  async getRelationships(entityId: string): Promise<any[]> {
-    // Use Kuzu's native getEdges method which uses graph queries
-    // This leverages the graph database's indexing and traversal capabilities
-    const edges = await this.getEdges(entityId)
-    return edges
-  }
+  return new EnhancedKuzuAdapter(config);
 }
 
 /**
@@ -174,7 +224,7 @@ class EnhancedDuckDBAdapter<T = any> extends DuckDBStorageAdapter<T> {
  * Local Storage Provider Implementation
  */
 export class LocalStorageProvider implements IStorageProvider {
-  private primaryAdapter: EnhancedKuzuAdapter | null = null
+  private primaryAdapter: EnhancedKuzuAdapterInterface | null = null
   private semanticAdapter: EnhancedDuckDBAdapter | null = null
   private config: LocalStorageConfig
   private initialized = false
@@ -215,8 +265,8 @@ export class LocalStorageProvider implements IStorageProvider {
     }
 
     try {
-      // Initialize primary storage (Kuzu)
-      this.primaryAdapter = new EnhancedKuzuAdapter({
+      // Initialize primary storage (Kuzu) - uses dynamic import to avoid loading native module at import time
+      this.primaryAdapter = await createEnhancedKuzuAdapter({
         type: 'kuzu',
         database: this.config.primary.database,
         readOnly: this.config.primary.readOnly || false,

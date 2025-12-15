@@ -2,12 +2,8 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { RuntimeContext } from '@mastra/core/runtime-context';
 import { QueryBuilder } from '../../query/QueryBuilder.js';
-import { DuckDBQueryExecutor } from '../../query/executors/DuckDBQueryExecutor.js';
 import { MemoryQueryExecutor } from '../../query/executors/MemoryQueryExecutor.js';
-import { JSONQueryExecutor } from '../../query/executors/JSONQueryExecutor.js';
-import { DuckDBStorageAdapter } from '../../storage/adapters/DuckDBStorageAdapter.js';
-import { JSONStorageAdapter } from '../../storage/adapters/JSONStorageAdapter.js';
-import { MemoryStorageAdapter } from '../../storage/adapters/MemoryStorageAdapter.js';
+import { getSharedStorage, getAllStorageData, storageConfigSchema } from './sharedStorage.js';
 
 // Helper function to create RuntimeContext
 function createRuntimeContext(): RuntimeContext {
@@ -35,20 +31,6 @@ const queryConfigSchema = z.object({
   limit: z.number().optional(),
   offset: z.number().optional(),
   select: z.array(z.string()).optional(),
-});
-
-/**
- * Storage configuration for query
- */
-const storageConfigSchema = z.object({
-  type: z.enum(['memory', 'json', 'duckdb']).default('memory'),
-  duckdb: z.object({
-    database: z.string(),
-    tableName: z.string().optional(),
-  }).optional(),
-  json: z.object({
-    filePath: z.string(),
-  }).optional(),
 });
 
 /**
@@ -133,41 +115,14 @@ export const queryContextTool = createTool({
 
     const builtQuery = qb.build();
 
-    // Execute query based on storage type
-    let executor;
-    let storage;
+    // Get the shared storage instance and retrieve all data
+    const storage = getSharedStorage(storageConfig);
+    const allData = await getAllStorageData(storage);
 
-    switch (storageConfig.type) {
-      case 'duckdb':
-        throw new Error('DuckDB storage not yet implemented in query tools');
-      case 'json':
-        throw new Error('JSON storage not yet implemented in query tools');
-      case 'memory':
-      default:
-        storage = new MemoryStorageAdapter();
-        executor = new MemoryQueryExecutor();
-        break;
-    }
+    // Execute query using MemoryQueryExecutor on the retrieved data
+    const executor = new MemoryQueryExecutor();
+    const result = await executor.execute(builtQuery, allData);
 
-    // For now, only memory storage is supported - get data from storage adapter
-    let result;
-    if (storageConfig.type === 'memory' || !storageConfig.type) {
-      // MemoryQueryExecutor expects data array as second parameter
-      // We need to get all data from the memory storage adapter
-      const allData: any[] = [];
-      // Since we can't easily access the Map from storage, return empty results for now
-      // This is a temporary fix to get compilation working
-      result = {
-        data: allData,
-        metadata: {
-          totalCount: 0,
-          executionTimeMs: Date.now() - startTime,
-          queryComplexity: 'simple'
-        }
-      };
-    } else {
-      throw new Error(`Storage type ${storageConfig.type} not supported`);
-    }
     const executionTime = Date.now() - startTime;
 
     return {
@@ -338,37 +293,13 @@ export const searchContextTool = createTool({
 
     const query = qb.build();
 
-    // Execute search
-    let executor;
-    let storage;
+    // Get the shared storage instance and retrieve all data
+    const storage = getSharedStorage(storageConfig);
+    const allData = await getAllStorageData(storage);
 
-    switch (storageConfig.type) {
-      case 'duckdb':
-        throw new Error('DuckDB storage not yet implemented in query tools');
-      case 'json':
-        throw new Error('JSON storage not yet implemented in query tools');
-      case 'memory':
-      default:
-        storage = new MemoryStorageAdapter();
-        executor = new MemoryQueryExecutor();
-        break;
-    }
-
-    // For now, only memory storage is supported - return empty results
-    let result;
-    if (storageConfig.type === 'memory' || !storageConfig.type) {
-      // Return empty results for now - this is a temporary fix
-      result = {
-        data: [],
-        metadata: {
-          totalCount: 0,
-          executionTimeMs: Date.now() - Date.now(),
-          queryComplexity: 'simple'
-        }
-      };
-    } else {
-      throw new Error(`Storage type ${storageConfig.type} not supported`);
-    }
+    // Execute search using MemoryQueryExecutor on the retrieved data
+    const executor = new MemoryQueryExecutor();
+    const result = await executor.execute(query, allData);
 
     // Calculate simple relevance score based on match count
     const resultsWithRelevance = result.data.map((item: any) => {

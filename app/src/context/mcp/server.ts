@@ -99,13 +99,39 @@ export function createCorticaiMCPServer(config: CorticaiMCPServerConfig = {}): M
   return server;
 }
 
+// Lazy-initialized server instances to avoid side effects on import
+let _corticaiContextServer: MCPServer | null = null;
+let _minimalContextServer: MCPServer | null = null;
+
+/**
+ * Get the default CorticAI Context MCP Server (lazy-initialized)
+ * Includes all tools and agents with memory storage
+ *
+ * @deprecated Use createCorticaiMCPServer() for explicit control over initialization
+ */
+export function getCorticaiContextServer(): MCPServer {
+  if (!_corticaiContextServer) {
+    _corticaiContextServer = createCorticaiMCPServer({
+      includeAgents: true,
+      storage: { type: 'memory' },
+    });
+  }
+  return _corticaiContextServer;
+}
+
 /**
  * Default CorticAI Context MCP Server
- * Includes all tools and agents with memory storage
+ * @deprecated Use getCorticaiContextServer() instead to avoid eager initialization
+ *
+ * This getter provides backwards compatibility but logs a deprecation warning.
+ * The server is now lazy-initialized on first access.
  */
-export const corticaiContextServer = createCorticaiMCPServer({
-  includeAgents: true,
-  storage: { type: 'memory' },
+export const corticaiContextServer: MCPServer = new Proxy({} as MCPServer, {
+  get(_target, prop) {
+    const server = getCorticaiContextServer();
+    const value = (server as any)[prop];
+    return typeof value === 'function' ? value.bind(server) : value;
+  },
 });
 
 /**
@@ -125,9 +151,30 @@ export function createProductionServer(databasePath = './context.db'): MCPServer
 }
 
 /**
- * Minimal CorticAI Context MCP Server (tools only)
+ * Get the minimal CorticAI Context MCP Server (lazy-initialized, tools only)
+ *
+ * @deprecated Use createCorticaiMCPServer() for explicit control over initialization
  */
-export const minimalContextServer = createCorticaiMCPServer({
-  tools: ['storeContext', 'queryContext', 'searchContext'],
-  includeAgents: false,
+export function getMinimalContextServer(): MCPServer {
+  if (!_minimalContextServer) {
+    _minimalContextServer = createCorticaiMCPServer({
+      tools: ['storeContext', 'queryContext', 'searchContext'],
+      includeAgents: false,
+    });
+  }
+  return _minimalContextServer;
+}
+
+/**
+ * Minimal CorticAI Context MCP Server (tools only)
+ * @deprecated Use getMinimalContextServer() instead to avoid eager initialization
+ *
+ * This getter provides backwards compatibility but the server is now lazy-initialized.
+ */
+export const minimalContextServer: MCPServer = new Proxy({} as MCPServer, {
+  get(_target, prop) {
+    const server = getMinimalContextServer();
+    const value = (server as any)[prop];
+    return typeof value === 'function' ? value.bind(server) : value;
+  },
 });

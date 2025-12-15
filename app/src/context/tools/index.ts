@@ -7,6 +7,7 @@
 export * from './store.tool.js';
 export * from './query.tool.js';
 export * from './analyze.tool.js';
+export * from './sharedStorage.js';
 
 import { contextStoreTools } from './store.tool.js';
 import { contextQueryTools } from './query.tool.js';

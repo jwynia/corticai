@@ -1,10 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { RuntimeContext } from '@mastra/core/runtime-context';
-import { DuckDBStorageAdapter } from '../../storage/adapters/DuckDBStorageAdapter.js';
-import { JSONStorageAdapter } from '../../storage/adapters/JSONStorageAdapter.js';
-import { MemoryStorageAdapter } from '../../storage/adapters/MemoryStorageAdapter.js';
-import { StorageConfig, Storage } from '../../storage/interfaces/Storage.js';
+import { getSharedStorage, storageConfigSchema } from './sharedStorage.js';
 
 // Helper function to create RuntimeContext
 function createRuntimeContext(): RuntimeContext {
@@ -30,62 +27,6 @@ const contextEntrySchema = z.object({
 });
 
 /**
- * Storage configuration schema
- */
-const storageConfigSchema = z.object({
-  type: z.enum(['memory', 'json', 'duckdb']).default('memory'),
-  duckdb: z.object({
-    database: z.string(),
-    tableName: z.string().optional(),
-  }).optional(),
-  json: z.object({
-    filePath: z.string(),
-    pretty: z.boolean().optional(),
-  }).optional(),
-});
-
-// Global storage instance (can be configured)
-let storageInstance: Storage | null = null;
-
-/**
- * Initialize storage based on configuration
- */
-async function initializeStorage(config: z.infer<typeof storageConfigSchema>): Promise<Storage> {
-  if (storageInstance) {
-    return storageInstance;
-  }
-
-  switch (config.type) {
-    case 'duckdb':
-      if (!config.duckdb) {
-        throw new Error('DuckDB configuration required');
-      }
-      storageInstance = new DuckDBStorageAdapter({
-        type: 'duckdb',
-        database: config.duckdb.database,
-        tableName: config.duckdb.tableName || 'context',
-      });
-      break;
-    case 'json':
-      if (!config.json) {
-        throw new Error('JSON configuration required');
-      }
-      storageInstance = new JSONStorageAdapter({
-        type: 'json',
-        filePath: config.json.filePath,
-        pretty: config.json.pretty,
-      });
-      break;
-    case 'memory':
-    default:
-      storageInstance = new MemoryStorageAdapter();
-      break;
-  }
-
-  return storageInstance;
-}
-
-/**
  * Store context tool - Stores context entries with metadata
  */
 export const storeContextTool = createTool({
@@ -105,7 +46,7 @@ export const storeContextTool = createTool({
   execute: async ({ context }) => {
     const { entry, storageConfig = { type: 'memory' }, deduplicate } = context;
 
-    const storage = await initializeStorage(storageConfig);
+    const storage = getSharedStorage(storageConfig);
 
     // Generate ID if not provided
     const id = entry.id || `${entry.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -179,7 +120,7 @@ export const batchStoreContextTool = createTool({
   execute: async ({ context }) => {
     const { entries, storageConfig = { type: 'memory' }, deduplicate } = context;
 
-    const storage = await initializeStorage(storageConfig);
+    const storage = getSharedStorage(storageConfig);
     const results = [];
     let storedCount = 0;
     let duplicateCount = 0;
@@ -219,7 +160,7 @@ export const deleteContextTool = createTool({
   execute: async ({ context }) => {
     const { id, storageConfig = { type: 'memory' } } = context;
 
-    const storage = await initializeStorage(storageConfig);
+    const storage = getSharedStorage(storageConfig);
     const deleted = await storage.delete(id);
 
     return { deleted };
@@ -250,7 +191,7 @@ export const clearContextTool = createTool({
       };
     }
 
-    const storage = await initializeStorage(storageConfig);
+    const storage = getSharedStorage(storageConfig);
     await storage.clear();
 
     return {
